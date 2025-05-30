@@ -2,7 +2,7 @@ package io.sukhuat.dingo.ui.screens.home
 
 import androidx.lifecycle.ViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
-import io.sukhuat.dingo.repository.DummyRepository
+import io.sukhuat.dingo.data.repository.DummyRepository
 import javax.inject.Inject
 
 @HiltViewModel

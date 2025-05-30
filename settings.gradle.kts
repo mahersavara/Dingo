@@ -16,6 +16,6 @@ dependencyResolutionManagement {
 rootProject.name = "Dingo"
 include(":app")
 include(":data")
-include(":repository")
+include(":domain")
 include(":common")
 include(":ui")

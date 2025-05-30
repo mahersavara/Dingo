@@ -40,7 +40,7 @@ android {
 
 dependencies {
     implementation(project(":data"))
-    implementation(project(":repository"))
+    implementation(project(":domain"))
     implementation(project(":common"))
 
     implementation(libs.core.ktx)

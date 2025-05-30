@@ -18,7 +18,7 @@ Dingo/
 ├── app/          # Navigation & DI setup
 ├── ui/           # UI Components & ViewModels
 ├── data/         # Data models & local storage
-├── repository/   # Data operations & business logic
+├── domain/   # Data operations & business logic
 └── common/       # Shared UI components & utilities
 ```
 
@@ -26,7 +26,7 @@ Dingo/
 - **:app** - Handles navigation and dependency injection setup
 - **:ui** - Contains all screens, ViewModels, and UI state management
 - **:data** - Manages Room database, data models, and local storage
-- **:repository** - Implements business logic and data operations
+- **:domain** - Implements business logic and data operations
 - **:common** - Houses shared components, themes, and utilities
 
 ## Design Patterns
@@ -40,7 +40,7 @@ Dingo/
 2. **Repository Pattern**
    - Abstract data operations behind repository interfaces
    - Separate data sources from business logic
-   - Implemented in :repository module
+   - Implemented in :domain module
 
 3. **Dependency Injection**
    - Using Hilt for dependency management
@@ -137,7 +137,7 @@ hilt = "2.50"
 2. Module-specific setup:
 - **:app**: Main application module with navigation
 - **:data**: Room database configuration
-- **:repository**: Data access layer
+- **:domain**: Data access layer
 - **:ui**: Compose UI components
 - **:common**: Shared resources
 
@@ -234,7 +234,7 @@ These commands are automatically run as part of the git pre-commit hook to ensur
 graph TD
     A[app] --> B[ui]
     A --> C[common]
-    B --> D[repository]
+    B --> D[domain]
     B --> C
     D --> E[data]
     D --> C
@@ -314,21 +314,21 @@ graph LR
 graph TB
     subgraph Hilt Modules
         DM[DatabaseModule]
-        RM[RepositoryModule]
+        DomM[DomainModule]
     end
     
     subgraph Components
         VM[ViewModels]
-        R[Repositories]
+        DOM[Domain Layer]
         DAO[DAOs]
         DB[(Database)]
     end
 
     DM -->|Provides| DB
     DB -->|Provides| DAO
-    RM -->|Binds| R
-    R -->|Uses| DAO
-    VM -->|Injects| R
+    DomM -->|Binds| DOM
+    DOM -->|Uses| DAO
+    VM -->|Injects| DOM
 ```
 
 ## Future Enhancements

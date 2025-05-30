@@ -53,7 +53,7 @@ android {
 
 dependencies {
     implementation(project(":data"))
-    implementation(project(":repository"))
+    implementation(project(":domain"))
     implementation(project(":ui"))
     implementation(project(":common"))
 

@@ -5,8 +5,8 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import io.sukhuat.dingo.data.local.DummyDao
-import io.sukhuat.dingo.repository.DummyRepository
-import io.sukhuat.dingo.repository.DummyRepositoryImpl
+import io.sukhuat.dingo.data.repository.DummyRepository
+import io.sukhuat.dingo.data.repository.DummyRepositoryImpl
 import javax.inject.Singleton
 
 @Module

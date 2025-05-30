@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "io.sukhuat.dingo.repository"
+    namespace = "io.sukhuat.dingo.domain"
     compileSdk = 34
 
     defaultConfig {

@@ -1,4 +1,4 @@
-package io.sukhuat.dingo.repository
+package io.sukhuat.dingo.data.repository
 
 import io.sukhuat.dingo.data.model.DummyData
 import kotlinx.coroutines.flow.Flow
