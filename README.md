@@ -209,6 +209,24 @@ Recommended Android Studio settings:
 - Set up detekt for static analysis
 - Enable compose compiler metrics
 
+## Gradle Commands
+
+### Code Quality
+The project uses ktlint for code formatting and various checks. Here are the main Gradle commands:
+
+```bash
+# Run all project checks (compilation, lint, tests)
+./gradlew check
+
+# Format code using ktlint
+./gradlew ktlintFormat
+
+# Verify code formatting
+./gradlew ktlintCheck
+```
+
+These commands are automatically run as part of the git pre-commit hook to ensure code quality.
+
 ## Architecture Diagrams
 
 ### Module Dependencies

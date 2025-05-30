@@ -1,0 +1,40 @@
+#!/bin/sh
+
+echo "Running pre-commit checks..."
+
+# Store the current working directory
+CWD=$(pwd)
+
+# Format code with ktlint first
+echo "Running ktlint format..."
+./gradlew ktlintFormat
+KTLINT_FORMAT_RESULT=$?
+
+if [ $KTLINT_FORMAT_RESULT -ne 0 ]; then
+    echo "❌ Code formatting failed. Please check ktlint issues manually."
+    exit 1
+fi
+
+# Run Gradle check to verify compilation and lint
+echo "Running Gradle check..."
+./gradlew check --daemon
+GRADLE_RESULT=$?
+
+if [ $GRADLE_RESULT -ne 0 ]; then
+    echo "❌ Gradle check failed. Please fix the errors before committing."
+    exit 1
+fi
+
+# Run ktlint to check code formatting
+echo "Running ktlint check..."
+./gradlew ktlintCheck
+KTLINT_RESULT=$?
+
+if [ $KTLINT_RESULT -ne 0 ]; then
+    echo "❌ Code style check failed. Something went wrong with formatting."
+    exit 1
+fi
+
+echo "✅ All checks passed!"
+exit 0
+
