@@ -1,4 +1,4 @@
-package io.sukhuat.dingo.repository.di
+package io.sukhuat.dingo.data.di
 
 import dagger.Module
 import dagger.Provides
