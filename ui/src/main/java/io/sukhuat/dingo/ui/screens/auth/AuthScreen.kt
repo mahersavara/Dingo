@@ -13,6 +13,86 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount
+import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.tasks.Task
+
+@Composable
+private fun EmailPasswordFields(
+    email: String,
+    onEmailChange: (String) -> Unit,
+    password: String,
+    onPasswordChange: (String) -> Unit
+) {
+    TextField(
+        value = email,
+        onValueChange = onEmailChange,
+        label = { Text("Email") },
+        modifier = Modifier.fillMaxWidth()
+    )
+
+    Spacer(modifier = Modifier.height(8.dp))
+
+    TextField(
+        value = password,
+        onValueChange = onPasswordChange,
+        label = { Text("Password") },
+        visualTransformation = PasswordVisualTransformation(),
+        modifier = Modifier.fillMaxWidth()
+    )
+}
+
+@Composable
+private fun AuthButtons(
+    isSignUp: Boolean,
+    onSignInClick: () -> Unit,
+    onToggleAuthMode: () -> Unit
+) {
+    Button(
+        onClick = onSignInClick,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text(if (isSignUp) "Sign Up" else "Sign In")
+    }
+
+    TextButton(
+        onClick = onToggleAuthMode,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text(if (isSignUp) "Already have an account? Sign In" else "Need an account? Sign Up")
+    }
+}
+
+@Composable
+private fun GoogleSignInButton(
+    onGoogleSignInClick: () -> Unit
+) {
+    Button(
+        onClick = onGoogleSignInClick,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text("Sign in with Google")
+    }
+}
+
+@Composable
+private fun AuthStateIndicators(
+    authState: AuthUiState
+) {
+    if (authState is AuthUiState.Error) {
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = (authState as AuthUiState.Error).message,
+            color = MaterialTheme.colorScheme.error
+        )
+    }
+
+    if (authState is AuthUiState.Loading) {
+        Spacer(modifier = Modifier.height(8.dp))
+        CircularProgressIndicator()
+    }
+}
 
 @Composable
 fun AuthScreen(
@@ -61,65 +141,33 @@ fun AuthScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        TextField(
-            value = email,
-            onValueChange = { email = it },
-            label = { Text("Email") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        TextField(
-            value = password,
-            onValueChange = { password = it },
-            label = { Text("Password") },
-            visualTransformation = PasswordVisualTransformation(),
-            modifier = Modifier.fillMaxWidth()
+        EmailPasswordFields(
+            email = email,
+            onEmailChange = { email = it },
+            password = password,
+            onPasswordChange = { password = it }
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Button(
-            onClick = {
+        AuthButtons(
+            isSignUp = isSignUp,
+            onSignInClick = {
                 if (isSignUp) {
                     viewModel.signUp(email, password, password)
                 } else {
                     viewModel.signIn(email, password)
                 }
             },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(if (isSignUp) "Sign Up" else "Sign In")
-        }
-
-        TextButton(
-            onClick = { isSignUp = !isSignUp },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(if (isSignUp) "Already have an account? Sign In" else "Need an account? Sign Up")
-        }
+            onToggleAuthMode = { isSignUp = !isSignUp }
+        )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Button(
-            onClick = { viewModel.initiateGoogleSignIn(launcher) },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Sign in with Google")
-        }
+        GoogleSignInButton(
+            onGoogleSignInClick = { viewModel.initiateGoogleSignIn(launcher) }
+        )
 
-        if (authState is AuthUiState.Error) {
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = (authState as AuthUiState.Error).message,
-                color = MaterialTheme.colorScheme.error
-            )
-        }
-
-        if (authState is AuthUiState.Loading) {
-            Spacer(modifier = Modifier.height(8.dp))
-            CircularProgressIndicator()
-        }
+        AuthStateIndicators(authState = authState)
     }
 }

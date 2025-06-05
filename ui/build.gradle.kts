@@ -40,6 +40,7 @@ android {
 
 dependencies {
     implementation(project(":data"))
+    //TODO: WHO LETS DATA IN THE UI MODULE?
     implementation(project(":domain"))
     implementation(project(":common"))
 
@@ -50,6 +51,9 @@ dependencies {
     implementation(libs.compose.ui.graphics)
     implementation(libs.compose.ui.tooling.preview)
     implementation(libs.compose.material3)
+
+    // Google Sign-In
+    implementation("com.google.android.gms:play-services-auth:20.7.0")
 
     // Hilt
     implementation(libs.hilt.android)
