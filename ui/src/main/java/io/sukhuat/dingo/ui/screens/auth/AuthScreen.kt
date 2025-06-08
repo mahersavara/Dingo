@@ -1,22 +1,43 @@
 package io.sukhuat.dingo.ui.screens.auth
 
 import android.app.Activity
-import android.widget.Toast
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.tasks.Task
+import io.sukhuat.dingo.common.utils.ToastHelper
+
+private const val TAG = "AuthScreen"
 
 @Composable
 private fun EmailPasswordFields(
@@ -84,7 +105,9 @@ private fun AuthStateIndicators(
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = (authState as AuthUiState.Error).message,
-            color = MaterialTheme.colorScheme.error
+            color = MaterialTheme.colorScheme.error,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
         )
     }
 
@@ -112,15 +135,25 @@ fun AuthScreen(
                 account.idToken?.let { token ->
                     viewModel.signInWithGoogle(token)
                 } ?: run {
-                    Toast.makeText(context, "Failed to get ID token", Toast.LENGTH_SHORT).show()
+                    val errorMsg = "Failed to get ID token from Google Sign-In"
+                    Log.e(TAG, errorMsg)
+                    ToastHelper.showLong(context, errorMsg)
                 }
             } catch (e: ApiException) {
-                Toast.makeText(
-                    context,
-                    "Google sign in failed: ${e.statusCode}",
-                    Toast.LENGTH_SHORT
-                ).show()
+                val errorMsg = "Google sign in failed: ${e.statusCode} - ${getGoogleSignInErrorMessage(e.statusCode)}"
+                Log.e(TAG, errorMsg, e)
+                ToastHelper.showLong(context, errorMsg)
+            } catch (e: Exception) {
+                val errorMsg = "Unexpected error during Google Sign-In: ${e.message}"
+                Log.e(TAG, errorMsg, e)
+                ToastHelper.showLong(context, errorMsg)
             }
+        } else if (result.resultCode == Activity.RESULT_CANCELED) {
+            Log.d(TAG, "Google Sign-In was canceled by user")
+        } else {
+            val errorMsg = "Google Sign-In failed with result code: ${result.resultCode}"
+            Log.e(TAG, errorMsg)
+            ToastHelper.showMedium(context, errorMsg)
         }
     }
 
@@ -169,5 +202,17 @@ fun AuthScreen(
         )
 
         AuthStateIndicators(authState = authState)
+    }
+}
+
+/**
+ * Get a human-readable error message for Google Sign-In error codes
+ */
+private fun getGoogleSignInErrorMessage(statusCode: Int): String {
+    return when (statusCode) {
+        12500 -> "Play Services out of date or missing"
+        12501 -> "User canceled the sign-in flow"
+        12502 -> "Sign-in attempt failed"
+        else -> "Unknown error code: $statusCode"
     }
 }

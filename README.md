@@ -10,6 +10,20 @@ Transform traditional vision boards into an interactive, game-like experience wh
 - Celebrate achievements with satisfying notifications
 - Stay motivated through gamification
 
+## Features
+
+### Authentication
+The app includes a complete authentication system:
+- Email/password authentication
+- Google Sign-In integration
+- Secure session management
+- Proper error handling with user feedback
+
+Authentication flow:
+1. Splash screen validates user authentication status
+2. Users are directed to either the auth screen or home screen based on status
+3. Sign-out functionality available from the home screen
+
 ## Architecture
 The project follows Clean Architecture principles with a modular structure:
 
@@ -91,13 +105,17 @@ Dingo/
 - **DI**: Hilt
 - **Architecture**: Clean Architecture + MVVM
 - **State Management**: Kotlin Flow
+- **Authentication**: Firebase Auth, Google Sign-In
 - **Build System**: Gradle with Version Catalog
 
 ## Getting Started
 1. Clone the repository
 2. Open in Android Studio
 3. Sync project with Gradle files
-4. Run the app
+4. Configure Firebase Authentication:
+   - Add your `google-services.json` to the app module
+   - Update the Google Web Client ID in `Constants.kt`
+5. Run the app
 
 ## Setup & Configuration
 
@@ -106,6 +124,7 @@ Dingo/
 - JDK 17
 - Android SDK 34
 - Kotlin 1.9.0
+- Firebase project with Authentication enabled
 
 ### Environment Setup
 1. Clone the repository:
@@ -120,6 +139,12 @@ git clone https://github.com/yourusername/Dingo.git
 sdk.dir=C\:\\Users\\YourUsername\\AppData\\Local\\Android\\Sdk
 ```
 
+3. Firebase Configuration:
+- Create a Firebase project in the Firebase Console
+- Enable Authentication with Email/Password and Google Sign-In
+- Download `google-services.json` and place it in the app module
+- Update the Google Web Client ID in `common/src/main/java/io/sukhuat/dingo/common/Constants.kt`
+
 ### Build Configuration
 The project uses Gradle Version Catalog for dependency management:
 
@@ -129,6 +154,8 @@ The project uses Gradle Version Catalog for dependency management:
 compose-compiler = "1.5.1"
 room = "2.6.1"
 hilt = "2.50"
+firebase-auth = "22.3.1"
+play-services-auth = "20.7.0"
 
 [libraries]
 # Core dependencies are managed here
@@ -216,16 +243,31 @@ The project uses ktlint for code formatting and various checks. Here are the mai
 
 ```bash
 # Run all project checks (compilation, lint, tests)
+# On Linux/Mac:
 ./gradlew check
+# On Windows:
+gradlew.bat check
 
-# Format code using ktlint
+# Format code using ktlint (fixes most style issues automatically)
+# On Linux/Mac:
 ./gradlew ktlintFormat
+# On Windows:
+gradlew.bat ktlintFormat
 
 # Verify code formatting
+# On Linux/Mac:
 ./gradlew ktlintCheck
+# On Windows:
+gradlew.bat ktlintCheck
+
+# One-command fix for most common issues (recommended before committing)
+# On Linux/Mac:
+./gradlew clean ktlintFormat build
+# On Windows:
+gradlew.bat clean ktlintFormat build
 ```
 
-These commands are automatically run as part of the git pre-commit hook to ensure code quality.
+These commands are automatically run as part of the git pre-commit hook to ensure code quality. If you encounter KtLint errors, the `ktlintFormat` command will automatically fix most issues. For more complex problems, check the error reports in the `build/reports/ktlint/` directory.
 
 ## Architecture Diagrams
 
@@ -249,22 +291,31 @@ graph TB
     end
     
     subgraph Domain Layer
-        R[Repositories]
         UC[Use Cases]
+        RE[Repository Interfaces]
     end
     
     subgraph Data Layer
-        RI[Repository Impl]
+        RI[Repository Implementations]
         DS[Data Sources]
-        DB[(Room Database)]
     end
-
+    
     UI --> VM
     VM --> UC
-    UC --> R
-    R --> RI
+    UC --> RE
+    RE --> RI
     RI --> DS
-    DS --> DB
+```
+
+### Authentication Flow Diagram
+```mermaid
+graph TD
+    A[App Launch] --> B[Splash Screen]
+    B --> C{User Authenticated?}
+    C -->|Yes| D[Home Screen]
+    C -->|No| E[Auth Screen]
+    E -->|Sign In/Up Success| D
+    D -->|Sign Out| E
 ```
 
 ### Data Flow
@@ -338,3 +389,57 @@ graph TB
 - Social sharing
 - Achievement notifications
 - Statistical analysis
+
+## Key Components
+
+### Authentication
+- **AuthScreen**: Composable for login/signup with email/password and Google Sign-In
+- **AuthViewModel**: Manages authentication state and operations
+- **AuthUiState**: Sealed class representing different authentication states
+- **SplashScreen**: Entry point that checks authentication status
+- **HomeScreen**: Main screen with logout functionality
+
+### Use Cases
+- **SignInUseCase**: Handles email/password authentication
+- **SignUpWithEmailUseCase**: Manages user registration
+- **GetAuthStatusUseCase**: Checks if user is authenticated
+- **SignOutUseCase**: Handles user logout
+
+### Services
+- **GoogleAuthService**: Manages Google Sign-In functionality
+- **ToastHelper**: Provides consistent toast messages for user feedback
+
+## UI Screens
+
+### Splash Screen
+- Validates authentication status on app launch
+- Directs users to appropriate screen based on status
+
+### Auth Screen
+- Email/password sign-in form
+- Email/password registration
+- Google Sign-In button
+- Error handling with user feedback
+
+### Home Screen
+- Main application interface
+- Sign-out functionality in top app bar
+- User session management
+
+## Error Handling
+The app includes comprehensive error handling:
+- Descriptive error messages for authentication failures
+- Toast notifications for user feedback
+- Logging for debugging purposes
+- UI state updates to reflect error conditions
+
+## Navigation
+- **NavHost**: Manages navigation between screens
+- **Screen**: Sealed class defining navigation routes
+- Proper back stack management for authentication flow
+
+## Security Considerations
+- Secure storage of authentication tokens
+- Proper session management
+- Firebase Authentication for secure credential handling
+- Google OAuth for third-party authentication

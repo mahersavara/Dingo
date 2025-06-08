@@ -40,7 +40,7 @@ android {
 
 dependencies {
     implementation(project(":data"))
-    //TODO: WHO LETS DATA IN THE UI MODULE?
+    // TODO: WHO LETS DATA IN THE UI MODULE?
     implementation(project(":domain"))
     implementation(project(":common"))
 

@@ -14,6 +14,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import dagger.hilt.android.AndroidEntryPoint
 import io.sukhuat.dingo.navigation.Screen
+import io.sukhuat.dingo.ui.screens.auth.AuthScreen
 import io.sukhuat.dingo.ui.screens.home.HomeScreen
 import io.sukhuat.dingo.ui.screens.splash.SplashScreen
 import io.sukhuat.dingo.ui.theme.DingoTheme
@@ -45,15 +46,36 @@ fun DingoApp() {
         ) {
             composable(Screen.Splash.route) {
                 SplashScreen(
-                    onSplashComplete = {
+                    onNavigateToHome = {
                         navController.navigate(Screen.Home.route) {
+                            popUpTo(Screen.Splash.route) { inclusive = true }
+                        }
+                    },
+                    onNavigateToAuth = {
+                        navController.navigate(Screen.Auth.route) {
                             popUpTo(Screen.Splash.route) { inclusive = true }
                         }
                     }
                 )
             }
+            composable(Screen.Auth.route) {
+                AuthScreen(
+                    onAuthSuccess = {
+                        navController.navigate(Screen.Home.route) {
+                            popUpTo(Screen.Auth.route) { inclusive = true }
+                        }
+                    }
+                )
+            }
             composable(Screen.Home.route) {
-                HomeScreen()
+                HomeScreen(
+                    onSignOut = {
+                        navController.navigate(Screen.Auth.route) {
+                            // Clear the back stack so user can't go back to Home after signing out
+                            popUpTo(Screen.Home.route) { inclusive = true }
+                        }
+                    }
+                )
             }
         }
     }
