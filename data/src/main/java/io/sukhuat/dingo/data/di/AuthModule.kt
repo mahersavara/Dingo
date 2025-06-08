@@ -14,6 +14,9 @@ import io.sukhuat.dingo.data.repository.auth.AuthRepository
 import io.sukhuat.dingo.data.repository.auth.FirebaseAuthRepositoryImpl
 import javax.inject.Singleton
 
+/**
+ * Module that provides all authentication related dependencies
+ */
 @Module
 @InstallIn(SingletonComponent::class)
 object AuthModule {

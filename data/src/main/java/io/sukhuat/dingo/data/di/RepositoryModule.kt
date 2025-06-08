@@ -9,6 +9,10 @@ import io.sukhuat.dingo.data.repository.DummyRepository
 import io.sukhuat.dingo.data.repository.DummyRepositoryImpl
 import javax.inject.Singleton
 
+/**
+ * Module that provides all repository dependencies except auth repositories
+ * (which are provided by AuthModule)
+ */
 @Module
 @InstallIn(SingletonComponent::class)
 object RepositoryModule {
