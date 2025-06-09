@@ -6,61 +6,169 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 
-private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80,
-    background = Color(0xFF121212),
-    surface = Color(0xFF1E1E1E),
-    error = Error,
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onBackground = Color.White,
-    onSurface = Color.White,
-    onError = Color.White
+/**
+ * Custom color properties not included in Material3 ColorScheme
+ */
+data class ExtendedColors(
+    val surfaceGradientStart: Color,
+    val surfaceGradientMiddle: Color,
+    val surfaceGradientEnd: Color,
+    val cardBackground: Color,
+    val elevatedSurface: Color,
+    val backgroundVariant: Color,
+    val surfaceTint: Color
 )
 
-private val LightColorScheme = lightColorScheme(
-    primary = Primary,
-    secondary = Secondary,
-    tertiary = Pink40,
-    background = Background,
-    surface = Surface,
-    error = Error,
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onBackground = TextPrimary,
-    onSurface = TextPrimary,
-    onError = Color.White
+// Provide the extended colors through CompositionLocal
+val LocalExtendedColors = staticCompositionLocalOf {
+    ExtendedColors(
+        surfaceGradientStart = Color.Unspecified,
+        surfaceGradientMiddle = Color.Unspecified,
+        surfaceGradientEnd = Color.Unspecified,
+        cardBackground = Color.Unspecified,
+        elevatedSurface = Color.Unspecified,
+        backgroundVariant = Color.Unspecified,
+        surfaceTint = Color.Unspecified
+    )
+}
+
+private val MountainSunriseDarkColorScheme = darkColorScheme(
+    primary = RusticGold,
+    onPrimary = White,
+    primaryContainer = DeepIndigo,
+    onPrimaryContainer = CloudGray,
+
+    secondary = DeepPurple,
+    onSecondary = White,
+    secondaryContainer = MidnightBlue,
+    onSecondaryContainer = CloudGray,
+
+    tertiary = AmberHorizon,
+    onTertiary = White,
+    tertiaryContainer = MountainShadow,
+    onTertiaryContainer = CloudGray,
+
+    background = DarkBackgroundVariant,
+    onBackground = CloudGray,
+    surface = MidnightBlue,
+    onSurface = CloudGray,
+
+    error = DustyRose,
+    onError = White,
+
+    outline = MountainShadow.copy(alpha = 0.7f),
+    outlineVariant = MountainShadow.copy(alpha = 0.4f),
+
+    surfaceTint = DarkSurfaceTint,
+    surfaceVariant = DarkBackgroundVariant
+)
+
+private val MountainSunriseLightColorScheme = lightColorScheme(
+    primary = RusticGold,
+    onPrimary = White,
+    primaryContainer = LightBackgroundVariant,
+    onPrimaryContainer = DeepIndigo,
+
+    secondary = DeepPurple,
+    onSecondary = White,
+    secondaryContainer = LightBackgroundVariant,
+    onSecondaryContainer = DeepIndigo,
+
+    tertiary = AmberHorizon,
+    onTertiary = White,
+    tertiaryContainer = LightBackgroundVariant,
+    onTertiaryContainer = DeepIndigo,
+
+    background = LightBackgroundVariant,
+    onBackground = DeepIndigo,
+    surface = LightBackgroundVariant,
+    onSurface = DeepIndigo,
+
+    error = DustyRose,
+    onError = White,
+
+    outline = MountainShadow.copy(alpha = 0.5f),
+    outlineVariant = MountainShadow.copy(alpha = 0.2f),
+
+    surfaceTint = LightSurfaceTint,
+    surfaceVariant = LightBackgroundVariant
+)
+
+// Extended colors for dark theme
+private val DarkExtendedColors = ExtendedColors(
+    surfaceGradientStart = SunriseStart,
+    surfaceGradientMiddle = SunriseMid,
+    surfaceGradientEnd = SunriseEnd,
+    cardBackground = DarkCardBackground,
+    elevatedSurface = DarkElevatedSurface,
+    backgroundVariant = DarkBackgroundVariant,
+    surfaceTint = DarkSurfaceTint
+)
+
+// Extended colors for light theme
+private val LightExtendedColors = ExtendedColors(
+    surfaceGradientStart = LightBackgroundVariant,
+    surfaceGradientMiddle = LightBackgroundVariant.copy(alpha = 0.7f),
+    surfaceGradientEnd = AmberHorizon.copy(alpha = 0.2f),
+    cardBackground = LightCardBackground,
+    elevatedSurface = LightElevatedSurface,
+    backgroundVariant = LightBackgroundVariant,
+    surfaceTint = LightSurfaceTint
 )
 
 @Composable
-fun DingoTheme(
+fun MountainSunriseTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
+        darkTheme -> MountainSunriseDarkColorScheme
+        else -> MountainSunriseLightColorScheme
+    }
+
+    val extendedColors = when {
+        darkTheme -> DarkExtendedColors
+        else -> LightExtendedColors
     }
 
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = colorScheme.primary.toArgb()
-            // We'll handle status bar appearance in the Activity
+            window.statusBarColor = DeepIndigo.toArgb() // Always use DeepIndigo for status bar
         }
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = DingoTypography,
-        content = content
-    )
+    CompositionLocalProvider(
+        LocalExtendedColors provides extendedColors
+    ) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = MountainSunriseTypography,
+            content = content
+        )
+    }
+}
+
+// Helper function to access extended colors
+object MountainSunriseTheme {
+    val extendedColors: ExtendedColors
+        @Composable
+        get() = LocalExtendedColors.current
+}
+
+// Keeping the old theme name for backward compatibility
+@Composable
+fun DingoTheme(
+    darkTheme: Boolean = isSystemInDarkTheme(),
+    content: @Composable () -> Unit
+) {
+    MountainSunriseTheme(darkTheme, content)
 }

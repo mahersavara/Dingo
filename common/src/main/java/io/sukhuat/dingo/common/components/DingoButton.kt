@@ -1,5 +1,6 @@
 package io.sukhuat.dingo.common.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -21,15 +22,22 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import io.sukhuat.dingo.common.theme.BorderThickness
 import io.sukhuat.dingo.common.theme.ButtonCornerRadius
 import io.sukhuat.dingo.common.theme.ButtonHeight
-import io.sukhuat.dingo.common.theme.DingoTheme
+import io.sukhuat.dingo.common.theme.DeepIndigo
+import io.sukhuat.dingo.common.theme.DeepPurple
 import io.sukhuat.dingo.common.theme.IconSizeSmall
+import io.sukhuat.dingo.common.theme.MountainShadow
+import io.sukhuat.dingo.common.theme.MountainSunriseTheme
+import io.sukhuat.dingo.common.theme.RusticGold
 import io.sukhuat.dingo.common.theme.SpaceSmall
+import io.sukhuat.dingo.common.theme.White
 
 /**
  * Button types supported by DingoButton
@@ -39,7 +47,7 @@ enum class ButtonType {
 }
 
 /**
- * A reusable button component for the Dingo app
+ * A reusable button component with Mountain Sunrise design system
  * @param text Text to display on the button
  * @param onClick Called when the button is clicked
  * @param modifier Modifier to be applied to the button
@@ -65,10 +73,34 @@ fun DingoButton(
     val buttonModifier = modifier
         .height(ButtonHeight)
 
+    // Define colors based on our Mountain Sunrise palette
+    val containerColor = when (type) {
+        ButtonType.FILLED -> RusticGold
+        ButtonType.OUTLINED -> Color.Transparent
+        ButtonType.TEXT -> Color.Transparent
+    }
+
     val contentColor = when (type) {
-        ButtonType.FILLED -> MaterialTheme.colorScheme.onPrimary
-        ButtonType.OUTLINED -> MaterialTheme.colorScheme.primary
-        ButtonType.TEXT -> MaterialTheme.colorScheme.primary
+        ButtonType.FILLED -> White
+        ButtonType.OUTLINED -> DeepIndigo
+        ButtonType.TEXT -> DeepPurple
+    }
+
+    val disabledContainerColor = when (type) {
+        ButtonType.FILLED -> RusticGold.copy(alpha = 0.5f)
+        ButtonType.OUTLINED -> Color.Transparent
+        ButtonType.TEXT -> Color.Transparent
+    }
+
+    val disabledContentColor = when (type) {
+        ButtonType.FILLED -> White.copy(alpha = 0.5f)
+        ButtonType.OUTLINED -> DeepIndigo.copy(alpha = 0.5f)
+        ButtonType.TEXT -> DeepPurple.copy(alpha = 0.5f)
+    }
+
+    val border = when (type) {
+        ButtonType.OUTLINED -> BorderStroke(BorderThickness, MountainShadow)
+        else -> null
     }
 
     val buttonContent: @Composable () -> Unit = {
@@ -118,20 +150,24 @@ fun DingoButton(
         }
     }
 
+    // Sharp corners for all buttons (0dp radius)
+    val shape = RoundedCornerShape(ButtonCornerRadius)
+
     when (type) {
         ButtonType.FILLED -> {
             Button(
                 onClick = onClick,
                 modifier = buttonModifier,
                 enabled = isEnabled && !isLoading,
-                shape = RoundedCornerShape(ButtonCornerRadius),
+                shape = shape,
                 contentPadding = contentPadding,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                    disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
-                    disabledContentColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.5f)
-                )
+                    containerColor = containerColor,
+                    contentColor = contentColor,
+                    disabledContainerColor = disabledContainerColor,
+                    disabledContentColor = disabledContentColor
+                ),
+                border = border
             ) {
                 buttonContent()
             }
@@ -141,12 +177,13 @@ fun DingoButton(
                 onClick = onClick,
                 modifier = buttonModifier,
                 enabled = isEnabled && !isLoading,
-                shape = RoundedCornerShape(ButtonCornerRadius),
+                shape = shape,
                 contentPadding = contentPadding,
                 colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = MaterialTheme.colorScheme.primary,
-                    disabledContentColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
-                )
+                    contentColor = contentColor,
+                    disabledContentColor = disabledContentColor
+                ),
+                border = border
             ) {
                 buttonContent()
             }
@@ -156,11 +193,11 @@ fun DingoButton(
                 onClick = onClick,
                 modifier = buttonModifier,
                 enabled = isEnabled && !isLoading,
-                shape = RoundedCornerShape(ButtonCornerRadius),
+                shape = shape,
                 contentPadding = contentPadding,
                 colors = ButtonDefaults.textButtonColors(
-                    contentColor = MaterialTheme.colorScheme.primary,
-                    disabledContentColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                    contentColor = contentColor,
+                    disabledContentColor = disabledContentColor
                 )
             ) {
                 buttonContent()
@@ -172,7 +209,7 @@ fun DingoButton(
 @Preview(showBackground = true)
 @Composable
 fun DingoButtonPreview() {
-    DingoTheme {
+    MountainSunriseTheme {
         Box(modifier = Modifier.padding(16.dp)) {
             DingoButton(
                 text = "Primary Button",
@@ -186,7 +223,7 @@ fun DingoButtonPreview() {
 @Preview(showBackground = true)
 @Composable
 fun DingoButtonOutlinedPreview() {
-    DingoTheme {
+    MountainSunriseTheme {
         Box(modifier = Modifier.padding(16.dp)) {
             DingoButton(
                 text = "Outlined Button",
@@ -201,7 +238,7 @@ fun DingoButtonOutlinedPreview() {
 @Preview(showBackground = true)
 @Composable
 fun DingoButtonTextPreview() {
-    DingoTheme {
+    MountainSunriseTheme {
         Box(modifier = Modifier.padding(16.dp)) {
             DingoButton(
                 text = "Text Button",
@@ -216,7 +253,7 @@ fun DingoButtonTextPreview() {
 @Preview(showBackground = true)
 @Composable
 fun DingoButtonLoadingPreview() {
-    DingoTheme {
+    MountainSunriseTheme {
         Box(modifier = Modifier.padding(16.dp)) {
             DingoButton(
                 text = "Loading Button",

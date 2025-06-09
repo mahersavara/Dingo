@@ -13,11 +13,11 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import dagger.hilt.android.AndroidEntryPoint
+import io.sukhuat.dingo.common.theme.MountainSunriseTheme
 import io.sukhuat.dingo.navigation.Screen
 import io.sukhuat.dingo.ui.screens.auth.AuthScreen
 import io.sukhuat.dingo.ui.screens.home.HomeScreen
 import io.sukhuat.dingo.ui.screens.splash.SplashScreen
-import io.sukhuat.dingo.ui.theme.DingoTheme
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -25,7 +25,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            DingoTheme {
+            MountainSunriseTheme {
                 DingoApp()
             }
         }

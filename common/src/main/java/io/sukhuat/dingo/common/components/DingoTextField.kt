@@ -18,12 +18,16 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.sukhuat.dingo.common.theme.ButtonCornerRadius
-import io.sukhuat.dingo.common.theme.DingoTheme
+import io.sukhuat.dingo.common.theme.DeepIndigo
+import io.sukhuat.dingo.common.theme.DustyRose
 import io.sukhuat.dingo.common.theme.InputFieldHeight
+import io.sukhuat.dingo.common.theme.MountainShadow
+import io.sukhuat.dingo.common.theme.MountainSunriseTheme
+import io.sukhuat.dingo.common.theme.RusticGold
 import io.sukhuat.dingo.common.theme.SpaceSmall
 
 /**
- * A reusable text field component for the Dingo app
+ * A reusable text field component with Mountain Sunrise design system
  * @param value Current text value
  * @param onValueChange Called when the text changes
  * @param modifier Modifier to be applied to the text field
@@ -79,22 +83,27 @@ fun DingoTextField(
             maxLines = maxLines,
             enabled = enabled,
             readOnly = readOnly,
-            shape = RoundedCornerShape(ButtonCornerRadius),
+            shape = RoundedCornerShape(ButtonCornerRadius), // Using 0dp corner radius for crisp edges
             colors = TextFieldDefaults.colors(
                 focusedContainerColor = Color.Transparent,
                 unfocusedContainerColor = Color.Transparent,
                 disabledContainerColor = Color.Transparent,
-                focusedIndicatorColor = MaterialTheme.colorScheme.primary,
-                unfocusedIndicatorColor = MaterialTheme.colorScheme.outline,
-                errorIndicatorColor = MaterialTheme.colorScheme.error,
-                cursorColor = MaterialTheme.colorScheme.primary
+                focusedIndicatorColor = RusticGold,
+                unfocusedIndicatorColor = MountainShadow,
+                errorIndicatorColor = DustyRose,
+                cursorColor = RusticGold,
+                focusedTextColor = DeepIndigo,
+                unfocusedTextColor = DeepIndigo,
+                focusedLabelColor = RusticGold,
+                unfocusedLabelColor = MountainShadow,
+                errorLabelColor = DustyRose
             )
         )
 
         if (isError && !errorText.isNullOrEmpty()) {
             Text(
                 text = errorText,
-                color = MaterialTheme.colorScheme.error,
+                color = DustyRose,
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.padding(start = SpaceSmall, top = 4.dp)
             )
@@ -105,7 +114,7 @@ fun DingoTextField(
 @Preview(showBackground = true)
 @Composable
 fun DingoTextFieldPreview() {
-    DingoTheme {
+    MountainSunriseTheme {
         DingoTextField(
             value = "",
             onValueChange = {},
@@ -119,7 +128,7 @@ fun DingoTextFieldPreview() {
 @Preview(showBackground = true)
 @Composable
 fun DingoTextFieldErrorPreview() {
-    DingoTheme {
+    MountainSunriseTheme {
         DingoTextField(
             value = "invalid email",
             onValueChange = {},

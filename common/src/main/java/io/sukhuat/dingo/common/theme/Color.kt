@@ -2,26 +2,62 @@ package io.sukhuat.dingo.common.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Light Theme Colors
-val Purple80 = Color(0xFFD0BCFF)
-val PurpleGrey80 = Color(0xFFCCC2DC)
-val Pink80 = Color(0xFFEFB8C8)
+// Primary Colors
+val DeepIndigo = Color(0xFF1F2937)
+val MidnightBlue = Color(0xFF2D3748)
+val RusticGold = Color(0xFFD69E2E)
+val AmberHorizon = Color(0xFFF6AD55)
 
-// Dark Theme Colors
-val Purple40 = Color(0xFF6650a4)
-val PurpleGrey40 = Color(0xFF625b71)
-val Pink40 = Color(0xFF7D5260)
+// Secondary Colors
+val MistyLavender = Color(0xFF9F7AEA)
+val MountainShadow = Color(0xFF4A5568)
+val CloudGray = Color(0xFFCBD5E0)
+val SunriseYellow = Color(0xFFF6E05E)
 
-// Common Colors
-val Primary = Color(0xFF6650a4)
-val Secondary = Color(0xFF625b71)
-val Background = Color(0xFFF8F8F8)
-val Surface = Color(0xFFFFFFFF)
-val Error = Color(0xFFB00020)
-val Success = Color(0xFF4CAF50)
-val Warning = Color(0xFFFFC107)
-val Info = Color(0xFF2196F3)
-val TextPrimary = Color(0xFF212121)
-val TextSecondary = Color(0xFF757575)
-val Divider = Color(0xFFBDBDBD)
-val Disabled = Color(0xFFE0E0E0)
+// Accent Colors
+val WarmOrange = Color(0xFFED8936)
+val DeepPurple = Color(0xFF553C9A)
+val DustyRose = Color(0xFFED64A6)
+
+// Common UI Colors
+val White = Color(0xFFFFFFFF)
+val Black = Color(0xFF000000)
+
+// Status Colors
+val Success = RusticGold
+val Error = DustyRose
+val Info = MistyLavender
+val Warning = AmberHorizon
+
+// Text Colors
+val TextPrimary = DeepIndigo
+val TextSecondary = MountainShadow
+val TextOnDark = CloudGray
+
+// Surface Colors
+val Surface = White
+val Background = White.copy(alpha = 0.97f)
+val Divider = MountainShadow.copy(alpha = 0.3f)
+val Disabled = CloudGray.copy(alpha = 0.5f)
+
+// Gradient Colors
+val SunriseStart = Color(0xFF1F2937) // Deep Indigo
+val SunriseMid = Color(0xFF553C9A) // Deep Purple
+val SunriseEnd = Color(0xFFED8936) // Warm Orange
+
+// Light Theme Specific
+val LightSurfaceTint = RusticGold.copy(alpha = 0.05f)
+val LightBackgroundVariant = Color(0xFFF8F6F0) // Warm off-white
+val LightCardBackground = White.copy(alpha = 0.85f)
+val LightElevatedSurface = White.copy(alpha = 0.92f)
+
+// Dark Theme Specific
+val DarkSurfaceTint = RusticGold.copy(alpha = 0.15f)
+val DarkBackgroundVariant = Color(0xFF263040) // Slightly lighter than DeepIndigo
+val DarkCardBackground = MidnightBlue.copy(alpha = 0.85f)
+val DarkElevatedSurface = MidnightBlue.copy(alpha = 0.92f)
+
+// Overlay Colors
+val ScrimLight = Black.copy(alpha = 0.32f)
+val ScrimMedium = Black.copy(alpha = 0.48f)
+val ScrimHeavy = Black.copy(alpha = 0.62f)

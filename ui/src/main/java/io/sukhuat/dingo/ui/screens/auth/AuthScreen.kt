@@ -5,17 +5,15 @@ import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -34,6 +32,11 @@ import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.tasks.Task
+import io.sukhuat.dingo.common.components.ButtonType
+import io.sukhuat.dingo.common.components.DingoButton
+import io.sukhuat.dingo.common.components.DingoCard
+import io.sukhuat.dingo.common.components.DingoScaffold
+import io.sukhuat.dingo.common.components.DingoTextField
 import io.sukhuat.dingo.common.components.FloatingLoadingDialog
 import io.sukhuat.dingo.common.utils.ToastHelper
 
@@ -44,23 +47,28 @@ private fun EmailPasswordFields(
     email: String,
     onEmailChange: (String) -> Unit,
     password: String,
-    onPasswordChange: (String) -> Unit
+    onPasswordChange: (String) -> Unit,
+    isError: Boolean = false,
+    errorText: String? = null
 ) {
-    TextField(
+    DingoTextField(
         value = email,
         onValueChange = onEmailChange,
-        label = { Text("Email") },
-        modifier = Modifier.fillMaxWidth()
+        label = "Email",
+        modifier = Modifier.fillMaxWidth(),
+        isError = isError,
+        errorText = errorText
     )
 
-    Spacer(modifier = Modifier.height(8.dp))
+    Spacer(modifier = Modifier.height(16.dp))
 
-    TextField(
+    DingoTextField(
         value = password,
         onValueChange = onPasswordChange,
-        label = { Text("Password") },
+        label = "Password",
         visualTransformation = PasswordVisualTransformation(),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        isError = isError
     )
 }
 
@@ -70,46 +78,32 @@ private fun AuthButtons(
     onSignInClick: () -> Unit,
     onToggleAuthMode: () -> Unit
 ) {
-    Button(
+    DingoButton(
+        text = if (isSignUp) "Sign Up" else "Sign In",
         onClick = onSignInClick,
         modifier = Modifier.fillMaxWidth()
-    ) {
-        Text(if (isSignUp) "Sign Up" else "Sign In")
-    }
+    )
 
-    TextButton(
+    Spacer(modifier = Modifier.height(8.dp))
+
+    DingoButton(
+        text = if (isSignUp) "Already have an account? Sign In" else "Need an account? Sign Up",
         onClick = onToggleAuthMode,
+        type = ButtonType.TEXT,
         modifier = Modifier.fillMaxWidth()
-    ) {
-        Text(if (isSignUp) "Already have an account? Sign In" else "Need an account? Sign Up")
-    }
+    )
 }
 
 @Composable
 private fun GoogleSignInButton(
     onGoogleSignInClick: () -> Unit
 ) {
-    Button(
+    DingoButton(
+        text = "Sign in with Google",
         onClick = onGoogleSignInClick,
+        type = ButtonType.OUTLINED,
         modifier = Modifier.fillMaxWidth()
-    ) {
-        Text("Sign in with Google")
-    }
-}
-
-@Composable
-private fun AuthStateIndicators(
-    authState: AuthUiState
-) {
-    if (authState is AuthUiState.Error) {
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = (authState as AuthUiState.Error).message,
-            color = MaterialTheme.colorScheme.error,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
-        )
-    }
+    )
 }
 
 @Composable
@@ -179,41 +173,80 @@ fun AuthScreen(
         dismissOnClickOutside = false
     )
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        EmailPasswordFields(
-            email = email,
-            onEmailChange = { email = it },
-            password = password,
-            onPasswordChange = { password = it }
-        )
+    DingoScaffold(
+        title = "ALPINE EXPLORER",
+        showTopBar = true,
+        useGradientBackground = true
+    ) { paddingValues ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            DingoCard(
+                modifier = Modifier
+                    .fillMaxWidth(0.9f)
+                    .align(Alignment.Center)
+                    .padding(16.dp),
+                accentBorder = true,
+                useGradientBackground = false
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text(
+                        text = if (isSignUp) "Create Account" else "Welcome Back",
+                        style = MaterialTheme.typography.headlineSmall,
+                        textAlign = TextAlign.Center
+                    )
 
-        Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
-        AuthButtons(
-            isSignUp = isSignUp,
-            onSignInClick = {
-                if (isSignUp) {
-                    viewModel.signUp(email, password, password)
-                } else {
-                    viewModel.signIn(email, password)
+                    // Check if there's an error to display
+                    val isError = authState is AuthUiState.Error
+                    val errorText = if (isError) (authState as AuthUiState.Error).message else null
+
+                    EmailPasswordFields(
+                        email = email,
+                        onEmailChange = { email = it },
+                        password = password,
+                        onPasswordChange = { password = it },
+                        isError = isError,
+                        errorText = errorText
+                    )
+
+                    AuthButtons(
+                        isSignUp = isSignUp,
+                        onSignInClick = {
+                            if (isSignUp) {
+                                viewModel.signUp(email, password, password)
+                            } else {
+                                viewModel.signIn(email, password)
+                            }
+                        },
+                        onToggleAuthMode = { isSignUp = !isSignUp }
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = "OR",
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    GoogleSignInButton(
+                        onGoogleSignInClick = { viewModel.initiateGoogleSignIn(launcher) }
+                    )
                 }
-            },
-            onToggleAuthMode = { isSignUp = !isSignUp }
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        GoogleSignInButton(
-            onGoogleSignInClick = { viewModel.initiateGoogleSignIn(launcher) }
-        )
-
-        AuthStateIndicators(authState = authState)
+            }
+        }
     }
 }
 
