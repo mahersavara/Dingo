@@ -10,7 +10,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.sukhuat.dingo.common.utils.ToastHelper
 import io.sukhuat.dingo.data.auth.GoogleAuthService
-import io.sukhuat.dingo.data.model.AuthResult
+import io.sukhuat.dingo.domain.repository.AuthResult
 import io.sukhuat.dingo.usecases.auth.SignInUseCase
 import io.sukhuat.dingo.usecases.auth.SignUpWithEmailUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -43,6 +43,7 @@ class AuthViewModel @Inject constructor(
                 return
             }
 
+            _authState.value = AuthUiState.Loading.GoogleSignIn
             launcher.launch(googleAuthService.getSignInIntent())
         } catch (e: Exception) {
             val errorMsg = "Failed to start Google Sign-In: ${e.message ?: "Unknown error"}"
@@ -54,17 +55,19 @@ class AuthViewModel @Inject constructor(
 
     fun signInWithGoogle(idToken: String) {
         viewModelScope.launch {
+            _authState.value = AuthUiState.Loading.GoogleSignIn
+
             signInUseCase.signInWithGoogle(idToken)
                 .onEach { result ->
                     _authState.value = when (result) {
                         is AuthResult.Success -> AuthUiState.Success
                         is AuthResult.Error -> {
-                            val errorMsg = result.message ?: "Google sign-in failed"
+                            val errorMsg = result.message
                             Log.e(TAG, "Google sign-in failed: $errorMsg")
                             ToastHelper.showMedium(context, errorMsg)
                             AuthUiState.Error(errorMsg)
                         }
-                        is AuthResult.Loading -> AuthUiState.Loading
+                        is AuthResult.Loading -> AuthUiState.Loading.GoogleSignIn
                     }
                 }
                 .launchIn(this)
@@ -73,17 +76,19 @@ class AuthViewModel @Inject constructor(
 
     fun signIn(email: String, password: String) {
         viewModelScope.launch {
+            _authState.value = AuthUiState.Loading.EmailSignIn
+
             signInUseCase(email, password)
                 .onEach { result ->
                     _authState.value = when (result) {
                         is AuthResult.Success -> AuthUiState.Success
                         is AuthResult.Error -> {
-                            val errorMsg = result.message ?: "Sign-in failed"
+                            val errorMsg = result.message
                             Log.e(TAG, "Sign-in failed: $errorMsg")
                             ToastHelper.showMedium(context, errorMsg)
                             AuthUiState.Error(errorMsg)
                         }
-                        is AuthResult.Loading -> AuthUiState.Loading
+                        is AuthResult.Loading -> AuthUiState.Loading.EmailSignIn
                     }
                 }
                 .launchIn(this)
@@ -92,17 +97,19 @@ class AuthViewModel @Inject constructor(
 
     fun signUp(email: String, password: String, confirmPassword: String) {
         viewModelScope.launch {
+            _authState.value = AuthUiState.Loading.EmailSignUp
+
             signUpUseCase(email, password, confirmPassword)
                 .onEach { result ->
                     _authState.value = when (result) {
                         is AuthResult.Success -> AuthUiState.Success
                         is AuthResult.Error -> {
-                            val errorMsg = result.message ?: "Sign-up failed"
+                            val errorMsg = result.message
                             Log.e(TAG, "Sign-up failed: $errorMsg")
                             ToastHelper.showMedium(context, errorMsg)
                             AuthUiState.Error(errorMsg)
                         }
-                        is AuthResult.Loading -> AuthUiState.Loading
+                        is AuthResult.Loading -> AuthUiState.Loading.EmailSignUp
                     }
                 }
                 .launchIn(this)

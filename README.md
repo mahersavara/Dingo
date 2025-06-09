@@ -15,14 +15,16 @@ Transform traditional vision boards into an interactive, game-like experience wh
 ### Authentication
 The app includes a complete authentication system:
 - Email/password authentication
-- Google Sign-In integration
+- Google Sign-In integration with enhanced error handling
 - Secure session management
 - Proper error handling with user feedback
+- Improved UI state management for authentication flows
 
 Authentication flow:
 1. Splash screen validates user authentication status
 2. Users are directed to either the auth screen or home screen based on status
 3. Sign-out functionality available from the home screen
+4. Comprehensive error handling for all authentication methods
 
 ## Architecture
 The project follows Clean Architecture principles with a modular structure:
@@ -316,6 +318,9 @@ graph TD
     C -->|No| E[Auth Screen]
     E -->|Sign In/Up Success| D
     D -->|Sign Out| E
+    E -->|Google Sign-In| F[Google Auth Flow]
+    F -->|Success| D
+    F -->|Failure| E
 ```
 
 ### Data Flow
@@ -366,6 +371,7 @@ graph TB
     subgraph Hilt Modules
         DM[DatabaseModule]
         DomM[DomainModule]
+        AuthM[AuthModule]
     end
     
     subgraph Components
@@ -373,6 +379,7 @@ graph TB
         DOM[Domain Layer]
         DAO[DAOs]
         DB[(Database)]
+        Auth[Authentication]
     end
 
     DM -->|Provides| DB
@@ -380,6 +387,8 @@ graph TB
     DomM -->|Binds| DOM
     DOM -->|Uses| DAO
     VM -->|Injects| DOM
+    AuthM -->|Provides| Auth
+    VM -->|Injects| Auth
 ```
 
 ## Future Enhancements
@@ -395,18 +404,19 @@ graph TB
 ### Authentication
 - **AuthScreen**: Composable for login/signup with email/password and Google Sign-In
 - **AuthViewModel**: Manages authentication state and operations
-- **AuthUiState**: Sealed class representing different authentication states
+- **AuthUiState**: Sealed class representing different authentication states with granular loading states
 - **SplashScreen**: Entry point that checks authentication status
 - **HomeScreen**: Main screen with logout functionality
+- **GoogleAuthService**: Singleton service for managing Google Sign-In with improved error handling
 
 ### Use Cases
-- **SignInUseCase**: Handles email/password authentication
+- **SignInUseCase**: Handles email/password authentication and Google Sign-In
 - **SignUpWithEmailUseCase**: Manages user registration
 - **GetAuthStatusUseCase**: Checks if user is authenticated
 - **SignOutUseCase**: Handles user logout
 
 ### Services
-- **GoogleAuthService**: Manages Google Sign-In functionality
+- **GoogleAuthService**: Manages Google Sign-In functionality with proper initialization checks
 - **ToastHelper**: Provides consistent toast messages for user feedback
 
 ## UI Screens
@@ -418,8 +428,9 @@ graph TB
 ### Auth Screen
 - Email/password sign-in form
 - Email/password registration
-- Google Sign-In button
+- Google Sign-In button with improved error handling
 - Error handling with user feedback
+- Granular loading states for different authentication processes
 
 ### Home Screen
 - Main application interface
@@ -432,6 +443,7 @@ The app includes comprehensive error handling:
 - Toast notifications for user feedback
 - Logging for debugging purposes
 - UI state updates to reflect error conditions
+- Specific error handling for Google Sign-In failures
 
 ## Navigation
 - **NavHost**: Manages navigation between screens
@@ -443,3 +455,4 @@ The app includes comprehensive error handling:
 - Proper session management
 - Firebase Authentication for secure credential handling
 - Google OAuth for third-party authentication
+- Improved error handling for authentication failures

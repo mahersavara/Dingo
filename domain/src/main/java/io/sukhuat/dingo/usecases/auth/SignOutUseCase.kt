@@ -1,7 +1,7 @@
 package io.sukhuat.dingo.usecases.auth
 
-import io.sukhuat.dingo.data.model.AuthResult
-import io.sukhuat.dingo.data.repository.auth.AuthRepository
+import io.sukhuat.dingo.domain.repository.AuthRepository
+import io.sukhuat.dingo.domain.repository.AuthResult
 import javax.inject.Inject
 
 class SignOutUseCase @Inject constructor(

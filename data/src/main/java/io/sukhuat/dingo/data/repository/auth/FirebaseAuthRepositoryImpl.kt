@@ -4,7 +4,8 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import io.sukhuat.dingo.common.Constants
 import io.sukhuat.dingo.data.auth.GoogleAuthService
-import io.sukhuat.dingo.data.model.AuthResult
+import io.sukhuat.dingo.domain.repository.AuthRepository
+import io.sukhuat.dingo.domain.repository.AuthResult
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.tasks.await
@@ -21,32 +22,32 @@ class FirebaseAuthRepositoryImpl @Inject constructor(
 
     override suspend fun signUpWithEmailPassword(email: String, password: String): Flow<AuthResult<Boolean>> = flow {
         try {
-            emit(AuthResult.Loading())
+            emit(AuthResult.Loading)
             firebaseAuth.createUserWithEmailAndPassword(email, password).await()
             emit(AuthResult.Success(true))
         } catch (e: Exception) {
-            emit(AuthResult.Error(e.message ?: "An unknown error occurred"))
+            emit(AuthResult.Error(e.message ?: "An unknown error occurred", e))
         }
     }
 
     override suspend fun signInWithEmailPassword(email: String, password: String): Flow<AuthResult<Boolean>> = flow {
         try {
-            emit(AuthResult.Loading())
+            emit(AuthResult.Loading)
             firebaseAuth.signInWithEmailAndPassword(email, password).await()
             emit(AuthResult.Success(true))
         } catch (e: Exception) {
-            emit(AuthResult.Error(e.message ?: "An unknown error occurred"))
+            emit(AuthResult.Error(e.message ?: "An unknown error occurred", e))
         }
     }
 
     override suspend fun signInWithGoogle(idToken: String): Flow<AuthResult<Boolean>> = flow {
         try {
-            emit(AuthResult.Loading())
+            emit(AuthResult.Loading)
             val credential = GoogleAuthProvider.getCredential(idToken, null)
             firebaseAuth.signInWithCredential(credential).await()
             emit(AuthResult.Success(true))
         } catch (e: Exception) {
-            emit(AuthResult.Error(e.message ?: "Google sign in failed"))
+            emit(AuthResult.Error(e.message ?: "Google sign in failed", e))
         }
     }
 
@@ -58,7 +59,7 @@ class FirebaseAuthRepositoryImpl @Inject constructor(
             firebaseAuth.signOut()
             AuthResult.Success(true)
         } catch (e: Exception) {
-            AuthResult.Error(e.message ?: "Sign out failed")
+            AuthResult.Error(e.message ?: "Sign out failed", e)
         }
     }
 

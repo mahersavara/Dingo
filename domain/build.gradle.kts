@@ -33,7 +33,8 @@ android {
 }
 
 dependencies {
-    implementation(project(":data"))
+    // Remove dependency on data module
+    // implementation(project(":data"))
 
     // Hilt
     implementation(libs.hilt.android)

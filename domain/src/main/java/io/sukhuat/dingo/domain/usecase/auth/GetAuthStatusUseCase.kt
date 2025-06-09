@@ -1,6 +1,6 @@
 package io.sukhuat.dingo.domain.usecase.auth
 
-import io.sukhuat.dingo.data.repository.auth.AuthRepository
+import io.sukhuat.dingo.domain.repository.AuthRepository
 import javax.inject.Inject
 
 /**

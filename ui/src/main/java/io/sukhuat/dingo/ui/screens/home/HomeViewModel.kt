@@ -7,8 +7,8 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.sukhuat.dingo.common.utils.ToastHelper
-import io.sukhuat.dingo.data.model.AuthResult
 import io.sukhuat.dingo.data.repository.DummyRepository
+import io.sukhuat.dingo.domain.repository.AuthResult
 import io.sukhuat.dingo.usecases.auth.SignOutUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -38,7 +38,7 @@ class HomeViewModel @Inject constructor(
                     onSignOutSuccess()
                 }
                 is AuthResult.Error -> {
-                    val errorMsg = result.message ?: "Failed to sign out"
+                    val errorMsg = result.message
                     Log.e(TAG, "Sign out failed: $errorMsg")
                     ToastHelper.showMedium(context, errorMsg)
                     _uiState.value = HomeUiState.Error(errorMsg)

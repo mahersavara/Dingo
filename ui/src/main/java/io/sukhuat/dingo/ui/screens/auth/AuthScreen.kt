@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -35,6 +34,7 @@ import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.tasks.Task
+import io.sukhuat.dingo.common.components.FloatingLoadingDialog
 import io.sukhuat.dingo.common.utils.ToastHelper
 
 private const val TAG = "AuthScreen"
@@ -110,11 +110,6 @@ private fun AuthStateIndicators(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
         )
     }
-
-    if (authState is AuthUiState.Loading) {
-        Spacer(modifier = Modifier.height(8.dp))
-        CircularProgressIndicator()
-    }
 }
 
 @Composable
@@ -166,6 +161,23 @@ fun AuthScreen(
             onAuthSuccess()
         }
     }
+
+    // Get the appropriate loading message based on the loading state
+    val loadingMessage = when (authState) {
+        is AuthUiState.Loading.GoogleSignIn -> "Signing in with Google..."
+        is AuthUiState.Loading.EmailSignIn -> "Signing in..."
+        is AuthUiState.Loading.EmailSignUp -> "Creating account..."
+        is AuthUiState.Loading -> "Loading..." // For backward compatibility
+        else -> "Loading..."
+    }
+
+    // Show the loading dialog when in any loading state
+    FloatingLoadingDialog(
+        isVisible = authState is AuthUiState.Loading,
+        message = loadingMessage,
+        dismissOnBackPress = false,
+        dismissOnClickOutside = false
+    )
 
     Column(
         modifier = Modifier

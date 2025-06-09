@@ -10,8 +10,8 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import io.sukhuat.dingo.data.auth.GoogleAuthService
-import io.sukhuat.dingo.data.repository.auth.AuthRepository
 import io.sukhuat.dingo.data.repository.auth.FirebaseAuthRepositoryImpl
+import io.sukhuat.dingo.domain.repository.AuthRepository
 import javax.inject.Singleton
 
 /**
