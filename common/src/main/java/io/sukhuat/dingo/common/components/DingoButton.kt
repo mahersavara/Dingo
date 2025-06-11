@@ -30,7 +30,6 @@ import androidx.compose.ui.unit.dp
 import io.sukhuat.dingo.common.theme.BorderThickness
 import io.sukhuat.dingo.common.theme.ButtonCornerRadius
 import io.sukhuat.dingo.common.theme.ButtonHeight
-import io.sukhuat.dingo.common.theme.DeepIndigo
 import io.sukhuat.dingo.common.theme.DeepPurple
 import io.sukhuat.dingo.common.theme.IconSizeSmall
 import io.sukhuat.dingo.common.theme.MountainShadow
@@ -57,6 +56,7 @@ enum class ButtonType {
  * @param leadingIcon Optional icon to display before the text
  * @param trailingIcon Optional icon to display after the text
  * @param contentPadding Padding values for the button content
+ * @param borderColor Optional custom border color for OUTLINED buttons
  */
 @Composable
 fun DingoButton(
@@ -68,7 +68,8 @@ fun DingoButton(
     isEnabled: Boolean = true,
     leadingIcon: ImageVector? = null,
     trailingIcon: ImageVector? = null,
-    contentPadding: PaddingValues = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+    contentPadding: PaddingValues = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+    borderColor: Color? = null
 ) {
     val buttonModifier = modifier
         .height(ButtonHeight)
@@ -82,7 +83,7 @@ fun DingoButton(
 
     val contentColor = when (type) {
         ButtonType.FILLED -> White
-        ButtonType.OUTLINED -> DeepIndigo
+        ButtonType.OUTLINED -> RusticGold
         ButtonType.TEXT -> DeepPurple
     }
 
@@ -94,12 +95,16 @@ fun DingoButton(
 
     val disabledContentColor = when (type) {
         ButtonType.FILLED -> White.copy(alpha = 0.5f)
-        ButtonType.OUTLINED -> DeepIndigo.copy(alpha = 0.5f)
+        ButtonType.OUTLINED -> RusticGold.copy(alpha = 0.5f)
         ButtonType.TEXT -> DeepPurple.copy(alpha = 0.5f)
     }
 
+    // Use custom border color if provided, otherwise use default
     val border = when (type) {
-        ButtonType.OUTLINED -> BorderStroke(BorderThickness, MountainShadow)
+        ButtonType.OUTLINED -> BorderStroke(
+            BorderThickness,
+            borderColor ?: MountainShadow
+        )
         else -> null
     }
 
@@ -260,6 +265,22 @@ fun DingoButtonLoadingPreview() {
                 onClick = {},
                 isLoading = true,
                 modifier = Modifier.fillMaxWidth()
+            )
+        }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun DingoButtonOutlinedCustomBorderPreview() {
+    MountainSunriseTheme {
+        Box(modifier = Modifier.padding(16.dp)) {
+            DingoButton(
+                text = "Custom Border Button",
+                onClick = {},
+                type = ButtonType.OUTLINED,
+                modifier = Modifier.fillMaxWidth(),
+                borderColor = RusticGold
             )
         }
     }
