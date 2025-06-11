@@ -43,7 +43,6 @@ class AuthViewModel @Inject constructor(
                 return
             }
 
-            _authState.value = AuthUiState.Loading.GoogleSignIn
             launcher.launch(googleAuthService.getSignInIntent())
         } catch (e: Exception) {
             val errorMsg = "Failed to start Google Sign-In: ${e.message ?: "Unknown error"}"

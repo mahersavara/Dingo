@@ -38,6 +38,7 @@ import io.sukhuat.dingo.common.components.DingoCard
 import io.sukhuat.dingo.common.components.DingoScaffold
 import io.sukhuat.dingo.common.components.DingoTextField
 import io.sukhuat.dingo.common.components.FloatingLoadingDialog
+import io.sukhuat.dingo.common.theme.RusticGold
 import io.sukhuat.dingo.common.utils.ToastHelper
 
 private const val TAG = "AuthScreen"
@@ -98,12 +99,23 @@ private fun AuthButtons(
 private fun GoogleSignInButton(
     onGoogleSignInClick: () -> Unit
 ) {
-    DingoButton(
-        text = "Sign in with Google",
-        onClick = onGoogleSignInClick,
-        type = ButtonType.OUTLINED,
-        modifier = Modifier.fillMaxWidth()
-    )
+    // Create a custom button with high contrast colors specifically for Google Sign-In
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+    ) {
+        // Add a custom wrapper with padding to make the button more prominent
+        DingoButton(
+            text = "Sign in with Google",
+            onClick = onGoogleSignInClick,
+            type = ButtonType.OUTLINED,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
+            borderColor = RusticGold.copy(alpha = 0.7f)
+        )
+    }
 }
 
 @Composable
@@ -174,7 +186,7 @@ fun AuthScreen(
     )
 
     DingoScaffold(
-        title = "ALPINE EXPLORER",
+        title = "TRAVELER'S JOURNEY",
         showTopBar = true,
         useGradientBackground = true
     ) { paddingValues ->
@@ -236,7 +248,8 @@ fun AuthScreen(
                     Text(
                         text = "OR",
                         style = MaterialTheme.typography.bodyMedium,
-                        textAlign = TextAlign.Center
+                        textAlign = TextAlign.Center,
+                        color = RusticGold
                     )
 
                     Spacer(modifier = Modifier.height(8.dp))

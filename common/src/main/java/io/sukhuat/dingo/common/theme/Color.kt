@@ -11,7 +11,7 @@ val AmberHorizon = Color(0xFFF6AD55)
 // Secondary Colors
 val MistyLavender = Color(0xFF9F7AEA)
 val MountainShadow = Color(0xFF4A5568)
-val CloudGray = Color(0xFFCBD5E0)
+val CloudGray = Color(0xFFE2E8F0)
 val SunriseYellow = Color(0xFFF6E05E)
 
 // Accent Colors
@@ -32,7 +32,7 @@ val Warning = AmberHorizon
 // Text Colors
 val TextPrimary = DeepIndigo
 val TextSecondary = MountainShadow
-val TextOnDark = CloudGray
+val TextOnDark = White
 
 // Surface Colors
 val Surface = White
@@ -53,9 +53,9 @@ val LightElevatedSurface = White.copy(alpha = 0.92f)
 
 // Dark Theme Specific
 val DarkSurfaceTint = RusticGold.copy(alpha = 0.15f)
-val DarkBackgroundVariant = Color(0xFF263040) // Slightly lighter than DeepIndigo
-val DarkCardBackground = MidnightBlue.copy(alpha = 0.85f)
-val DarkElevatedSurface = MidnightBlue.copy(alpha = 0.92f)
+val DarkBackgroundVariant = Color(0xFF1A2435) // Darker for better contrast
+val DarkCardBackground = Color(0xFF1E293B) // Darker card background for better contrast
+val DarkElevatedSurface = Color(0xFF2C3A4F) // Adjusted for better contrast
 
 // Overlay Colors
 val ScrimLight = Black.copy(alpha = 0.32f)

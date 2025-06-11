@@ -2,6 +2,7 @@ package io.sukhuat.dingo.common.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -32,6 +33,7 @@ import io.sukhuat.dingo.common.theme.MountainShadow
 import io.sukhuat.dingo.common.theme.MountainSunriseTheme
 import io.sukhuat.dingo.common.theme.RusticGold
 import io.sukhuat.dingo.common.theme.SpaceMedium
+import io.sukhuat.dingo.common.theme.White
 
 /**
  * A reusable card component with Mountain Sunrise design system
@@ -54,7 +56,7 @@ fun DingoCard(
     onClick: (() -> Unit)? = null,
     shape: Shape = RoundedCornerShape(CardCornerRadius),
     useGradientBackground: Boolean = false,
-    contentColor: Color = DeepIndigo,
+    contentColor: Color? = null, // Make contentColor nullable to use theme defaults
     border: BorderStroke? = BorderStroke(BorderThickness, MountainShadow),
     accentBorder: Boolean = false,
     elevation: Dp = ElevationMedium,
@@ -62,6 +64,14 @@ fun DingoCard(
     content: @Composable () -> Unit
 ) {
     val extendedColors = MountainSunriseTheme.extendedColors
+    val isDarkTheme = isSystemInDarkTheme()
+
+    // Determine content color based on theme if not explicitly provided
+    val actualContentColor = contentColor ?: if (isDarkTheme) {
+        White // Use white text in dark mode for better contrast
+    } else {
+        DeepIndigo // Use dark text in light mode
+    }
 
     // Create a modifier for the accent border if needed
     val cardModifier = if (accentBorder) {
@@ -103,7 +113,7 @@ fun DingoCard(
         shape = shape,
         colors = CardDefaults.cardColors(
             containerColor = backgroundColor,
-            contentColor = contentColor
+            contentColor = actualContentColor
         ),
         border = border,
         elevation = CardDefaults.cardElevation(
@@ -168,7 +178,7 @@ fun DingoCard(
                         Text(
                             text = title,
                             style = MaterialTheme.typography.headlineSmall,
-                            color = contentColor
+                            color = actualContentColor
                         )
                     }
                 }

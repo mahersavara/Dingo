@@ -52,7 +52,7 @@ fun HomeScreen(
     }
 
     DingoScaffold(
-        title = "ALPINE EXPLORER",
+        title = "TRAVELER'S JOURNEY",
         useGradientBackground = true,
         topBarActions = {
             IconButton(onClick = { viewModel.signOut(onSignOut) }) {

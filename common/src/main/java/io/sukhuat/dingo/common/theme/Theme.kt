@@ -43,22 +43,22 @@ private val MountainSunriseDarkColorScheme = darkColorScheme(
     primary = RusticGold,
     onPrimary = White,
     primaryContainer = DeepIndigo,
-    onPrimaryContainer = CloudGray,
+    onPrimaryContainer = White,
 
     secondary = DeepPurple,
     onSecondary = White,
     secondaryContainer = MidnightBlue,
-    onSecondaryContainer = CloudGray,
+    onSecondaryContainer = White,
 
     tertiary = AmberHorizon,
     onTertiary = White,
     tertiaryContainer = MountainShadow,
-    onTertiaryContainer = CloudGray,
+    onTertiaryContainer = White,
 
     background = DarkBackgroundVariant,
-    onBackground = CloudGray,
+    onBackground = White,
     surface = MidnightBlue,
-    onSurface = CloudGray,
+    onSurface = White,
 
     error = DustyRose,
     onError = White,
