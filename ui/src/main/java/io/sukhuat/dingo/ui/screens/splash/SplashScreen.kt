@@ -51,7 +51,7 @@ fun SplashScreen(
         ) {
             // App name with Mountain Sunrise styling
             Text(
-                text = "ALPINE",
+                text = "TRAVELER'S",
                 style = MaterialTheme.typography.headlineLarge.copy(
                     fontWeight = FontWeight.Bold
                 ),
@@ -60,7 +60,7 @@ fun SplashScreen(
             )
 
             Text(
-                text = "EXPLORER",
+                text = "JOURNEY",
                 style = MaterialTheme.typography.headlineLarge.copy(
                     fontWeight = FontWeight.Bold
                 ),

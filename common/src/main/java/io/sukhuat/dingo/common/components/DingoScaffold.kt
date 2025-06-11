@@ -189,7 +189,7 @@ fun DingoScaffold(
 fun DingoScaffoldPreview() {
     MountainSunriseTheme {
         DingoScaffold(
-            title = "ALPINE EXPLORER"
+            title = "TRAVELER'S JOURNEY"
         ) { padding ->
             Box(
                 modifier = Modifier
@@ -211,7 +211,7 @@ fun DingoScaffoldPreview() {
 fun DingoScaffoldGradientPreview() {
     MountainSunriseTheme {
         DingoScaffold(
-            title = "ALPINE EXPLORER",
+            title = "TRAVELER'S JOURNEY",
             useGradientBackground = true
         ) { padding ->
             Box(
