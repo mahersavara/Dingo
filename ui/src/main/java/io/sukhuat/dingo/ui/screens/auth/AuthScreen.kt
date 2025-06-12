@@ -20,10 +20,12 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -32,14 +34,18 @@ import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.tasks.Task
+import io.sukhuat.dingo.common.R
 import io.sukhuat.dingo.common.components.ButtonType
 import io.sukhuat.dingo.common.components.DingoButton
 import io.sukhuat.dingo.common.components.DingoCard
 import io.sukhuat.dingo.common.components.DingoScaffold
 import io.sukhuat.dingo.common.components.DingoTextField
 import io.sukhuat.dingo.common.components.FloatingLoadingDialog
+import io.sukhuat.dingo.common.localization.LocalAppLanguage
+import io.sukhuat.dingo.common.localization.changeAppLanguage
 import io.sukhuat.dingo.common.theme.RusticGold
 import io.sukhuat.dingo.common.utils.ToastHelper
+import kotlinx.coroutines.launch
 
 private const val TAG = "AuthScreen"
 
@@ -55,7 +61,7 @@ private fun EmailPasswordFields(
     DingoTextField(
         value = email,
         onValueChange = onEmailChange,
-        label = "Email",
+        label = stringResource(R.string.email),
         modifier = Modifier.fillMaxWidth(),
         isError = isError,
         errorText = errorText
@@ -66,7 +72,7 @@ private fun EmailPasswordFields(
     DingoTextField(
         value = password,
         onValueChange = onPasswordChange,
-        label = "Password",
+        label = stringResource(R.string.password),
         visualTransformation = PasswordVisualTransformation(),
         modifier = Modifier.fillMaxWidth(),
         isError = isError
@@ -80,7 +86,7 @@ private fun AuthButtons(
     onToggleAuthMode: () -> Unit
 ) {
     DingoButton(
-        text = if (isSignUp) "Sign Up" else "Sign In",
+        text = if (isSignUp) stringResource(R.string.sign_up) else stringResource(R.string.sign_in),
         onClick = onSignInClick,
         modifier = Modifier.fillMaxWidth()
     )
@@ -88,7 +94,7 @@ private fun AuthButtons(
     Spacer(modifier = Modifier.height(8.dp))
 
     DingoButton(
-        text = if (isSignUp) "Already have an account? Sign In" else "Need an account? Sign Up",
+        text = if (isSignUp) stringResource(R.string.already_have_account) else stringResource(R.string.need_account),
         onClick = onToggleAuthMode,
         type = ButtonType.TEXT,
         modifier = Modifier.fillMaxWidth()
@@ -107,7 +113,7 @@ private fun GoogleSignInButton(
     ) {
         // Add a custom wrapper with padding to make the button more prominent
         DingoButton(
-            text = "Sign in with Google",
+            text = stringResource(R.string.sign_in_with_google),
             onClick = onGoogleSignInClick,
             type = ButtonType.OUTLINED,
             modifier = Modifier
@@ -125,6 +131,8 @@ fun AuthScreen(
 ) {
     val authState by viewModel.authState.collectAsState()
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val currentLanguage = LocalAppLanguage.current
 
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
@@ -170,11 +178,11 @@ fun AuthScreen(
 
     // Get the appropriate loading message based on the loading state
     val loadingMessage = when (authState) {
-        is AuthUiState.Loading.GoogleSignIn -> "Signing in with Google..."
-        is AuthUiState.Loading.EmailSignIn -> "Signing in..."
-        is AuthUiState.Loading.EmailSignUp -> "Creating account..."
-        is AuthUiState.Loading -> "Loading..." // For backward compatibility
-        else -> "Loading..."
+        is AuthUiState.Loading.GoogleSignIn -> stringResource(R.string.signing_in_google)
+        is AuthUiState.Loading.EmailSignIn -> stringResource(R.string.signing_in)
+        is AuthUiState.Loading.EmailSignUp -> stringResource(R.string.creating_account)
+        is AuthUiState.Loading -> stringResource(R.string.loading) // For backward compatibility
+        else -> stringResource(R.string.loading)
     }
 
     // Show the loading dialog when in any loading state
@@ -186,9 +194,21 @@ fun AuthScreen(
     )
 
     DingoScaffold(
-        title = "TRAVELER'S JOURNEY",
+        title = stringResource(R.string.app_name),
         showTopBar = true,
-        useGradientBackground = true
+        useGradientBackground = true,
+        // Add language selection menu
+        showUserMenu = true,
+        isAuthenticated = false, // Not authenticated on auth screen
+        currentLanguage = currentLanguage,
+        onLanguageChange = { languageCode ->
+            coroutineScope.launch {
+                changeAppLanguage(context, languageCode)
+            }
+        },
+        onSettingsClick = {
+            // No settings on auth screen
+        }
     ) { paddingValues ->
         Box(
             modifier = Modifier
@@ -211,7 +231,7 @@ fun AuthScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Text(
-                        text = if (isSignUp) "Create Account" else "Welcome Back",
+                        text = if (isSignUp) stringResource(R.string.create_account) else stringResource(R.string.welcome_back),
                         style = MaterialTheme.typography.headlineSmall,
                         textAlign = TextAlign.Center
                     )
@@ -246,7 +266,7 @@ fun AuthScreen(
                     Spacer(modifier = Modifier.height(8.dp))
 
                     Text(
-                        text = "OR",
+                        text = stringResource(R.string.or),
                         style = MaterialTheme.typography.bodyMedium,
                         textAlign = TextAlign.Center,
                         color = RusticGold

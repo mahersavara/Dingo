@@ -11,11 +11,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -24,17 +22,24 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import io.sukhuat.dingo.common.R
 import io.sukhuat.dingo.common.components.ButtonType
 import io.sukhuat.dingo.common.components.DingoButton
 import io.sukhuat.dingo.common.components.DingoCard
 import io.sukhuat.dingo.common.components.DingoScaffold
+import io.sukhuat.dingo.common.localization.LocalAppLanguage
+import io.sukhuat.dingo.common.localization.changeAppLanguage
 import io.sukhuat.dingo.common.theme.RusticGold
+import kotlinx.coroutines.launch
 
 @Composable
 fun HomeScreen(
@@ -43,6 +48,9 @@ fun HomeScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val currentLanguage = LocalAppLanguage.current
 
     // Show error messages in snackbar
     LaunchedEffect(uiState) {
@@ -52,30 +60,38 @@ fun HomeScreen(
     }
 
     DingoScaffold(
-        title = "TRAVELER'S JOURNEY",
+        title = stringResource(R.string.app_name),
         useGradientBackground = true,
-        topBarActions = {
-            IconButton(onClick = { viewModel.signOut(onSignOut) }) {
-                Icon(
-                    imageVector = Icons.Default.ExitToApp,
-                    contentDescription = "Sign out"
-                )
+        snackbarHostState = snackbarHostState,
+        isLoading = uiState is HomeUiState.Loading,
+        // Add user dropdown menu
+        showUserMenu = true,
+        isAuthenticated = true, // User is authenticated on the home screen
+        currentLanguage = currentLanguage,
+        onProfileClick = {
+            // TODO: Navigate to profile screen
+        },
+        onLanguageChange = { languageCode ->
+            coroutineScope.launch {
+                changeAppLanguage(context, languageCode)
             }
         },
-        snackbarHostState = snackbarHostState,
-        isLoading = uiState is HomeUiState.Loading
+        onSettingsClick = {
+            // TODO: Navigate to settings screen
+        },
+        onLogoutClick = {
+            viewModel.signOut(onSignOut)
+        }
     ) { paddingValues ->
         HomeContent(
-            paddingValues = paddingValues,
-            onSignOut = { viewModel.signOut(onSignOut) }
+            paddingValues = paddingValues
         )
     }
 }
 
 @Composable
 private fun HomeContent(
-    paddingValues: PaddingValues,
-    onSignOut: () -> Unit
+    paddingValues: PaddingValues
 ) {
     Column(
         modifier = Modifier
@@ -99,7 +115,7 @@ private fun HomeContent(
                 modifier = Modifier.padding(16.dp)
             ) {
                 Text(
-                    text = "Good morning, Adventurer",
+                    text = stringResource(R.string.welcome_message),
                     style = MaterialTheme.typography.headlineSmall,
                     textAlign = TextAlign.Center,
                     color = RusticGold
@@ -108,13 +124,13 @@ private fun HomeContent(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = "Today's sunrise: 6:24 AM",
+                    text = stringResource(R.string.today_sunrise),
                     style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Center
                 )
 
                 Text(
-                    text = "Perfect conditions for mountain exploration",
+                    text = stringResource(R.string.perfect_conditions),
                     style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Center
                 )
@@ -125,7 +141,7 @@ private fun HomeContent(
 
         // Featured Journey Card
         DingoCard(
-            title = "FEATURED JOURNEY",
+            title = stringResource(R.string.featured_journey),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
@@ -139,7 +155,7 @@ private fun HomeContent(
                     .padding(16.dp)
             ) {
                 Text(
-                    text = "Fansipan Sunrise Trek",
+                    text = stringResource(R.string.fansipan_trek),
                     style = MaterialTheme.typography.headlineSmall.copy(
                         fontWeight = FontWeight.Bold
                     ),
@@ -158,7 +174,7 @@ private fun HomeContent(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Elevation: 3,143m",
+                        text = stringResource(R.string.elevation_info),
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
@@ -166,14 +182,14 @@ private fun HomeContent(
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
-                    text = "Duration: 2 days",
+                    text = stringResource(R.string.duration_info),
                     style = MaterialTheme.typography.bodyMedium
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = "Experience the breathtaking sunrise over the Hoang Lien Son mountain range. This challenging trek rewards you with panoramic views and unforgettable memories.",
+                    text = stringResource(R.string.trek_description),
                     style = MaterialTheme.typography.bodyMedium
                 )
 
@@ -184,7 +200,7 @@ private fun HomeContent(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     DingoButton(
-                        text = "Details",
+                        text = stringResource(R.string.details),
                         onClick = { /* TODO: Navigate to details */ },
                         type = ButtonType.OUTLINED,
                         modifier = Modifier.weight(1f)
@@ -193,7 +209,7 @@ private fun HomeContent(
                     Spacer(modifier = Modifier.width(8.dp))
 
                     DingoButton(
-                        text = "Save",
+                        text = stringResource(R.string.save),
                         onClick = { /* TODO: Save journey */ },
                         type = ButtonType.FILLED,
                         modifier = Modifier.weight(1f),
@@ -207,7 +223,7 @@ private fun HomeContent(
 
         // Recent Adventures Card
         DingoCard(
-            title = "RECENT ADVENTURES",
+            title = stringResource(R.string.recent_adventures),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
@@ -221,7 +237,7 @@ private fun HomeContent(
                     .padding(16.dp)
             ) {
                 Text(
-                    text = "No recent adventures yet",
+                    text = stringResource(R.string.no_adventures),
                     style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth()
@@ -230,22 +246,11 @@ private fun HomeContent(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 DingoButton(
-                    text = "Start Your Journey",
+                    text = stringResource(R.string.start_journey),
                     onClick = { /* TODO: Navigate to journey creation */ },
                     modifier = Modifier.fillMaxWidth()
                 )
             }
         }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        DingoButton(
-            text = "Sign Out",
-            onClick = onSignOut,
-            type = ButtonType.OUTLINED,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-        )
     }
 }

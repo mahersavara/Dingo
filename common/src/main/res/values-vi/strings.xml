@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Hành Trình Du Khách</string>
+    <string name="app_name_line1">HÀNH TRÌNH</string>
+    <string name="app_name_line2">DU KHÁCH</string>
+    
+    <!-- Menu Items -->
+    <string name="profile">Hồ Sơ</string>
+    <string name="language">Ngôn Ngữ</string>
+    <string name="settings">Cài Đặt</string>
+    <string name="logout">Đăng Xuất</string>
+    <string name="cancel">Hủy</string>
+    <string name="select_language">Chọn Ngôn Ngữ</string>
+    
+    <!-- Authentication Screen -->
+    <string name="sign_in">Đăng Nhập</string>
+    <string name="sign_up">Đăng Ký</string>
+    <string name="email">Email</string>
+    <string name="password">Mật Khẩu</string>
+    <string name="already_have_account">Đã có tài khoản? Đăng Nhập</string>
+    <string name="need_account">Cần tài khoản? Đăng Ký</string>
+    <string name="sign_in_with_google">Đăng nhập bằng Google</string>
+    <string name="welcome_back">Chào Mừng Trở Lại</string>
+    <string name="create_account">Tạo Tài Khoản</string>
+    <string name="or">HOẶC</string>
+    <string name="signing_in_google">Đang đăng nhập bằng Google...</string>
+    <string name="signing_in">Đang đăng nhập...</string>
+    <string name="creating_account">Đang tạo tài khoản...</string>
+    <string name="loading">Đang tải...</string>
+    
+    <!-- Home Screen -->
+    <string name="welcome_message">Chào buổi sáng, Nhà Thám Hiểm</string>
+    <string name="today_sunrise">Bình minh hôm nay: 6:24 sáng</string>
+    <string name="perfect_conditions">Điều kiện hoàn hảo để khám phá núi non</string>
+    <string name="featured_journey">HÀNH TRÌNH NỔI BẬT</string>
+    <string name="fansipan_trek">Leo Núi Fansipan Ngắm Bình Minh</string>
+    <string name="elevation_info">Độ cao: 3.143m</string>
+    <string name="duration_info">Thời gian: 2 ngày</string>
+    <string name="trek_description">Trải nghiệm bình minh tuyệt đẹp trên dãy núi Hoàng Liên Sơn. Cuộc leo núi đầy thử thách này sẽ mang lại cho bạn tầm nhìn toàn cảnh và những kỷ niệm khó quên.</string>
+    <string name="details">Chi Tiết</string>
+    <string name="save">Lưu</string>
+    <string name="recent_adventures">CUỘC PHIÊU LƯU GẦN ĐÂY</string>
+    <string name="no_adventures">Chưa có cuộc phiêu lưu nào gần đây</string>
+    <string name="start_journey">Bắt Đầu Hành Trình</string>
+    
+    <!-- Language Selection -->
+    <string name="language_english">Tiếng Anh</string>
+    <string name="language_vietnamese">Tiếng Việt</string>
+</resources> 

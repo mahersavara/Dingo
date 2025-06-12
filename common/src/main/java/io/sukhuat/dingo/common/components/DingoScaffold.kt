@@ -23,10 +23,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import io.sukhuat.dingo.common.localization.AppLanguage
+import io.sukhuat.dingo.common.localization.LocalLanguageUpdate
+import io.sukhuat.dingo.common.localization.SupportedLanguages
 import io.sukhuat.dingo.common.theme.CloudGray
 import io.sukhuat.dingo.common.theme.DeepIndigo
 import io.sukhuat.dingo.common.theme.MountainSunriseTheme
@@ -45,6 +49,14 @@ import io.sukhuat.dingo.common.theme.ScreenPaddingVertical
  * @param snackbarHostState SnackbarHostState for displaying snackbars
  * @param floatingActionButton Optional floating action button
  * @param contentPadding Padding values for the content
+ * @param isAuthenticated Whether the user is authenticated
+ * @param userProfileImageUrl URL of the user's profile image (null for default icon)
+ * @param currentLanguage The currently selected language
+ * @param showUserMenu Whether to show the user dropdown menu
+ * @param onProfileClick Called when the profile option is clicked
+ * @param onLanguageChange Called when a language is selected
+ * @param onSettingsClick Called when the settings option is clicked
+ * @param onLogoutClick Called when the logout option is clicked
  * @param content Content to display in the scaffold
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -62,8 +74,36 @@ fun DingoScaffold(
         horizontal = ScreenPaddingHorizontal,
         vertical = ScreenPaddingVertical
     ),
+    isAuthenticated: Boolean = false,
+    userProfileImageUrl: String? = null,
+    currentLanguage: AppLanguage = SupportedLanguages[0],
+    showUserMenu: Boolean = false,
+    onProfileClick: () -> Unit = {},
+    onLanguageChange: (String) -> Unit = {},
+    onSettingsClick: () -> Unit = {},
+    onLogoutClick: () -> Unit = {},
     content: @Composable (PaddingValues) -> Unit
 ) {
+    // Force recomposition when language changes
+    LocalLanguageUpdate.current
+
+    // Get screen size for responsive layout
+    val configuration = LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp.dp
+    val screenHeight = configuration.screenHeightDp.dp
+
+    // Adjust padding based on screen size
+    val horizontalPadding = when {
+        screenWidth < 600.dp -> 16.dp
+        screenWidth < 840.dp -> 24.dp
+        else -> 32.dp
+    }
+
+    val responsiveContentPadding = PaddingValues(
+        horizontal = horizontalPadding,
+        vertical = ScreenPaddingVertical
+    )
+
     val extendedColors = MountainSunriseTheme.extendedColors
 
     // Create gradient background if enabled
@@ -146,7 +186,21 @@ fun DingoScaffold(
                             contentColor = CloudGray
                         ) {
                             Row {
+                                // Standard actions
                                 topBarActions()
+
+                                // User menu (if enabled)
+                                if (showUserMenu) {
+                                    UserDropdownMenu(
+                                        isAuthenticated = isAuthenticated,
+                                        userProfileImageUrl = userProfileImageUrl,
+                                        currentLanguage = currentLanguage,
+                                        onProfileClick = onProfileClick,
+                                        onLanguageChange = onLanguageChange,
+                                        onSettingsClick = onSettingsClick,
+                                        onLogoutClick = onLogoutClick
+                                    )
+                                }
                             }
                         }
                     }
@@ -170,7 +224,18 @@ fun DingoScaffold(
                     }
                 )
         ) {
-            content(contentPadding)
+            // Use responsive content padding if none was provided
+            content(
+                if (contentPadding == PaddingValues(
+                        horizontal = ScreenPaddingHorizontal,
+                        vertical = ScreenPaddingVertical
+                    )
+                ) {
+                    responsiveContentPadding
+                } else {
+                    contentPadding
+                }
+            )
 
             // Show loading indicator if needed
             if (isLoading) {
@@ -222,6 +287,31 @@ fun DingoScaffoldGradientPreview() {
             ) {
                 Text(
                     text = "Screen with gradient background",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+            }
+        }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun DingoScaffoldWithUserMenuPreview() {
+    MountainSunriseTheme {
+        DingoScaffold(
+            title = "TRAVELER'S JOURNEY",
+            showUserMenu = true,
+            isAuthenticated = true,
+            currentLanguage = SupportedLanguages[0]
+        ) { padding ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Screen with user menu",
                     style = MaterialTheme.typography.bodyLarge
                 )
             }

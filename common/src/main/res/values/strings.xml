@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App Name -->
+    <string name="app_name">Traveler\'s Journey</string>
+    <string name="app_name_line1">TRAVELER\'S</string>
+    <string name="app_name_line2">JOURNEY</string>
+    
+    <!-- Menu Items -->
+    <string name="profile">Profile</string>
+    <string name="language">Language</string>
+    <string name="settings">Settings</string>
+    <string name="logout">Logout</string>
+    <string name="cancel">Cancel</string>
+    <string name="select_language">Select Language</string>
+    
+    <!-- Authentication Screen -->
+    <string name="sign_in">Sign In</string>
+    <string name="sign_up">Sign Up</string>
+    <string name="email">Email</string>
+    <string name="password">Password</string>
+    <string name="already_have_account">Already have an account? Sign In</string>
+    <string name="need_account">Need an account? Sign Up</string>
+    <string name="sign_in_with_google">Sign in with Google</string>
+    <string name="welcome_back">Welcome Back</string>
+    <string name="create_account">Create Account</string>
+    <string name="or">OR</string>
+    <string name="signing_in_google">Signing in with Google...</string>
+    <string name="signing_in">Signing in...</string>
+    <string name="creating_account">Creating account...</string>
+    <string name="loading">Loading...</string>
+    
+    <!-- Home Screen -->
+    <string name="welcome_message">Good morning, Adventurer</string>
+    <string name="today_sunrise">Today\'s sunrise: 6:24 AM</string>
+    <string name="perfect_conditions">Perfect conditions for mountain exploration</string>
+    <string name="featured_journey">FEATURED JOURNEY</string>
+    <string name="fansipan_trek">Fansipan Sunrise Trek</string>
+    <string name="elevation_info">Elevation: 3,143m</string>
+    <string name="duration_info">Duration: 2 days</string>
+    <string name="trek_description">Experience the breathtaking sunrise over the Hoang Lien Son mountain range. This challenging trek rewards you with panoramic views and unforgettable memories.</string>
+    <string name="details">Details</string>
+    <string name="save">Save</string>
+    <string name="recent_adventures">RECENT ADVENTURES</string>
+    <string name="no_adventures">No recent adventures yet</string>
+    <string name="start_journey">Start Your Journey</string>
+    
+    <!-- Language Selection -->
+    <string name="language_english">English</string>
+    <string name="language_vietnamese">Vietnamese</string>
+</resources> 

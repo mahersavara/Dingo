@@ -17,6 +17,7 @@
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
+            android:configChanges="locale|layoutDirection|uiMode"
             android:theme="@style/Theme.Dingo">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -27,4 +28,3 @@
     </application>
 
 </manifest>
-

@@ -15,10 +15,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import io.sukhuat.dingo.common.R
 import io.sukhuat.dingo.common.theme.MountainSunriseTheme
 import io.sukhuat.dingo.common.theme.RusticGold
 
@@ -51,7 +53,7 @@ fun SplashScreen(
         ) {
             // App name with Mountain Sunrise styling
             Text(
-                text = "TRAVELER'S",
+                text = stringResource(R.string.app_name_line1),
                 style = MaterialTheme.typography.headlineLarge.copy(
                     fontWeight = FontWeight.Bold
                 ),
@@ -60,7 +62,7 @@ fun SplashScreen(
             )
 
             Text(
-                text = "JOURNEY",
+                text = stringResource(R.string.app_name_line2),
                 style = MaterialTheme.typography.headlineLarge.copy(
                     fontWeight = FontWeight.Bold
                 ),
