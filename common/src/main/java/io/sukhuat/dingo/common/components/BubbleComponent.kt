@@ -266,6 +266,8 @@ fun BubbleComponent(
                                     // Show sticker selector
                                     showStickerSelector = true
                                 }
+                                // For Image and GIF, we would trigger a file picker
+                                // This would be handled in the actual implementation
                             },
                         contentAlignment = Alignment.Center
                     ) {
@@ -277,6 +279,23 @@ fun BubbleComponent(
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = ContentScale.Crop
                             )
+                            
+                            // Show cloud upload indicator
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .padding(4.dp)
+                                    .size(24.dp)
+                                    .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.ic_upload),
+                                    contentDescription = "Saved to cloud",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
                         } else if (customImage != null) {
                             // Show existing custom image
                             AsyncImage(
@@ -285,6 +304,23 @@ fun BubbleComponent(
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = ContentScale.Crop
                             )
+                            
+                            // Show cloud indicator
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .padding(4.dp)
+                                    .size(24.dp)
+                                    .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.ic_upload),
+                                    contentDescription = "Saved to cloud",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
                         } else if (imageResId != null) {
                             // Show icon
                             Icon(
@@ -322,6 +358,13 @@ fun BubbleComponent(
                                     },
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.primary
+                                )
+                                
+                                // Add cloud storage indication
+                                Text(
+                                    text = "Saved to Cloud",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
                                 )
                             }
                         }
@@ -396,9 +439,10 @@ fun BubbleComponent(
             Row(
                 modifier = Modifier
                     .offset(
-                        x = with(density) { bubbleWidth / 2 - 30.dp },
-                        y = with(density) { bubbleHeight - 8.dp }
-                    )
+                        x = with(density) { bubbleWidth / 2 - 60.dp },
+                        y = with(density) { bubbleHeight + 16.dp }
+                    ),
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 // Archive button
                 IconButton(
@@ -412,6 +456,23 @@ fun BubbleComponent(
                         painter = painterResource(id = R.drawable.ic_archive),
                         contentDescription = "Archive goal",
                         tint = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+                
+                Spacer(modifier = Modifier.width(8.dp))
+                
+                // Delete button (shown as permanent archive)
+                IconButton(
+                    onClick = onDelete,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .shadow(4.dp, CircleShape)
+                        .background(MaterialTheme.colorScheme.errorContainer, CircleShape)
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_delete_goal),
+                        contentDescription = "Archive goal permanently",
+                        tint = MaterialTheme.colorScheme.error
                     )
                 }
             }

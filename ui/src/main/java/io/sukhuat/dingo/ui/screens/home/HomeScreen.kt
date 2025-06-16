@@ -46,6 +46,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -1093,6 +1095,24 @@ fun GoalCreationDialog(
 ) {
     var goalText by remember { mutableStateOf("") }
     var selectedImageResId by remember { mutableStateOf<Int?>(R.drawable.ic_goal_notes) }
+    
+    // For media upload functionality
+    var selectedMediaTab by remember { mutableStateOf(0) }
+    val mediaTabs = listOf("Icon", "Image", "GIF", "Sticker")
+    var customImageUri by remember { mutableStateOf<Uri?>(null) }
+    
+    // For sticker selection
+    var showStickerSelector by remember { mutableStateOf(false) }
+    val stickers = listOf(
+        R.drawable.ic_sticker_happy,
+        R.drawable.ic_sticker_sad,
+        R.drawable.ic_sticker_love,
+        R.drawable.ic_sticker_cool,
+        R.drawable.ic_sticker_angry,
+        R.drawable.ic_sticker_thinking
+    )
+    
+    val context = LocalContext.current
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -1125,42 +1145,183 @@ fun GoalCreationDialog(
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
-
-                // Icon selection grid
-                Text(
-                    text = "Select Icon",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+                
+                // Media type selector tabs
+                TabRow(
+                    selectedTabIndex = selectedMediaTab,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    mediaTabs.forEachIndexed { index, title ->
+                        Tab(
+                            selected = selectedMediaTab == index,
+                            onClick = { 
+                                selectedMediaTab = index
+                                if (index == 3) { // Sticker tab
+                                    showStickerSelector = true
+                                }
+                            },
+                            text = { Text(title) }
+                        )
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Icon grid
-                val iconOptions = listOf(
-                    R.drawable.ic_goal_learn,
-                    R.drawable.ic_goal_book,
-                    R.drawable.ic_goal_debt,
-                    R.drawable.ic_goal_save,
-                    R.drawable.ic_goal_travel,
-                    R.drawable.ic_goal_walk,
-                    R.drawable.ic_goal_steps,
-                    R.drawable.ic_goal_notes,
-                    R.drawable.ic_goal_organize
-                )
-
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(3),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(120.dp)
-                ) {
-                    items(iconOptions.size) { index ->
-                        val iconResId = iconOptions[index]
-                        IconSelectionItem(
-                            iconResId = iconResId,
-                            isSelected = selectedImageResId == iconResId,
-                            onClick = { selectedImageResId = iconResId }
+                when (selectedMediaTab) {
+                    0 -> { // Icon selection
+                        // Icon selection grid
+                        Text(
+                            text = "Select Icon",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
+                        
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        // Icon grid
+                        val iconOptions = listOf(
+                            R.drawable.ic_goal_learn,
+                            R.drawable.ic_goal_book,
+                            R.drawable.ic_goal_debt,
+                            R.drawable.ic_goal_save,
+                            R.drawable.ic_goal_travel,
+                            R.drawable.ic_goal_walk,
+                            R.drawable.ic_goal_steps,
+                            R.drawable.ic_goal_notes,
+                            R.drawable.ic_goal_organize
+                        )
+
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(3),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(120.dp)
+                        ) {
+                            items(iconOptions.size) { index ->
+                                val iconResId = iconOptions[index]
+                                IconSelectionItem(
+                                    iconResId = iconResId,
+                                    isSelected = selectedImageResId == iconResId && customImageUri == null,
+                                    onClick = { 
+                                        selectedImageResId = iconResId
+                                        customImageUri = null
+                                    }
+                                )
+                            }
+                        }
+                    }
+                    1, 2 -> { // Image or GIF upload
+                        // Media preview or upload button
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(120.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                                .clickable {
+                                    // In a real implementation, this would launch a file picker
+                                    // For now, we'll just show a placeholder
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (customImageUri != null) {
+                                // Show uploaded image
+                                AsyncImage(
+                                    model = customImageUri,
+                                    contentDescription = "Uploaded media",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                                
+                                // Show cloud upload indicator
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.TopEnd)
+                                        .padding(4.dp)
+                                        .size(24.dp)
+                                        .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.ic_upload),
+                                        contentDescription = "Saved to cloud",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            } else {
+                                // Show upload button
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Icon(
+                                        painter = painterResource(
+                                            id = if (selectedMediaTab == 1) R.drawable.ic_upload else R.drawable.ic_gif
+                                        ),
+                                        contentDescription = if (selectedMediaTab == 1) "Upload image" else "Upload GIF",
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                    
+                                    Text(
+                                        text = if (selectedMediaTab == 1) "Upload Image" else "Upload GIF",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                    
+                                    // Add cloud storage indication
+                                    Text(
+                                        text = "Will be saved to Cloud",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    3 -> { // Sticker selection
+                        // Sticker grid
+                        Text(
+                            text = "Select Sticker",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(3),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(120.dp)
+                        ) {
+                            items(stickers.size) { index ->
+                                val stickerId = stickers[index]
+                                Box(
+                                    modifier = Modifier
+                                        .padding(4.dp)
+                                        .size(64.dp)
+                                        .background(
+                                            color = if (selectedImageResId == stickerId) 
+                                                MaterialTheme.colorScheme.primaryContainer 
+                                            else 
+                                                MaterialTheme.colorScheme.surface,
+                                            shape = RoundedCornerShape(8.dp)
+                                        )
+                                        .clickable {
+                                            selectedImageResId = stickerId
+                                            customImageUri = null
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        painter = painterResource(id = stickerId),
+                                        contentDescription = "Sticker",
+                                        modifier = Modifier.size(48.dp),
+                                        tint = Color.Unspecified
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -1180,6 +1341,7 @@ fun GoalCreationDialog(
                     androidx.compose.material3.Button(
                         onClick = {
                             if (goalText.isNotBlank()) {
+                                // In a real implementation, we would also pass customImageUri
                                 onGoalCreated(goalText, selectedImageResId)
                             }
                         },
