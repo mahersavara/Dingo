@@ -58,6 +58,14 @@ class HomeViewModel @Inject constructor(
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
     
     // Goals state
+    val allGoals = getGoalsUseCase()
+        .catch { emit(emptyList()) }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+        
     val goals = getGoalsUseCase()
         .map { goals -> goals.filter { it.status == GoalStatus.ACTIVE } }
         .catch { emit(emptyList()) }

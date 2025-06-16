@@ -77,6 +77,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
@@ -119,6 +120,7 @@ fun HomeScreen(
 
     // Get state from view model
     val uiState by viewModel.uiState.collectAsState()
+    val allGoals by viewModel.allGoals.collectAsState()
     val goals by viewModel.goals.collectAsState()
     val completedGoals by viewModel.completedGoals.collectAsState()
     val archivedGoals by viewModel.archivedGoals.collectAsState()
@@ -307,14 +309,40 @@ fun HomeScreen(
 
                         // Goals grid
                         GoalsGrid(
-                            goals = goals,
+                            goals = allGoals,
                             onGoalClick = { goal ->
-                                if (goal.status == GoalStatus.ACTIVE) {
-                                    // Mark goal as complete
-                                    viewModel.updateGoalStatus(goal.id, GoalStatus.COMPLETED)
-
-                                    // Show celebration
-                                    celebrateGoalCompletion(goal)
+                                when (goal.status) {
+                                    GoalStatus.ACTIVE -> {
+                                        // Mark goal as complete
+                                        viewModel.updateGoalStatus(goal.id, GoalStatus.COMPLETED)
+                                        
+                                        // Show celebration
+                                        celebrateGoalCompletion(goal)
+                                    }
+                                    GoalStatus.COMPLETED -> {
+                                        // Show a message that the goal is already completed
+                                        coroutineScope.launch {
+                                            snackbarHostState.showSnackbar("Goal already completed: ${goal.text}")
+                                        }
+                                    }
+                                    GoalStatus.FAILED -> {
+                                        // Show a message that the goal has failed
+                                        coroutineScope.launch {
+                                            snackbarHostState.showSnackbar("This goal has failed and cannot be modified")
+                                        }
+                                    }
+                                    GoalStatus.ARCHIVED -> {
+                                        // Show a message that the goal is archived
+                                        coroutineScope.launch {
+                                            snackbarHostState.showSnackbar("This goal is archived and cannot be modified")
+                                        }
+                                    }
+                                    else -> {
+                                        // Handle any other statuses
+                                        coroutineScope.launch {
+                                            snackbarHostState.showSnackbar("Unknown goal status")
+                                        }
+                                    }
                                 }
                             },
                             onGoalLongPress = { goal, position ->
@@ -417,14 +445,40 @@ fun HomeScreen(
                         ) {
                             // Goals grid
                             GoalsGrid(
-                                goals = goals,
+                                goals = allGoals,
                                 onGoalClick = { goal ->
-                                    if (goal.status == GoalStatus.ACTIVE) {
-                                        // Mark goal as complete
-                                        viewModel.updateGoalStatus(goal.id, GoalStatus.COMPLETED)
-
-                                        // Show celebration
-                                        celebrateGoalCompletion(goal)
+                                    when (goal.status) {
+                                        GoalStatus.ACTIVE -> {
+                                            // Mark goal as complete
+                                            viewModel.updateGoalStatus(goal.id, GoalStatus.COMPLETED)
+                                            
+                                            // Show celebration
+                                            celebrateGoalCompletion(goal)
+                                        }
+                                        GoalStatus.COMPLETED -> {
+                                            // Show a message that the goal is already completed
+                                            coroutineScope.launch {
+                                                snackbarHostState.showSnackbar("Goal already completed: ${goal.text}")
+                                            }
+                                        }
+                                        GoalStatus.FAILED -> {
+                                            // Show a message that the goal has failed
+                                            coroutineScope.launch {
+                                                snackbarHostState.showSnackbar("This goal has failed and cannot be modified")
+                                            }
+                                        }
+                                        GoalStatus.ARCHIVED -> {
+                                            // Show a message that the goal is archived
+                                            coroutineScope.launch {
+                                                snackbarHostState.showSnackbar("This goal is archived and cannot be modified")
+                                            }
+                                        }
+                                        else -> {
+                                            // Handle any other statuses
+                                            coroutineScope.launch {
+                                                snackbarHostState.showSnackbar("Unknown goal status")
+                                            }
+                                        }
                                     }
                                 },
                                 onGoalLongPress = { goal, position ->
@@ -509,7 +563,11 @@ fun HomeScreen(
                     },
                     onDelete = {
                         val goalId = selectedGoalForEdit!!.id
-                        viewModel.deleteGoal(goalId)
+                        // Archive the goal instead of deleting it
+                        viewModel.updateGoalStatus(goalId, GoalStatus.ARCHIVED)
+                        coroutineScope.launch {
+                            snackbarHostState.showSnackbar("Goal archived: ${selectedGoalForEdit!!.text}")
+                        }
                         selectedGoalForEdit = null
                         showBubbleEditor = false
                     }
@@ -846,7 +904,7 @@ fun GoalCell(
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(Color(0x33FFFFFF)), // Semi-transparent white overlay to dim content
+                            .background(Color(0x55FFFFFF)), // Slightly more opaque white overlay to dim content
                         contentAlignment = Alignment.Center
                     ) {
                         // Stylized completion mark overlay
@@ -859,14 +917,14 @@ fun GoalCell(
                         ) {
                             // Outer circle
                             drawCircle(
-                                color = Color(0xCC4CAF50), // Semi-transparent green
+                                color = Color(0xDD4CAF50), // More opaque green
                                 radius = size.minDimension / 2,
                                 style = Stroke(width = 4f)
                             )
                             
                             // Inner circle
                             drawCircle(
-                                color = Color(0x334CAF50), // More transparent green
+                                color = Color(0x554CAF50), // More visible green
                                 radius = size.minDimension / 2 - 8f
                             )
                             
@@ -874,7 +932,7 @@ fun GoalCell(
                             for (i in 0 until 8) {
                                 rotate(degrees = i * 45f) {
                                     drawLine(
-                                        color = Color(0xCC4CAF50),
+                                        color = Color(0xDD4CAF50), // More opaque green
                                         start = center + Offset(0f, -size.minDimension / 4),
                                         end = center + Offset(0f, -size.minDimension / 2 + 4f),
                                         strokeWidth = 3f
@@ -885,7 +943,7 @@ fun GoalCell(
                         
                         // "DONE" text in the center of the stamp
                         Text(
-                            text = "DONE",
+                            text = "✅ DONE",
                             color = Color(0xFF4CAF50), // Green color
                             fontWeight = FontWeight.ExtraBold,
                             style = MaterialTheme.typography.titleMedium,
@@ -901,7 +959,7 @@ fun GoalCell(
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(Color(0x33FFFFFF)), // Semi-transparent white overlay to dim content
+                            .background(Color(0x55FFFFFF)), // Slightly more opaque white overlay to dim content
                         contentAlignment = Alignment.Center
                     ) {
                         Canvas(
@@ -913,13 +971,13 @@ fun GoalCell(
                         ) {
                             // X mark
                             drawLine(
-                                color = Color(0xCCFF5252), // Semi-transparent red
+                                color = Color(0xDDFF5252), // More opaque red
                                 start = Offset(size.width * 0.3f, size.height * 0.3f),
                                 end = Offset(size.width * 0.7f, size.height * 0.7f),
                                 strokeWidth = 5f
                             )
                             drawLine(
-                                color = Color(0xCCFF5252), // Semi-transparent red
+                                color = Color(0xDDFF5252), // More opaque red
                                 start = Offset(size.width * 0.7f, size.height * 0.3f),
                                 end = Offset(size.width * 0.3f, size.height * 0.7f),
                                 strokeWidth = 5f
@@ -927,7 +985,7 @@ fun GoalCell(
                         }
                         
                         Text(
-                            text = "FAILED",
+                            text = "❌ FAILED",
                             color = Color(0xFFFF5252), // Red color
                             fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.labelMedium,
@@ -944,7 +1002,7 @@ fun GoalCell(
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(Color(0x33FFFFFF)), // Semi-transparent white overlay to dim content
+                            .background(Color(0x55FFFFFF)), // Slightly more opaque white overlay to dim content
                         contentAlignment = Alignment.Center
                     ) {
                         Canvas(
@@ -956,14 +1014,14 @@ fun GoalCell(
                         ) {
                             // Outer rectangle with rounded corners
                             drawRoundRect(
-                                color = Color(0xCC9E9E9E), // Semi-transparent gray
+                                color = Color(0xDD9E9E9E), // More opaque gray
                                 cornerRadius = CornerRadius(16f, 16f),
                                 style = Stroke(width = 3f)
                             )
                         }
                         
                         Text(
-                            text = "ARCHIVED",
+                            text = "⛔ ARCHIVED",
                             color = Color(0xFF9E9E9E), // Gray color
                             fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.labelMedium,
@@ -974,8 +1032,25 @@ fun GoalCell(
                         )
                     }
                 }
+                GoalStatus.ACTIVE -> {
+                    // Add a subtle indicator for active goals
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(8.dp)
+                            .size(16.dp)
+                            .background(Color(0xFF64B5F6), CircleShape)
+                    ) {
+                        Text(
+                            text = "⏳",
+                            fontSize = 10.sp,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                }
                 else -> {
-                    // No overlay for active goals
+                    // No overlay for other statuses
                 }
             }
         }
@@ -1233,7 +1308,7 @@ fun GoalContextMenu(
 
                 // Delete option
                 StatusMenuItem(
-                    text = "Delete Goal",
+                    text = "Archive Goal Permanently",
                     icon = R.drawable.ic_delete_goal,
                     textColor = MaterialTheme.colorScheme.error,
                     onClick = onDelete
