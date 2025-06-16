@@ -46,6 +46,7 @@ import io.sukhuat.dingo.common.localization.changeAppLanguage
 import io.sukhuat.dingo.common.theme.RusticGold
 import io.sukhuat.dingo.common.utils.ToastHelper
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.first
 
 private const val TAG = "AuthScreen"
 
@@ -130,9 +131,31 @@ fun AuthScreen(
     viewModel: AuthViewModel = hiltViewModel()
 ) {
     val authState by viewModel.authState.collectAsState()
+    val languageCode by viewModel.languageCode.collectAsState()
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val currentLanguage = LocalAppLanguage.current
+    
+    // Observe language changes from ViewModel
+    LaunchedEffect(languageCode) {
+        // This will trigger a recomposition when the language changes
+        if (languageCode != null) {
+            // Get the activity context
+            val activity = context as? android.app.Activity
+            if (activity != null) {
+                // Force activity recreation with smoother animation
+                val intent = activity.intent
+                activity.finish()
+                activity.startActivity(intent)
+                
+                // Use a smoother fade animation
+                activity.overridePendingTransition(
+                    android.R.anim.fade_in,
+                    android.R.anim.fade_out
+                )
+            }
+        }
+    }
 
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
@@ -185,100 +208,104 @@ fun AuthScreen(
         else -> stringResource(R.string.loading)
     }
 
-    // Show the loading dialog when in any loading state
-    FloatingLoadingDialog(
-        isVisible = authState is AuthUiState.Loading,
-        message = loadingMessage,
-        dismissOnBackPress = false,
-        dismissOnClickOutside = false
-    )
-
-    DingoScaffold(
-        title = stringResource(R.string.app_name),
-        showTopBar = true,
-        useGradientBackground = true,
-        // Add language selection menu
-        showUserMenu = true,
-        isAuthenticated = false, // Not authenticated on auth screen
-        currentLanguage = currentLanguage,
-        onLanguageChange = { languageCode ->
-            coroutineScope.launch {
-                changeAppLanguage(context, languageCode)
+    Box(modifier = Modifier.fillMaxSize()) {
+        // First layer - main content
+        DingoScaffold(
+            title = stringResource(R.string.app_name),
+            showTopBar = true,
+            useGradientBackground = true,
+            // Add language selection menu
+            showUserMenu = true,
+            isAuthenticated = false, // Not authenticated on auth screen
+            currentLanguage = currentLanguage,
+            onLanguageChange = { languageCode ->
+                // Use the ViewModel to change the language
+                viewModel.changeLanguage(languageCode)
+            },
+            onSettingsClick = {
+                // No settings on auth screen
             }
-        },
-        onSettingsClick = {
-            // No settings on auth screen
-        }
-    ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            DingoCard(
+        ) { paddingValues ->
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth(0.9f)
-                    .align(Alignment.Center)
-                    .padding(16.dp),
-                accentBorder = true,
-                useGradientBackground = false
+                    .fillMaxSize()
+                    .padding(paddingValues)
             ) {
-                Column(
+                DingoCard(
                     modifier = Modifier
-                        .fillMaxWidth()
+                        .fillMaxWidth(0.9f)
+                        .align(Alignment.Center)
                         .padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    accentBorder = true,
+                    useGradientBackground = false
                 ) {
-                    Text(
-                        text = if (isSignUp) stringResource(R.string.create_account) else stringResource(R.string.welcome_back),
-                        style = MaterialTheme.typography.headlineSmall,
-                        textAlign = TextAlign.Center
-                    )
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Text(
+                            text = if (isSignUp) stringResource(R.string.create_account) else stringResource(R.string.welcome_back),
+                            style = MaterialTheme.typography.headlineSmall,
+                            textAlign = TextAlign.Center
+                        )
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
 
-                    // Check if there's an error to display
-                    val isError = authState is AuthUiState.Error
-                    val errorText = if (isError) (authState as AuthUiState.Error).message else null
+                        // Check if there's an error to display
+                        val isError = authState is AuthUiState.Error
+                        val errorText = if (isError) (authState as AuthUiState.Error).message else null
 
-                    EmailPasswordFields(
-                        email = email,
-                        onEmailChange = { email = it },
-                        password = password,
-                        onPasswordChange = { password = it },
-                        isError = isError,
-                        errorText = errorText
-                    )
+                        EmailPasswordFields(
+                            email = email,
+                            onEmailChange = { email = it },
+                            password = password,
+                            onPasswordChange = { password = it },
+                            isError = isError,
+                            errorText = errorText
+                        )
 
-                    AuthButtons(
-                        isSignUp = isSignUp,
-                        onSignInClick = {
-                            if (isSignUp) {
-                                viewModel.signUp(email, password, password)
-                            } else {
-                                viewModel.signIn(email, password)
-                            }
-                        },
-                        onToggleAuthMode = { isSignUp = !isSignUp }
-                    )
+                        AuthButtons(
+                            isSignUp = isSignUp,
+                            onSignInClick = {
+                                if (isSignUp) {
+                                    viewModel.signUp(email, password, password)
+                                } else {
+                                    viewModel.signIn(email, password)
+                                }
+                            },
+                            onToggleAuthMode = { isSignUp = !isSignUp }
+                        )
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
 
-                    Text(
-                        text = stringResource(R.string.or),
-                        style = MaterialTheme.typography.bodyMedium,
-                        textAlign = TextAlign.Center,
-                        color = RusticGold
-                    )
+                        Text(
+                            text = stringResource(R.string.or),
+                            style = MaterialTheme.typography.bodyMedium,
+                            textAlign = TextAlign.Center,
+                            color = RusticGold
+                        )
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
 
-                    GoogleSignInButton(
-                        onGoogleSignInClick = { viewModel.initiateGoogleSignIn(launcher) }
-                    )
+                        GoogleSignInButton(
+                            onGoogleSignInClick = { viewModel.initiateGoogleSignIn(launcher) }
+                        )
+                    }
                 }
             }
+        }
+
+        // Second layer - loading dialog
+        if (authState is AuthUiState.Loading) {
+            FloatingLoadingDialog(
+                isVisible = true,
+                message = loadingMessage,
+                dismissOnBackPress = false,
+                dismissOnClickOutside = false
+            )
         }
     }
 }

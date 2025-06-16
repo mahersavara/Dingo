@@ -1,12 +1,15 @@
 package io.sukhuat.dingo.data.di
 
+import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import io.sukhuat.dingo.data.local.DummyDao
-import io.sukhuat.dingo.data.repository.DummyRepository
-import io.sukhuat.dingo.data.repository.DummyRepositoryImpl
+import io.sukhuat.dingo.data.remote.FirebaseGoalService
+import io.sukhuat.dingo.data.repository.GoalRepositoryImpl
+import io.sukhuat.dingo.data.repository.StorageRepositoryImpl
+import io.sukhuat.dingo.domain.repository.GoalRepository
+import io.sukhuat.dingo.domain.repository.StorageRepository
 import javax.inject.Singleton
 
 /**
@@ -15,13 +18,26 @@ import javax.inject.Singleton
  */
 @Module
 @InstallIn(SingletonComponent::class)
-object RepositoryModule {
+abstract class RepositoryModule {
 
-    @Provides
+    @Binds
     @Singleton
-    fun provideDummyRepository(
-        dummyDao: DummyDao
-    ): DummyRepository {
-        return DummyRepositoryImpl(dummyDao)
+    abstract fun bindStorageRepository(
+        storageRepositoryImpl: StorageRepositoryImpl
+    ): StorageRepository
+    
+    companion object {
+        /**
+         * Provides the GoalRepository implementation
+         * Note: Using @Provides instead of @Binds because we need to manually instantiate
+         * the repository now that we've removed the GoalDao dependency
+         */
+        @Provides
+        @Singleton
+        fun provideGoalRepository(
+            firebaseGoalService: FirebaseGoalService
+        ): GoalRepository {
+            return GoalRepositoryImpl(firebaseGoalService)
+        }
     }
 }

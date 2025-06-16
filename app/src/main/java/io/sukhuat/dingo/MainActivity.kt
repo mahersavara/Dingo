@@ -8,16 +8,23 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import dagger.hilt.android.AndroidEntryPoint
-import io.sukhuat.dingo.common.localization.LanguageProvider
-import io.sukhuat.dingo.common.localization.LocaleHelper
-import io.sukhuat.dingo.common.theme.MountainSunriseTheme
+import io.sukhuat.dingo.common.localization.LocalAppLanguage
+import io.sukhuat.dingo.common.localization.LocalLanguageUpdateState
+import io.sukhuat.dingo.common.localization.SupportedLanguages
+import io.sukhuat.dingo.common.theme.DingoTheme
 import io.sukhuat.dingo.navigation.Screen
 import io.sukhuat.dingo.ui.screens.auth.AuthScreen
 import io.sukhuat.dingo.ui.screens.home.HomeScreen
@@ -37,15 +44,33 @@ class MainActivity : ComponentActivity() {
 
         // Apply smooth transition if this is a recreation due to language change
         if (isLanguageChange) {
-            overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+            // Use a smoother crossfade animation
+            overridePendingTransition(
+                android.R.anim.fade_in, 
+                android.R.anim.fade_out
+            )
             isLanguageChange = false
         }
 
         setContent {
-            // Wrap the app in the language provider to enable multilanguage support
-            LanguageProvider {
-                MountainSunriseTheme {
-                    DingoApp()
+            DingoTheme {
+                // A surface container using the 'background' color from the theme
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    // Get the saved language code
+                    val languagePreferences = remember { io.sukhuat.dingo.common.localization.LanguagePreferences(this) }
+                    val languageCode = runBlocking { languagePreferences.languageCodeFlow.first() }
+                    val currentLanguage = io.sukhuat.dingo.common.localization.LocaleHelper.getLanguageFromCode(languageCode)
+                    
+                    // Provide the language context with the saved language
+                    CompositionLocalProvider(
+                        LocalAppLanguage provides currentLanguage,
+                        LocalLanguageUpdateState provides androidx.compose.runtime.mutableIntStateOf(0)
+                    ) {
+                        DingoApp()
+                    }
                 }
             }
         }
@@ -64,7 +89,7 @@ class MainActivity : ComponentActivity() {
         val languageCode = runBlocking { languagePreferences.languageCodeFlow.first() }
 
         // Apply the saved language
-        val context = LocaleHelper.setLocale(newBase, languageCode)
+        val context = io.sukhuat.dingo.common.localization.LocaleHelper.setLocale(newBase, languageCode)
         super.attachBaseContext(context)
     }
 
@@ -74,7 +99,7 @@ class MainActivity : ComponentActivity() {
         // Re-apply the saved language
         val languagePreferences = io.sukhuat.dingo.common.localization.LanguagePreferences(this)
         val languageCode = runBlocking { languagePreferences.languageCodeFlow.first() }
-        LocaleHelper.setLocale(this, languageCode)
+        io.sukhuat.dingo.common.localization.LocaleHelper.setLocale(this, languageCode)
     }
 }
 

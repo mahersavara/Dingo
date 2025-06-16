@@ -1,25 +1,24 @@
 package io.sukhuat.dingo.ui.screens.home
 
+import android.content.Context
 import android.media.MediaPlayer
+import android.net.Uri
+import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
 import android.util.Log
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -35,27 +34,24 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -64,284 +60,406 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
 import io.sukhuat.dingo.common.R
-import io.sukhuat.dingo.common.components.DingoScaffold
 import io.sukhuat.dingo.common.localization.LocalAppLanguage
-import io.sukhuat.dingo.common.localization.changeAppLanguage
+import io.sukhuat.dingo.common.localization.LocaleHelper
+import io.sukhuat.dingo.common.localization.LanguagePreferences
 import io.sukhuat.dingo.common.theme.MountainSunriseTheme
 import io.sukhuat.dingo.common.theme.RusticGold
 import kotlinx.coroutines.launch
 import java.util.Calendar
 import java.util.Locale
+import kotlin.math.abs
+import io.sukhuat.dingo.common.components.popInAnimation
+import io.sukhuat.dingo.common.components.rememberResponsiveValues
+import io.sukhuat.dingo.common.components.ScreenSizeClass
+import io.sukhuat.dingo.common.components.BubbleComponent
+import io.sukhuat.dingo.common.components.MediaType
+import io.sukhuat.dingo.common.components.GoalCompletionCelebration
+import io.sukhuat.dingo.domain.model.Goal
+import io.sukhuat.dingo.domain.model.GoalStatus
+import io.sukhuat.dingo.ui.components.DingoAppScaffold
+import io.sukhuat.dingo.ui.components.WeeklyWrapUp
+import android.content.Intent
+import androidx.compose.foundation.layout.PaddingValues
 
-// Goal status enum
-enum class GoalStatus {
-    ACTIVE,
-    COMPLETED,
-    FAILED,
-    ARCHIVED
-}
-
-// Goal data class
-data class Goal(
-    val id: Int,
-    val text: String,
-    val imageResId: Int? = null,
-    var status: GoalStatus = GoalStatus.ACTIVE
-)
-
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     onSignOut: () -> Unit,
+    onNavigateToSettings: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-    val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
-    val currentLanguage = LocalAppLanguage.current
+    val snackbarHostState = remember { SnackbarHostState() }
 
-    // Track settings dialog visibility
+    // Get responsive values
+    val responsiveValues = rememberResponsiveValues()
+
+    // Get state from view model
+    val uiState by viewModel.uiState.collectAsState()
+    val goals by viewModel.goals.collectAsState()
+    val completedGoals by viewModel.completedGoals.collectAsState()
+    val archivedGoals by viewModel.archivedGoals.collectAsState()
+    val soundEnabled by viewModel.soundEnabled
+    val vibrationEnabled by viewModel.vibrationEnabled
+
+    // Track if settings dialog is shown
     var showSettingsDialog by remember { mutableStateOf(false) }
 
-    // Track sound and vibration settings
-    var soundEnabled by remember { mutableStateOf(viewModel.isSoundEnabled()) }
-    var vibrationEnabled by remember { mutableStateOf(viewModel.isVibrationEnabled()) }
+    // Track if bubble editor is shown
+    var showBubbleEditor by remember { mutableStateOf(false) }
+    var selectedGoalForEdit by remember { mutableStateOf<Goal?>(null) }
+    var selectedGoalIndex by remember { mutableStateOf(-1) }
+    var bubbleEditorPosition by remember { mutableStateOf(Pair(0f, 0f)) }
 
-    // Create MediaPlayer for sound effects with error handling and fallback
-    var successSoundPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
+    // Setup media player for sound effects
+    var mediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
     var soundPlaybackError by remember { mutableStateOf(false) }
 
-    // Initialize MediaPlayer
-    DisposableEffect(Unit) {
-        try {
-            successSoundPlayer = MediaPlayer.create(context, R.raw.success_sound)
+    // Initialize variables that were showing as unresolved
+    var completedGoal by remember { mutableStateOf<Goal?>(null) }
+    var confettiTargetPosition by remember { mutableStateOf(Pair(0.5f, 0.3f)) }
+    var showCelebration by remember { mutableStateOf(false) }
 
-            // Set error listener
-            successSoundPlayer?.setOnErrorListener { _, what, extra ->
-                Log.e("HomeScreen", "MediaPlayer error: what=$what, extra=$extra")
+    // Function to handle language change
+    val handleLanguageChange: (String) -> Unit = { languageCode ->
+        // Save the language preference
+        val languagePreferences = LanguagePreferences(context)
+        coroutineScope.launch {
+            // Save the language code to preferences
+            languagePreferences.setLanguageCode(languageCode)
+            
+            // Apply the new locale
+            LocaleHelper.setLocale(context, languageCode)
+            
+            // Recreate the activity to apply the language change
+            if (context is android.app.Activity) {
+                // Force activity recreation with animation
+                val intent = context.intent
+                context.finish()
+                context.startActivity(intent)
+                context.overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+            }
+        }
+    }
+
+    // Initialize MediaPlayer for sound effects
+    LaunchedEffect(Unit) {
+        try {
+            mediaPlayer = MediaPlayer.create(context, R.raw.success_sound)
+            mediaPlayer?.setOnErrorListener { _, _, _ ->
                 soundPlaybackError = true
-                true // We handled the error
+                true
             }
         } catch (e: Exception) {
-            Log.e("HomeScreen", "Error creating MediaPlayer: ${e.message}")
+            Log.e("HomeScreen", "Error initializing MediaPlayer", e)
             soundPlaybackError = true
         }
+    }
 
-        // Release the MediaPlayer when no longer needed
+    // Clean up media player when leaving the screen
+    DisposableEffect(Unit) {
         onDispose {
             try {
-                successSoundPlayer?.apply {
-                    if (isPlaying) {
-                        stop()
-                    }
-                    release()
-                }
-                successSoundPlayer = null
+                mediaPlayer?.release()
+                mediaPlayer = null
             } catch (e: Exception) {
-                Log.e("HomeScreen", "Error releasing MediaPlayer: ${e.message}")
+                Log.e("HomeScreen", "Error releasing MediaPlayer", e)
             }
         }
     }
 
-    // Function to play success sound with fallback to vibration
-    fun playSuccessSound() {
-        if (!viewModel.isSoundEnabled()) return
-
-        try {
-            if (soundPlaybackError || successSoundPlayer == null) {
-                // Fallback to vibration if sound fails
-                viewModel.vibrateOnGoalCompleted()
-                return
+    // Function to play success sound
+    val playSuccessSound = {
+        if (soundEnabled && !soundPlaybackError) {
+            try {
+                mediaPlayer?.seekTo(0)
+                mediaPlayer?.start()
+            } catch (e: Exception) {
+                Log.e("HomeScreen", "Error playing sound", e)
+                soundPlaybackError = true
             }
+        }
 
-            successSoundPlayer?.apply {
-                if (isPlaying) {
-                    seekTo(0)
-                } else {
-                    start()
-                }
+        // Provide haptic feedback as fallback or additional feedback
+        if (vibrationEnabled) {
+            val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                vibrator?.vibrate(
+                    VibrationEffect.createOneShot(
+                        100,
+                        VibrationEffect.DEFAULT_AMPLITUDE
+                    )
+                )
+            } else {
+                @Suppress("DEPRECATION")
+                vibrator?.vibrate(100)
             }
-        } catch (e: Exception) {
-            Log.e("HomeScreen", "Error playing sound: ${e.message}")
-            soundPlaybackError = true
-            // Fallback to vibration
+        }
+    }
+
+    // Function to celebrate goal completion
+    val celebrateGoalCompletion = { goal: Goal ->
+        // Play sound
+        playSuccessSound()
+
+        // Trigger vibration
+        if (vibrationEnabled) {
             viewModel.vibrateOnGoalCompleted()
         }
+
+        // Show celebration animation
+        completedGoal = goal
+        confettiTargetPosition = Pair(0.5f, 0.3f)
+        showCelebration = true
     }
 
-    // Function to provide haptic feedback
-    fun provideHapticFeedback() {
-        if (!viewModel.isVibrationEnabled()) return
-        viewModel.vibrateOnGoalCompleted()
-    }
-
-    // Function to celebrate goal completion with sound and vibration
-    fun celebrateGoalCompletion() {
-        playSuccessSound()
-        provideHapticFeedback()
+    // Function to save custom image
+    val saveCustomImage = { uri: Uri ->
+        // In a real app, you would save the image to internal storage or cloud storage
+        // For this example, we'll just return the URI as a string
+        uri.toString()
     }
 
     // Function to show status change message
-    fun showStatusChangeMessage(status: GoalStatus, goalText: String) {
+    val showStatusChangeMessage = { status: GoalStatus, goalText: String ->
         coroutineScope.launch {
             val message = when (status) {
                 GoalStatus.COMPLETED -> "Goal completed: $goalText"
                 GoalStatus.FAILED -> "Goal marked as failed: $goalText"
                 GoalStatus.ARCHIVED -> "Goal archived: $goalText"
-                GoalStatus.ACTIVE -> "Goal marked as active: $goalText"
+                GoalStatus.ACTIVE -> "Goal activated: $goalText"
             }
             snackbarHostState.showSnackbar(message = message)
         }
-    }
-
-    // Sample goals for demonstration
-    val goals = remember {
-        mutableStateListOf(
-            Goal(1, "Learn new skillset", R.drawable.ic_goal_learn),
-            Goal(2, "Read 1 book a month", R.drawable.ic_goal_book, GoalStatus.COMPLETED),
-            Goal(3, "Debt Free", R.drawable.ic_goal_debt),
-            Goal(4, "Save $8,000", R.drawable.ic_goal_save),
-            Goal(5, "Visit somewhere new", R.drawable.ic_goal_travel),
-            Goal(6, "Take daily walk", R.drawable.ic_goal_walk, GoalStatus.FAILED),
-            Goal(7, "10,000 steps a day", R.drawable.ic_goal_steps),
-            Goal(8, "Take notes", R.drawable.ic_goal_notes),
-            Goal(9, "Keep home organized", R.drawable.ic_goal_organize, GoalStatus.ARCHIVED),
-            // Empty cells for new goals
-            null,
-            null,
-            null
-        )
     }
 
     // Track if goal creation dialog is shown
     var showGoalCreationDialog by remember { mutableStateOf(false) }
     var selectedEmptyIndex by remember { mutableStateOf(-1) }
 
-    // Track confetti animation
-    var showConfetti by remember { mutableStateOf(false) }
-    var confettiTargetPosition by remember { mutableStateOf(Pair(0f, 0f)) }
-
     // Track goal context menu
     var showGoalContextMenu by remember { mutableStateOf(false) }
-    var selectedGoalIndex by remember { mutableStateOf(-1) }
+    var contextMenuGoal by remember { mutableStateOf<Goal?>(null) }
     var contextMenuPosition by remember { mutableStateOf(Pair(0f, 0f)) }
 
-    // Show error messages in snackbar
-    LaunchedEffect(uiState) {
-        if (uiState is HomeUiState.Error) {
-            snackbarHostState.showSnackbar(message = (uiState as HomeUiState.Error).message)
-        }
-    }
-
-    DingoScaffold(
-        title = stringResource(R.string.app_name),
+    DingoAppScaffold(
+        title = "Dingo",
+        showTopBar = true,
         useGradientBackground = true,
-        snackbarHostState = snackbarHostState,
         isLoading = uiState is HomeUiState.Loading,
-        // Add user dropdown menu
+        errorMessage = if (uiState is HomeUiState.Error) {
+            (uiState as HomeUiState.Error).message
+        } else {
+            null
+        },
+        topBarActions = {
+            // Remove the duplicate profile icon since it's already handled by the scaffold
+        },
         showUserMenu = true,
-        isAuthenticated = true, // User is authenticated on the home screen
-        currentLanguage = currentLanguage,
-        onProfileClick = {
-            // TODO: Navigate to profile screen
-        },
-        onLanguageChange = { languageCode ->
-            coroutineScope.launch {
-                changeAppLanguage(context, languageCode)
-            }
-        },
-        onSettingsClick = {
-            // Show settings dialog
-            showSettingsDialog = true
-        },
-        onLogoutClick = {
-            viewModel.signOut(onSignOut)
-        }
+        isAuthenticated = true, // Assuming the user is authenticated since we're on the home screen
+        currentLanguage = LocalAppLanguage.current,
+        onLanguageChange = handleLanguageChange,
+        onSettingsClick = onNavigateToSettings,
+        onLogoutClick = { viewModel.signOut(onSignOut) }
     ) { paddingValues ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                // Weekly overview header
-                WeeklyOverviewHeader()
+            // Use different layouts based on screen size
+            when (responsiveValues.screenSizeClass) {
+                ScreenSizeClass.COMPACT -> {
+                    // Phone portrait layout - vertical
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(responsiveValues.contentPadding),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        // Weekly overview header
+                        WeeklyOverviewHeader(textSizeMultiplier = responsiveValues.headerTextSize)
 
-                Spacer(modifier = Modifier.height(24.dp))
+                        Spacer(modifier = Modifier.height(24.dp))
 
-                // Goals grid
-                GoalsGrid(
-                    goals = goals,
-                    onGoalClick = { index ->
-                        if (goals[index] == null) {
-                            // Show goal creation dialog for empty cell
-                            selectedEmptyIndex = index
-                            showGoalCreationDialog = true
-                        } else {
-                            // Mark goal as complete and show confetti
-                            if (goals[index]?.status == GoalStatus.ACTIVE) {
-                                val goalText = goals[index]?.text ?: ""
-                                goals[index] = goals[index]?.copy(status = GoalStatus.COMPLETED)
-                                // Set confetti target position to the center of the screen
-                                confettiTargetPosition = Pair(0.5f, 0.3f)
-                                showConfetti = true
-                                // Celebrate with sound and vibration
-                                celebrateGoalCompletion()
-                                // Show snackbar message
-                                showStatusChangeMessage(GoalStatus.COMPLETED, goalText)
+                        // Goals grid
+                        GoalsGrid(
+                            goals = goals,
+                            onGoalClick = { goal ->
+                                if (goal.status == GoalStatus.ACTIVE) {
+                                    // Mark goal as complete
+                                    viewModel.updateGoalStatus(goal.id, GoalStatus.COMPLETED)
+
+                                    // Show celebration
+                                    celebrateGoalCompletion(goal)
+                                }
+                            },
+                            onGoalLongPress = { goal, position ->
+                                // Show bubble editor
+                                selectedGoalForEdit = goal
+                                
+                                // Calculate offset for the BubbleEditor to position it next to the goal
+                                // Position the bubble to the right of the goal with a slight offset
+                                val offsetX = position.first + 60f  // Move right from the goal
+                                val offsetY = position.second - 30f  // Move slightly up
+                                
+                                bubbleEditorPosition = Pair(offsetX, offsetY)
+                                showBubbleEditor = true
+                            },
+                            onEmptyCellClick = {
+                                showGoalCreationDialog = true
+                            }
+                        )
+                    }
+                }
+
+                ScreenSizeClass.MEDIUM, ScreenSizeClass.EXPANDED -> {
+                    // Tablet layout - horizontal split
+                    Row(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(responsiveValues.contentPadding),
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        // Left side - Weekly overview
+                        Column(
+                            modifier = Modifier
+                                .weight(0.3f)
+                                .padding(end = responsiveValues.contentPadding),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            // Weekly overview header
+                            WeeklyOverviewHeader(textSizeMultiplier = responsiveValues.headerTextSize)
+
+                            Spacer(modifier = Modifier.height(32.dp))
+
+                            // Additional stats or info could go here
+                            Text(
+                                text = "Goal Statistics",
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontSize = MaterialTheme.typography.titleMedium.fontSize * responsiveValues.headerTextSize
+                                ),
+                                fontWeight = FontWeight.Bold,
+                                color = RusticGold
+                            )
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            // Sample stats
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                val activeGoalsCount = goals.size
+                                val completedGoalsCount = completedGoals.size
+                                val totalGoalsCount =
+                                    activeGoalsCount + completedGoalsCount + archivedGoals.size
+
+                                StatItem(
+                                    label = "Active Goals",
+                                    value = "$activeGoalsCount",
+                                    color = MaterialTheme.colorScheme.primary,
+                                    textSizeMultiplier = responsiveValues.bodyTextSize
+                                )
+
+                                StatItem(
+                                    label = "Completed Goals",
+                                    value = "$completedGoalsCount",
+                                    color = Color(0xFF4CAF50),
+                                    textSizeMultiplier = responsiveValues.bodyTextSize
+                                )
+
+                                StatItem(
+                                    label = "Completion Rate",
+                                    value = "${if (totalGoalsCount > 0) (completedGoalsCount * 100 / totalGoalsCount) else 0}%",
+                                    color = RusticGold,
+                                    textSizeMultiplier = responsiveValues.bodyTextSize
+                                )
                             }
                         }
-                    },
-                    onGoalLongPress = { index, position ->
-                        if (goals[index] != null) {
-                            selectedGoalIndex = index
-                            contextMenuPosition = position
-                            showGoalContextMenu = true
+
+                        // Divider
+                        Divider(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .width(1.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant
+                        )
+
+                        // Right side - Goals grid
+                        Box(
+                            modifier = Modifier
+                                .weight(0.7f)
+                                .padding(start = responsiveValues.contentPadding)
+                        ) {
+                            // Goals grid
+                            GoalsGrid(
+                                goals = goals,
+                                onGoalClick = { goal ->
+                                    if (goal.status == GoalStatus.ACTIVE) {
+                                        // Mark goal as complete
+                                        viewModel.updateGoalStatus(goal.id, GoalStatus.COMPLETED)
+
+                                        // Show celebration
+                                        celebrateGoalCompletion(goal)
+                                    }
+                                },
+                                onGoalLongPress = { goal, position ->
+                                    // Show bubble editor
+                                    selectedGoalForEdit = goal
+                                    
+                                    // Calculate offset for the BubbleEditor to position it next to the goal
+                                    // Position the bubble to the right of the goal with a slight offset
+                                    val offsetX = position.first + 60f  // Move right from the goal
+                                    val offsetY = position.second - 30f  // Move slightly up
+                                    
+                                    bubbleEditorPosition = Pair(offsetX, offsetY)
+                                    showBubbleEditor = true
+                                },
+                                onEmptyCellClick = {
+                                    showGoalCreationDialog = true
+                                }
+                            )
                         }
                     }
-                )
+                }
             }
 
-            // Confetti animation
-            if (showConfetti) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.TopCenter
-                ) {
-                    // Simple confetti animation using Canvas
-                    ConfettiAnimation(
-                        targetPosition = confettiTargetPosition,
-                        onAnimationEnd = { showConfetti = false }
-                    )
-                }
-
-                LaunchedEffect(showConfetti) {
-                    kotlinx.coroutines.delay(1500)
-                    showConfetti = false
-                }
+            // Goal completion celebration
+            if (showCelebration && completedGoal != null) {
+                GoalCompletionCelebration(
+                    goalText = completedGoal!!.text,
+                    imageResId = completedGoal!!.imageResId,
+                    customImage = completedGoal!!.customImage,
+                    targetPosition = confettiTargetPosition,
+                    onAnimationEnd = {
+                        showCelebration = false
+                        completedGoal = null
+                    }
+                )
             }
 
             // Goal creation dialog
@@ -349,52 +467,51 @@ fun HomeScreen(
                 GoalCreationDialog(
                     onDismiss = { showGoalCreationDialog = false },
                     onGoalCreated = { text, imageResId ->
-                        if (selectedEmptyIndex >= 0 && selectedEmptyIndex < goals.size) {
-                            goals[selectedEmptyIndex] = Goal(
-                                id = goals.filterNotNull().maxOfOrNull { it.id }?.plus(1) ?: 1,
-                                text = text,
-                                imageResId = imageResId ?: R.drawable.ic_goal_notes,
-                                status = GoalStatus.ACTIVE
-                            )
-                        }
+                        viewModel.createGoal(text, imageResId)
                         showGoalCreationDialog = false
                     }
                 )
             }
 
-            // Goal context menu
-            if (showGoalContextMenu && selectedGoalIndex >= 0 && selectedGoalIndex < goals.size && goals[selectedGoalIndex] != null) {
-                val goal = goals[selectedGoalIndex]!!
+            // Bubble editor
+            if (showBubbleEditor && selectedGoalForEdit != null) {
+                BubbleComponent(
+                    id = selectedGoalForEdit!!.id.hashCode(), // Convert string ID to int
+                    text = selectedGoalForEdit!!.text,
+                    imageResId = selectedGoalForEdit!!.imageResId,
+                    customImage = selectedGoalForEdit!!.customImage,
+                    createdAt = selectedGoalForEdit!!.createdAt,
+                    position = bubbleEditorPosition,
+                    onDismiss = { showBubbleEditor = false },
+                    onTextChange = { newText ->
+                        viewModel.updateGoalText(selectedGoalForEdit!!.id, newText)
+                        // Don't dismiss the editor immediately to allow for multiple edits
+                    },
+                    onMediaUpload = { uri, mediaType ->
+                        val savedImagePath = saveCustomImage(uri)
+                        viewModel.updateGoalImage(selectedGoalForEdit!!.id, savedImagePath)
 
-                GoalContextMenu(
-                    position = contextMenuPosition,
-                    goalStatus = goal.status,
-                    onDismiss = { showGoalContextMenu = false },
-                    onStatusChange = { newStatus ->
-                        val goalText = goal.text
-                        goals[selectedGoalIndex] = goal.copy(status = newStatus)
-                        showGoalContextMenu = false
-
-                        // Show confetti and celebrate when marking as completed
-                        if (newStatus == GoalStatus.COMPLETED) {
-                            confettiTargetPosition = Pair(0.5f, 0.3f)
-                            showConfetti = true
-                            celebrateGoalCompletion()
+                        // Show update message based on media type
+                        coroutineScope.launch {
+                            val mediaTypeText = when (mediaType) {
+                                MediaType.IMAGE -> "Image"
+                                MediaType.GIF -> "GIF"
+                                MediaType.STICKER -> "Sticker"
+                            }
+                            // Snackbar message is handled by the view model
                         }
-
-                        // Show status change message
-                        showStatusChangeMessage(newStatus, goalText)
+                    },
+                    onArchive = {
+                        val goalId = selectedGoalForEdit!!.id
+                        viewModel.updateGoalStatus(goalId, GoalStatus.ARCHIVED)
+                        selectedGoalForEdit = null
+                        showBubbleEditor = false
                     },
                     onDelete = {
-                        // Replace with null to create an empty cell
-                        val goalText = goal.text
-                        goals[selectedGoalIndex] = null
-                        showGoalContextMenu = false
-
-                        // Show deletion message
-                        coroutineScope.launch {
-                            snackbarHostState.showSnackbar(message = "Goal deleted: $goalText")
-                        }
+                        val goalId = selectedGoalForEdit!!.id
+                        viewModel.deleteGoal(goalId)
+                        selectedGoalForEdit = null
+                        showBubbleEditor = false
                     }
                 )
             }
@@ -405,13 +522,33 @@ fun HomeScreen(
                     soundEnabled = soundEnabled,
                     vibrationEnabled = vibrationEnabled,
                     onSoundToggled = {
-                        soundEnabled = viewModel.toggleSound()
+                        viewModel.toggleSound()
                     },
                     onVibrationToggled = {
-                        vibrationEnabled = viewModel.toggleVibration()
+                        viewModel.toggleVibration()
                     },
                     onDismiss = {
                         showSettingsDialog = false
+                    }
+                )
+            }
+
+            // Weekly wrap-up dialog
+            if (viewModel.showWeeklyWrapUp.value) {
+                WeeklyWrapUp(
+                    completedGoals = completedGoals,
+                    totalGoals = viewModel.totalWeeklyGoals.value,
+                    onDismiss = { viewModel.dismissWeeklyWrapUp() },
+                    onShare = {
+                        // Create a share intent
+                        val sendIntent = Intent().apply {
+                            action = Intent.ACTION_SEND
+                            putExtra(Intent.EXTRA_TEXT, viewModel.getWeeklySummaryText())
+                            type = "text/plain"
+                        }
+                        
+                        // Start the share activity
+                        context.startActivity(Intent.createChooser(sendIntent, "Share Weekly Summary"))
                     }
                 )
             }
@@ -420,61 +557,144 @@ fun HomeScreen(
 }
 
 @Composable
-fun WeeklyOverviewHeader() {
-    // Calculate current week and days dynamically using Calendar instead of LocalDate
-    val calendar = remember { Calendar.getInstance() }
+fun WeeklyOverviewHeader(textSizeMultiplier: Float = 1.0f) {
+    // State to track the week offset (0 = current week, -1 = previous week, etc.)
+    var weekOffset by remember { mutableStateOf(0) }
+    
+    // Calculate current week and days dynamically using Calendar
+    val calendar = remember(weekOffset) { 
+        Calendar.getInstance().apply {
+            // Add weekOffset weeks to the current date
+            add(Calendar.WEEK_OF_YEAR, weekOffset)
+        }
+    }
 
     // 1 (Sunday) to 7 (Saturday) in Calendar, but we want 1 (Monday) to 7 (Sunday)
     val calendarDayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
     // Convert to 1 (Monday) to 7 (Sunday) format
-    val dayOfWeek = remember { if (calendarDayOfWeek == Calendar.SUNDAY) 7 else calendarDayOfWeek - 1 }
+    val dayOfWeek = if (calendarDayOfWeek == Calendar.SUNDAY) 7 else calendarDayOfWeek - 1
 
-    val daysLeft = remember { 8 - dayOfWeek } // Days left in the week (including today)
+    val daysLeft = 8 - dayOfWeek // Days left in the week (including today)
 
     // Calculate week of month
-    val weekOfMonth = remember {
-        calendar.get(Calendar.WEEK_OF_MONTH)
-    }
+    val weekOfMonth = calendar.get(Calendar.WEEK_OF_MONTH)
 
     // Get month name
-    val monthName = remember {
-        calendar.getDisplayName(Calendar.MONTH, Calendar.SHORT, Locale.getDefault())
-    }
+    val monthName = calendar.getDisplayName(Calendar.MONTH, Calendar.SHORT, Locale.getDefault())
 
-    val year = remember { calendar.get(Calendar.YEAR) }
+    val year = calendar.get(Calendar.YEAR)
 
-    val weekProgress = remember { dayOfWeek.toFloat() / 7f }
-
+    val weekProgress = dayOfWeek.toFloat() / 7f
+    
+    // Detect horizontal swipe gestures
+    val density = LocalDensity.current
+    val configuration = LocalConfiguration.current
+    val screenWidthPx = with(density) { configuration.screenWidthDp.dp.toPx() }
+    
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
+            .padding(vertical = 8.dp)
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onDoubleTap = {
+                        // Reset to current week on double tap
+                        weekOffset = 0
+                    }
+                )
+            }
+            .pointerInput(Unit) {
+                var startX = 0f
+                var change = 0f
+                detectTapGestures(
+                    onPress = { offset ->
+                        startX = offset.x
+                    },
+                    onLongPress = { offset ->
+                        change = offset.x - startX
+                        if (change > screenWidthPx / 4) {
+                            // Swipe right - go to next week (if not already at current week)
+                            if (weekOffset < 0) {
+                                weekOffset++
+                            }
+                        } else if (change < -screenWidthPx / 4) {
+                            // Swipe left - go to previous week
+                            weekOffset--
+                        }
+                    }
+                )
+            },
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        // Show week navigation indicator
+        Text(
+            text = when {
+                weekOffset == 0 -> "Current Week"
+                weekOffset == -1 -> "Last Week"
+                weekOffset < -1 -> "${abs(weekOffset)} Weeks Ago"
+                else -> "Future Week" // Should not happen with current logic
+            },
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+        )
+        
         Text(
             text = "${weekOfMonth}${getOrdinalSuffix(weekOfMonth)} Week of $monthName $year",
-            style = MaterialTheme.typography.headlineSmall,
+            style = MaterialTheme.typography.headlineSmall.copy(
+                fontSize = MaterialTheme.typography.headlineSmall.fontSize * textSizeMultiplier
+            ),
             fontWeight = FontWeight.Bold,
             color = RusticGold
         )
 
-        Text(
-            text = "($daysLeft day${if (daysLeft != 1) "s" else ""} left!)",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
-            modifier = Modifier.padding(vertical = 4.dp)
-        )
-
-        // Progress bar for week
-        LinearProgressIndicator(
-            progress = weekProgress,
-            modifier = Modifier
-                .fillMaxWidth(0.7f)
-                .height(8.dp)
-                .clip(RoundedCornerShape(4.dp)),
-            color = RusticGold,
-            trackColor = MaterialTheme.colorScheme.surfaceVariant
-        )
+        // Show different text based on whether we're viewing current week or past weeks
+        if (weekOffset == 0) {
+            Text(
+                text = "($daysLeft day${if (daysLeft != 1) "s" else ""} left!)",
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    fontSize = MaterialTheme.typography.bodyLarge.fontSize * textSizeMultiplier
+                ),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                modifier = Modifier.padding(vertical = 4.dp)
+            )
+            
+            // Progress bar for current week
+            LinearProgressIndicator(
+                progress = weekProgress,
+                modifier = Modifier
+                    .fillMaxWidth(0.7f)
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(4.dp)),
+                color = RusticGold,
+                trackColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+        } else {
+            // For past weeks, show completed status instead of progress
+            Text(
+                text = "Week completed",
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    fontSize = MaterialTheme.typography.bodyLarge.fontSize * textSizeMultiplier
+                ),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                modifier = Modifier.padding(vertical = 4.dp)
+            )
+            
+            // Show swipe hint
+            Text(
+                text = "Swipe right to see more recent weeks",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+            )
+        }
+        
+        // Show swipe left hint only for current week
+        if (weekOffset == 0) {
+            Text(
+                text = "Swipe left to see past weeks",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+            )
+        }
     }
 }
 
@@ -489,117 +709,55 @@ private fun getOrdinalSuffix(n: Int): String {
     }
 }
 
-// Extension function to convert dp to pixels
-@Composable
-private fun Int.dpToPx(): Float {
-    return with(LocalDensity.current) { this@dpToPx.dp.toPx() }
-}
-
-// Extension function to convert dp to pixels
-@Composable
-private fun androidx.compose.ui.unit.Dp.toPx(): Float {
-    return with(LocalDensity.current) { this@toPx.toPx() }
-}
-
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun GoalsGrid(
-    goals: List<Goal?>,
-    onGoalClick: (Int) -> Unit,
-    onGoalLongPress: (Int, Pair<Float, Float>) -> Unit
+    goals: List<Goal>,
+    onGoalClick: (Goal) -> Unit,
+    onGoalLongPress: (Goal, Pair<Float, Float>) -> Unit,
+    onEmptyCellClick: () -> Unit
 ) {
     val gridState = rememberLazyGridState()
-    val scope = rememberCoroutineScope()
-    val density = LocalDensity.current
-
-    // Track drag and drop state
-    var isDragging by remember { mutableStateOf(false) }
-    var draggedItemIndex by remember { mutableStateOf(-1) }
-    var draggedItemPosition by remember { mutableStateOf(Offset.Zero) }
-    var dropTargetIndex by remember { mutableStateOf(-1) }
-
-    // Function to handle goal reordering
-    val onReorderGoals = { from: Int, to: Int ->
-        if (from != to && from >= 0 && to >= 0 && from < goals.size && to < goals.size) {
-            val mutableGoals = goals.toMutableList()
-            val item = mutableGoals[from]
-            mutableGoals.removeAt(from)
-            mutableGoals.add(to, item)
-            // Update the goals list (this would be handled by the ViewModel in a real app)
-            // For now, we'll just log the reordering
-            Log.d("GoalsGrid", "Reordered goal from $from to $to")
-        }
-    }
+    val columns = GridCells.Fixed(3)
+    val itemsVisible = true // For animations
+    
+    // Always show a grid of 12 cells (4 rows x 3 columns)
+    val totalCells = 12
+    val emptySlots = maxOf(0, totalCells - goals.size)
 
     LazyVerticalGrid(
-        columns = GridCells.Fixed(3),
+        columns = columns,
         state = gridState,
         contentPadding = PaddingValues(8.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
-        items(goals.size, key = { index -> goals[index]?.id ?: -index }) { index ->
-            val goal = goals[index]
-
-            if (goal == null) {
-                // Empty cell
-                EmptyGoalCell(onClick = { onGoalClick(index) })
-            } else {
-                // Goal cell
-                GoalCell(
-                    goal = goal,
-                    isDragged = isDragging && draggedItemIndex == index,
-                    modifier = Modifier
-                        .animateItemPlacement()
-                        .pointerInput(Unit) {
-                            detectTapGestures(
-                                onTap = { onGoalClick(index) },
-                                onLongPress = { offset ->
-                                    // Pass the position for context menu placement
-                                    onGoalLongPress(index, Pair(offset.x, offset.y))
-                                }
-                            )
-                        }
-                        .pointerInput(index) {
-                            detectDragGestures(
-                                onDragStart = {
-                                    isDragging = true
-                                    draggedItemIndex = index
-                                    draggedItemPosition = it
-                                },
-                                onDrag = { change, dragAmount ->
-                                    change.consume()
-                                    draggedItemPosition += dragAmount
-
-                                    // Calculate potential drop target based on position
-                                    // This is a simplified implementation - in a real app,
-                                    // you would calculate this based on the grid layout
-                                    val row = (draggedItemPosition.y / 150f).toInt()
-                                    val col = (draggedItemPosition.x / 150f).toInt()
-                                    val potentialTarget = row * 3 + col
-
-                                    if (potentialTarget >= 0 && potentialTarget < goals.size) {
-                                        dropTargetIndex = potentialTarget
-                                    }
-                                },
-                                onDragEnd = {
-                                    if (dropTargetIndex != -1 && draggedItemIndex != dropTargetIndex) {
-                                        onReorderGoals(draggedItemIndex, dropTargetIndex)
-                                    }
-                                    isDragging = false
-                                    draggedItemIndex = -1
-                                    dropTargetIndex = -1
-                                },
-                                onDragCancel = {
-                                    isDragging = false
-                                    draggedItemIndex = -1
-                                    dropTargetIndex = -1
-                                }
-                            )
-                        }
-                )
-            }
+        // Display existing goals
+        items(goals, key = { it.id }) { goal ->
+            // Goal cell with animations
+            GoalCell(
+                goal = goal,
+                modifier = Modifier
+                    .padding(4.dp)
+                    .popInAnimation(visible = itemsVisible, index = goals.indexOf(goal))
+                    .pointerInput(Unit) {
+                        detectTapGestures(
+                            onTap = { onGoalClick(goal) },
+                            onLongPress = { offset ->
+                                // Pass the position for context menu placement
+                                onGoalLongPress(goal, Pair(offset.x, offset.y))
+                            }
+                        )
+                    }
+            )
+        }
+        
+        // Add empty cells to fill the grid
+        items(emptySlots) { index ->
+            EmptyGoalCell(
+                onClick = onEmptyCellClick,
+                modifier = Modifier
+                    .padding(4.dp)
+                    .popInAnimation(visible = itemsVisible, index = goals.size + index)
+            )
         }
     }
 }
@@ -610,123 +768,227 @@ fun GoalCell(
     isDragged: Boolean = false,
     modifier: Modifier = Modifier
 ) {
-    // Determine background color based on status
-    val backgroundColor = when (goal.status) {
-        GoalStatus.ACTIVE -> MaterialTheme.colorScheme.surfaceVariant
-        GoalStatus.COMPLETED -> Color(0xFFD7F9DB) // Green pastel
-        GoalStatus.FAILED -> Color(0xFFF9D7D7) // Red pastel
-        GoalStatus.ARCHIVED -> Color(0xFFE0E0E0) // Gray
-    }
-
-    // Determine if cell is enabled
-    val isEnabled = goal.status != GoalStatus.ARCHIVED
-
-    // Apply elevation effect when dragging
-    val elevation = if (isDragged) 8.dp else if (isEnabled) 4.dp else 1.dp
-    val scale = if (isDragged) 1.05f else 1f
-
     Card(
         modifier = modifier
-            .aspectRatio(1f)
-            .shadow(
-                elevation = elevation,
-                shape = RoundedCornerShape(16.dp)
-            )
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            },
+            .aspectRatio(1f),
         shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 4.dp
+        ),
         colors = CardDefaults.cardColors(
-            containerColor = backgroundColor
+            containerColor = when (goal.status) {
+                GoalStatus.COMPLETED -> Color(0xFFE8F5E9) // Light green for completed
+                GoalStatus.FAILED -> Color(0xFFFFEBEE) // Light red for failed
+                GoalStatus.ARCHIVED -> Color(0xFFF5F5F5) // Light gray for archived
+                else -> MaterialTheme.colorScheme.surface
+            }
         )
     ) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            // Main content
             Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
                 modifier = Modifier
-                    .padding(8.dp)
                     .fillMaxSize()
+                    .padding(8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
-                // Status indicator
-                when (goal.status) {
-                    GoalStatus.COMPLETED -> {
-                        Box(
+                // Image at the top
+                Box(
+                    modifier = Modifier
+                        .weight(0.6f)
+                        .fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (goal.customImage != null) {
+                        AsyncImage(
+                            model = goal.customImage,
+                            contentDescription = null,
+                            contentScale = ContentScale.Fit,
                             modifier = Modifier
-                                .size(24.dp)
-                                .background(Color(0xFF4CAF50), CircleShape)
-                                .align(Alignment.End),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Check,
-                                contentDescription = "Completed",
-                                tint = Color.White,
-                                modifier = Modifier.size(16.dp)
-                            )
-                        }
+                                .fillMaxSize(0.8f)
+                                .padding(4.dp)
+                        )
+                    } else if (goal.imageResId != null) {
+                        // Use null-safe approach to avoid smart cast issue
+                        val resId = goal.imageResId ?: R.drawable.ic_goal_notes
+                        Icon(
+                            painter = painterResource(id = resId),
+                            contentDescription = null,
+                            tint = Color.Unspecified, // Use original colors for doodle art style
+                            modifier = Modifier.size(64.dp)
+                        )
                     }
-                    GoalStatus.FAILED -> {
-                        Box(
-                            modifier = Modifier
-                                .size(24.dp)
-                                .background(Color(0xFFF44336), CircleShape)
-                                .align(Alignment.End),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = "Failed",
-                                tint = Color.White,
-                                modifier = Modifier.size(16.dp)
-                            )
-                        }
-                    }
-                    else -> { /* No indicator for other statuses */ }
                 }
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                // Goal image/icon
-                goal.imageResId?.let { resId ->
-                    Icon(
-                        painter = painterResource(id = resId),
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(RoundedCornerShape(8.dp)),
-                        tint = Color.Unspecified
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Goal text
+                
+                // Text below the image
                 Text(
                     text = goal.text,
                     style = MaterialTheme.typography.bodyMedium,
+                    color = when (goal.status) {
+                        GoalStatus.ARCHIVED -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f) // Dimmed text for archived
+                        else -> MaterialTheme.colorScheme.onSurface
+                    },
                     textAlign = TextAlign.Center,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
-                    color = if (isEnabled) {
-                        MaterialTheme.colorScheme.onSurface
-                    } else {
-                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                    }
+                    modifier = Modifier
+                        .weight(0.4f)
+                        .fillMaxWidth()
+                        .padding(horizontal = 4.dp)
                 )
+            }
+            
+            // Status overlays
+            when (goal.status) {
+                GoalStatus.COMPLETED -> {
+                    // Overlay for completed goals
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color(0x33FFFFFF)), // Semi-transparent white overlay to dim content
+                        contentAlignment = Alignment.Center
+                    ) {
+                        // Stylized completion mark overlay
+                        Canvas(
+                            modifier = Modifier
+                                .size(100.dp)
+                                .graphicsLayer {
+                                    rotationZ = -15f
+                                }
+                        ) {
+                            // Outer circle
+                            drawCircle(
+                                color = Color(0xCC4CAF50), // Semi-transparent green
+                                radius = size.minDimension / 2,
+                                style = Stroke(width = 4f)
+                            )
+                            
+                            // Inner circle
+                            drawCircle(
+                                color = Color(0x334CAF50), // More transparent green
+                                radius = size.minDimension / 2 - 8f
+                            )
+                            
+                            // Decorative lines
+                            for (i in 0 until 8) {
+                                rotate(degrees = i * 45f) {
+                                    drawLine(
+                                        color = Color(0xCC4CAF50),
+                                        start = center + Offset(0f, -size.minDimension / 4),
+                                        end = center + Offset(0f, -size.minDimension / 2 + 4f),
+                                        strokeWidth = 3f
+                                    )
+                                }
+                            }
+                        }
+                        
+                        // "DONE" text in the center of the stamp
+                        Text(
+                            text = "DONE",
+                            color = Color(0xFF4CAF50), // Green color
+                            fontWeight = FontWeight.ExtraBold,
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier
+                                .graphicsLayer {
+                                    rotationZ = -15f
+                                }
+                        )
+                    }
+                }
+                GoalStatus.FAILED -> {
+                    // Overlay for failed goals
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color(0x33FFFFFF)), // Semi-transparent white overlay to dim content
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Canvas(
+                            modifier = Modifier
+                                .size(100.dp)
+                                .graphicsLayer {
+                                    rotationZ = -15f
+                                }
+                        ) {
+                            // X mark
+                            drawLine(
+                                color = Color(0xCCFF5252), // Semi-transparent red
+                                start = Offset(size.width * 0.3f, size.height * 0.3f),
+                                end = Offset(size.width * 0.7f, size.height * 0.7f),
+                                strokeWidth = 5f
+                            )
+                            drawLine(
+                                color = Color(0xCCFF5252), // Semi-transparent red
+                                start = Offset(size.width * 0.7f, size.height * 0.3f),
+                                end = Offset(size.width * 0.3f, size.height * 0.7f),
+                                strokeWidth = 5f
+                            )
+                        }
+                        
+                        Text(
+                            text = "FAILED",
+                            color = Color(0xFFFF5252), // Red color
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.labelMedium,
+                            modifier = Modifier
+                                .graphicsLayer {
+                                    rotationZ = -15f
+                                }
+                                .padding(top = 40.dp)
+                        )
+                    }
+                }
+                GoalStatus.ARCHIVED -> {
+                    // Overlay for archived goals
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color(0x33FFFFFF)), // Semi-transparent white overlay to dim content
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Canvas(
+                            modifier = Modifier
+                                .size(100.dp)
+                                .graphicsLayer {
+                                    rotationZ = -15f
+                                }
+                        ) {
+                            // Outer rectangle with rounded corners
+                            drawRoundRect(
+                                color = Color(0xCC9E9E9E), // Semi-transparent gray
+                                cornerRadius = CornerRadius(16f, 16f),
+                                style = Stroke(width = 3f)
+                            )
+                        }
+                        
+                        Text(
+                            text = "ARCHIVED",
+                            color = Color(0xFF9E9E9E), // Gray color
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.labelMedium,
+                            modifier = Modifier
+                                .graphicsLayer {
+                                    rotationZ = -15f
+                                }
+                        )
+                    }
+                }
+                else -> {
+                    // No overlay for active goals
+                }
             }
         }
     }
 }
 
 @Composable
-fun EmptyGoalCell(onClick: () -> Unit) {
+fun EmptyGoalCell(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     Card(
-        modifier = Modifier
+        modifier = modifier
             .aspectRatio(1f)
             .shadow(elevation = 2.dp, shape = RoundedCornerShape(16.dp))
             .clickable(onClick = onClick),
@@ -740,7 +1002,7 @@ fun EmptyGoalCell(onClick: () -> Unit) {
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                imageVector = Icons.Default.Add,
+                imageVector = Icons.Filled.Add,
                 contentDescription = "Add Goal",
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(32.dp)
@@ -755,36 +1017,22 @@ fun GoalCreationDialog(
     onGoalCreated: (text: String, imageResId: Int?) -> Unit
 ) {
     var goalText by remember { mutableStateOf("") }
-    var selectedImageResId by remember { mutableStateOf<Int?>(null) }
-    var showIconSelector by remember { mutableStateOf(false) }
-
-    // List of available goal icons
-    val goalIcons = remember {
-        listOf(
-            R.drawable.ic_goal_learn,
-            R.drawable.ic_goal_book,
-            R.drawable.ic_goal_debt,
-            R.drawable.ic_goal_save,
-            R.drawable.ic_goal_travel,
-            R.drawable.ic_goal_walk,
-            R.drawable.ic_goal_steps,
-            R.drawable.ic_goal_notes,
-            R.drawable.ic_goal_organize
-        )
-    }
+    var selectedImageResId by remember { mutableStateOf<Int?>(R.drawable.ic_goal_notes) }
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = RoundedCornerShape(16.dp),
             color = MaterialTheme.colorScheme.surface,
-            modifier = Modifier.fillMaxWidth(0.9f)
+            shadowElevation = 8.dp
         ) {
             Column(
-                modifier = Modifier.padding(20.dp),
+                modifier = Modifier
+                    .padding(16.dp)
+                    .fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "Add New Goal",
+                    text = "Create New Goal",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = RusticGold
@@ -792,155 +1040,69 @@ fun GoalCreationDialog(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                OutlinedTextField(
+                // Goal text input
+                androidx.compose.material3.OutlinedTextField(
                     value = goalText,
-                    onValueChange = { if (it.length <= 30) goalText = it },
-                    label = { Text("Goal (max 30 chars)") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    onValueChange = { goalText = it },
+                    label = { Text("Goal Description") },
+                    modifier = Modifier.fillMaxWidth(),
+                    maxLines = 3
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Image selection with preview
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
+                // Icon selection grid
+                Text(
+                    text = "Select Icon",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Icon grid
+                val iconOptions = listOf(
+                    R.drawable.ic_goal_learn,
+                    R.drawable.ic_goal_book,
+                    R.drawable.ic_goal_debt,
+                    R.drawable.ic_goal_save,
+                    R.drawable.ic_goal_travel,
+                    R.drawable.ic_goal_walk,
+                    R.drawable.ic_goal_steps,
+                    R.drawable.ic_goal_notes,
+                    R.drawable.ic_goal_organize
+                )
+
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(3),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp)
                 ) {
-                    Text(
-                        text = "Icon:",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    // Show selected icon or placeholder
-                    Box(
-                        modifier = Modifier
-                            .size(48.dp)
-                            .border(
-                                width = 1.dp,
-                                color = MaterialTheme.colorScheme.outline,
-                                shape = RoundedCornerShape(8.dp)
-                            )
-                            .clip(RoundedCornerShape(8.dp))
-                            .clickable { showIconSelector = true },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (selectedImageResId != null) {
-                            Icon(
-                                painter = painterResource(id = selectedImageResId!!),
-                                contentDescription = null,
-                                modifier = Modifier.size(32.dp),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        } else {
-                            Icon(
-                                imageVector = Icons.Default.Add,
-                                contentDescription = "Select Icon",
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    Text(
-                        text = if (selectedImageResId == null) "Tap to select" else "Tap to change",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                // Icon selector grid
-                AnimatedVisibility(
-                    visible = showIconSelector,
-                    enter = fadeIn(),
-                    exit = fadeOut()
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 16.dp)
-                    ) {
-                        Text(
-                            text = "Select an icon:",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Medium
+                    items(iconOptions.size) { index ->
+                        val iconResId = iconOptions[index]
+                        IconSelectionItem(
+                            iconResId = iconResId,
+                            isSelected = selectedImageResId == iconResId,
+                            onClick = { selectedImageResId = iconResId }
                         )
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        LazyVerticalGrid(
-                            columns = GridCells.Fixed(3),
-                            contentPadding = PaddingValues(4.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(160.dp)
-                        ) {
-                            items(goalIcons.size) { index ->
-                                val iconResId = goalIcons[index]
-                                val isSelected = selectedImageResId == iconResId
-
-                                Box(
-                                    modifier = Modifier
-                                        .aspectRatio(1f)
-                                        .border(
-                                            width = if (isSelected) 2.dp else 1.dp,
-                                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
-                                            shape = RoundedCornerShape(8.dp)
-                                        )
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(
-                                            if (isSelected) {
-                                                MaterialTheme.colorScheme.primaryContainer
-                                            } else {
-                                                MaterialTheme.colorScheme.surface
-                                            }
-                                        )
-                                        .clickable {
-                                            selectedImageResId = iconResId
-                                            showIconSelector = false
-                                        },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        painter = painterResource(id = iconResId),
-                                        contentDescription = null,
-                                        modifier = Modifier.size(32.dp),
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        TextButton(
-                            onClick = { showIconSelector = false },
-                            modifier = Modifier.align(Alignment.End)
-                        ) {
-                            Text("Close")
-                        }
                     }
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
 
+                // Action buttons
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End
                 ) {
-                    TextButton(onClick = onDismiss) {
+                    androidx.compose.material3.TextButton(onClick = onDismiss) {
                         Text("Cancel")
                     }
 
                     Spacer(modifier = Modifier.width(8.dp))
 
-                    Button(
+                    androidx.compose.material3.Button(
                         onClick = {
                             if (goalText.isNotBlank()) {
                                 onGoalCreated(goalText, selectedImageResId)
@@ -948,11 +1110,38 @@ fun GoalCreationDialog(
                         },
                         enabled = goalText.isNotBlank()
                     ) {
-                        Text("Add Goal")
+                        Text("Create")
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+fun IconSelectionItem(
+    iconResId: Int,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .padding(4.dp)
+            .size(32.dp)
+            .background(
+                color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+                shape = CircleShape
+            )
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            painter = painterResource(id = iconResId),
+            contentDescription = null,
+            tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(
+                alpha = 0.6f
+            )
+        )
     }
 }
 
@@ -1195,54 +1384,34 @@ fun HomeScreenPreview() {
 }
 
 @Composable
-fun ConfettiAnimation(
-    targetPosition: Pair<Float, Float>,
-    onAnimationEnd: () -> Unit
+fun StatItem(
+    label: String,
+    value: String,
+    color: Color,
+    textSizeMultiplier: Float = 1f
 ) {
-    // Simple animation that shows colorful particles
-    val colors = listOf(
-        Color(0xFFFCE18A), Color(0xFFFF726D), Color(0xFFF4306D), Color(0xFFB48DEF), Color(0xFF42A5F5),
-        Color(0xFF4CAF50),
-        Color(0xFFFFEB3B),
-        Color(0xFFFF9800),
-        Color(0xFF03A9F4)
-    )
-
-    // Use built-in animation components instead of KonfettiView
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        // Create animated dots as confetti
-        for (i in 0 until 30) {
-            val color = colors[i % colors.size]
-            val delay = (i * 50).toLong()
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium.copy(
+                fontSize = MaterialTheme.typography.bodyMedium.fontSize * textSizeMultiplier
+            ),
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+            modifier = Modifier.weight(1f)
+        )
 
-            androidx.compose.animation.AnimatedVisibility(
-                visible = true,
-                enter = androidx.compose.animation.slideInVertically(
-                    initialOffsetY = { -it }
-                ) + androidx.compose.animation.fadeIn(
-                    initialAlpha = 0f
-                ),
-                exit = androidx.compose.animation.fadeOut()
-            ) {
-                Box(
-                    modifier = Modifier
-                        .offset(
-                            x = ((-15..15).random()).dp,
-                            y = ((-15..15).random()).dp
-                        )
-                        .size((5..12).random().dp)
-                        .background(color, CircleShape)
-                )
-            }
-
-            // Trigger end of animation
-            LaunchedEffect(Unit) {
-                kotlinx.coroutines.delay(1500)
-                onAnimationEnd()
-            }
-        }
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontSize = MaterialTheme.typography.titleMedium.fontSize * textSizeMultiplier,
+                fontWeight = FontWeight.Bold
+            ),
+            color = color
+        )
     }
 }

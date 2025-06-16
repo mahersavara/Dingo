@@ -29,7 +29,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.sukhuat.dingo.common.localization.AppLanguage
-import io.sukhuat.dingo.common.localization.LocalLanguageUpdate
+import io.sukhuat.dingo.common.localization.LocalAppLanguage
+import io.sukhuat.dingo.common.localization.LocalLanguageUpdateState
 import io.sukhuat.dingo.common.localization.SupportedLanguages
 import io.sukhuat.dingo.common.theme.CloudGray
 import io.sukhuat.dingo.common.theme.DeepIndigo
@@ -85,7 +86,7 @@ fun DingoScaffold(
     content: @Composable (PaddingValues) -> Unit
 ) {
     // Force recomposition when language changes
-    LocalLanguageUpdate.current
+    LocalLanguageUpdateState.current
 
     // Get screen size for responsive layout
     val configuration = LocalConfiguration.current

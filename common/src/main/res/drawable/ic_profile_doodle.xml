@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    
+    <!-- Colorful background circle -->
+    <path
+        android:pathData="M12,12m-10,0a10,10 0,1 1,20 0a10,10 0,1 1,-20 0"
+        android:fillColor="#FFD54F"
+        android:strokeWidth="0.8"
+        android:strokeColor="#FF6F00"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+        
+    <!-- Doodle style head -->
+    <path
+        android:pathData="M12,8m-4,0a4,4 0,1 1,8 0a4,4 0,1 1,-8 0"
+        android:fillColor="#FFECB3"
+        android:strokeWidth="0.7"
+        android:strokeColor="#FF6F00"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+        
+    <!-- Doodle style body -->
+    <path
+        android:pathData="M12,12.5C9,12.5 6.5,14 5.5,17C5.4,17.3 5.7,17.5 6,17.5H18C18.3,17.5 18.6,17.3 18.5,17C17.5,14 15,12.5 12,12.5Z"
+        android:fillColor="#FFECB3"
+        android:strokeWidth="0.7"
+        android:strokeColor="#FF6F00"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+        
+    <!-- Doodle style facial features -->
+    <path
+        android:pathData="M10,7C10,7 10.5,7.5 10.5,8"
+        android:strokeWidth="0.7"
+        android:strokeColor="#FF6F00"
+        android:strokeLineCap="round" />
+        
+    <path
+        android:pathData="M14,7C14,7 13.5,7.5 13.5,8"
+        android:strokeWidth="0.7"
+        android:strokeColor="#FF6F00"
+        android:strokeLineCap="round" />
+        
+    <path
+        android:pathData="M10.5,9.5C11.5,10.5 12.5,10.5 13.5,9.5"
+        android:strokeWidth="0.7"
+        android:strokeColor="#FF6F00"
+        android:strokeLineCap="round" />
+</vector> 

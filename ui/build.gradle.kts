@@ -52,8 +52,12 @@ dependencies {
     implementation(libs.compose.ui.tooling.preview)
     implementation(libs.compose.material3)
 
+    // Coil for image loading
+    implementation(libs.coil.compose.v240)
+
     // Google Sign-In
-    implementation("com.google.android.gms:play-services-auth:20.7.0")
+    implementation(libs.play.services.auth.v2130)
+    implementation(libs.reorderable)
 
     // Hilt
     implementation(libs.hilt.android)
