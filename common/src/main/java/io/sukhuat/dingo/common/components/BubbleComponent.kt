@@ -198,13 +198,34 @@ fun BubbleComponent(
                 Column(
                     modifier = Modifier.padding(12.dp)
                 ) {
-                    // Header
-                    Text(
-                        text = if (isEditable) "Edit Goal" else "Goal Details",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    // Header with Archive button
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = if (isEditable) "Edit Goal" else "Goal Details",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.weight(1f)
+                        )
+                        
+                        // Archive button inside the bubble header
+                        IconButton(
+                            onClick = onArchive,
+                            modifier = Modifier
+                                .size(40.dp)
+                                .background(MaterialTheme.colorScheme.primaryContainer, CircleShape)
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_archive),
+                                contentDescription = "Archive goal",
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
                     
                     Spacer(modifier = Modifier.height(8.dp))
                     
@@ -410,48 +431,6 @@ fun BubbleComponent(
                             }
                         }
                     }
-                }
-            }
-            
-            // Action buttons outside the bubble with more space
-            Row(
-                modifier = Modifier
-                    .offset(
-                        x = with(density) { bubbleWidth / 2 - 60.dp },
-                        y = with(density) { bubbleHeight + 24.dp }  // Increased spacing
-                    ),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Archive button
-                IconButton(
-                    onClick = onArchive,
-                    modifier = Modifier
-                        .size(48.dp)
-                        .shadow(4.dp, CircleShape)
-                        .background(MaterialTheme.colorScheme.primaryContainer, CircleShape)
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_archive),
-                        contentDescription = "Archive goal",
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                }
-                
-                Spacer(modifier = Modifier.width(16.dp))  // Increased spacing between buttons
-                
-                // Delete button (shown as permanent archive)
-                IconButton(
-                    onClick = onDelete,
-                    modifier = Modifier
-                        .size(48.dp)
-                        .shadow(4.dp, CircleShape)
-                        .background(MaterialTheme.colorScheme.errorContainer, CircleShape)
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_delete_goal),
-                        contentDescription = "Archive goal permanently",
-                        tint = MaterialTheme.colorScheme.error
-                    )
                 }
             }
         }
