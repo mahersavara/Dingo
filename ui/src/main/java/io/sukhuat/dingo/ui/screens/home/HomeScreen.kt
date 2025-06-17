@@ -37,6 +37,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -82,6 +83,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.activity.result.contract.ActivityResultContracts
 import coil.compose.AsyncImage
 import io.sukhuat.dingo.common.R
 import io.sukhuat.dingo.common.localization.LocalAppLanguage
@@ -105,6 +107,15 @@ import io.sukhuat.dingo.ui.components.DingoAppScaffold
 import io.sukhuat.dingo.ui.components.WeeklyWrapUp
 import android.content.Intent
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.activity.compose.rememberLauncherForActivityResult
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.FileOutputStream
+import java.util.UUID
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import androidx.compose.ui.window.Popup
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -318,8 +329,11 @@ fun HomeScreen(
                                         // Mark goal as complete
                                         viewModel.updateGoalStatus(goal.id, GoalStatus.COMPLETED)
                                         
-                                        // Show celebration
-                                        celebrateGoalCompletion(goal)
+                                        // Find the most up-to-date goal data from allGoals
+                                        val updatedGoal = allGoals.find { it.id == goal.id } ?: goal
+                                        
+                                        // Show celebration with the most up-to-date goal data
+                                        celebrateGoalCompletion(updatedGoal)
                                     }
                                     GoalStatus.COMPLETED -> {
                                         // Show a message that the goal is already completed
@@ -349,7 +363,9 @@ fun HomeScreen(
                             },
                             onGoalLongPress = { goal, position ->
                                 // Show bubble editor
-                                selectedGoalForEdit = goal
+                                // Find the most up-to-date goal data from allGoals
+                                val updatedGoal = allGoals.find { it.id == goal.id } ?: goal
+                                selectedGoalForEdit = updatedGoal
                                 
                                 // Calculate offset for the BubbleEditor to position it next to the goal
                                 // Position the bubble to the right of the goal with a slight offset
@@ -454,8 +470,11 @@ fun HomeScreen(
                                             // Mark goal as complete
                                             viewModel.updateGoalStatus(goal.id, GoalStatus.COMPLETED)
                                             
-                                            // Show celebration
-                                            celebrateGoalCompletion(goal)
+                                            // Find the most up-to-date goal data from allGoals
+                                            val updatedGoal = allGoals.find { it.id == goal.id } ?: goal
+                                            
+                                            // Show celebration with the most up-to-date goal data
+                                            celebrateGoalCompletion(updatedGoal)
                                         }
                                         GoalStatus.COMPLETED -> {
                                             // Show a message that the goal is already completed
@@ -485,7 +504,9 @@ fun HomeScreen(
                                 },
                                 onGoalLongPress = { goal, position ->
                                     // Show bubble editor
-                                    selectedGoalForEdit = goal
+                                    // Find the most up-to-date goal data from allGoals
+                                    val updatedGoal = allGoals.find { it.id == goal.id } ?: goal
+                                    selectedGoalForEdit = updatedGoal
                                     
                                     // Calculate offset for the BubbleEditor to position it next to the goal
                                     // Position the bubble to the right of the goal with a slight offset
@@ -522,8 +543,8 @@ fun HomeScreen(
             if (showGoalCreationDialog) {
                 GoalCreationDialog(
                     onDismiss = { showGoalCreationDialog = false },
-                    onGoalCreated = { text, imageResId ->
-                        viewModel.createGoal(text, imageResId)
+                    onGoalCreated = { text, imageResId, customImage ->
+                        viewModel.createGoal(text, imageResId, customImage)
                         showGoalCreationDialog = false
                     }
                 )
@@ -531,21 +552,32 @@ fun HomeScreen(
 
             // Bubble editor
             if (showBubbleEditor && selectedGoalForEdit != null) {
+                // Ensure we have the most up-to-date goal data
+                val currentGoal = allGoals.find { it.id == selectedGoalForEdit!!.id } ?: selectedGoalForEdit!!
+                
                 BubbleComponent(
-                    id = selectedGoalForEdit!!.id.hashCode(), // Convert string ID to int
-                    text = selectedGoalForEdit!!.text,
-                    imageResId = selectedGoalForEdit!!.imageResId,
-                    customImage = selectedGoalForEdit!!.customImage,
-                    createdAt = selectedGoalForEdit!!.createdAt,
+                    id = currentGoal.id.hashCode(), // Convert string ID to int
+                    text = currentGoal.text,
+                    imageResId = currentGoal.imageResId,
+                    customImage = currentGoal.customImage,
+                    createdAt = currentGoal.createdAt,
                     position = bubbleEditorPosition,
                     onDismiss = { showBubbleEditor = false },
                     onTextChange = { newText ->
-                        viewModel.updateGoalText(selectedGoalForEdit!!.id, newText)
+                        viewModel.updateGoalText(currentGoal.id, newText)
                         // Don't dismiss the editor immediately to allow for multiple edits
                     },
                     onMediaUpload = { uri, mediaType ->
                         val savedImagePath = saveCustomImage(uri)
-                        viewModel.updateGoalImage(selectedGoalForEdit!!.id, savedImagePath)
+                        android.util.Log.d("HomeScreen", "Saving image: $uri as $savedImagePath")
+                        
+                        // Update the goal in the ViewModel
+                        viewModel.updateGoalImage(currentGoal.id, savedImagePath)
+                        
+                        // Update the selected goal to reflect the new image
+                        val updatedGoal = currentGoal.copy(customImage = savedImagePath, imageResId = null)
+                        android.util.Log.d("HomeScreen", "Updated goal with new image: ${updatedGoal.customImage}")
+                        selectedGoalForEdit = updatedGoal
 
                         // Show update message based on media type
                         coroutineScope.launch {
@@ -554,21 +586,21 @@ fun HomeScreen(
                                 MediaType.GIF -> "GIF"
                                 MediaType.STICKER -> "Sticker"
                             }
-                            // Snackbar message is handled by the view model
+                            snackbarHostState.showSnackbar("$mediaTypeText updated successfully")
                         }
                     },
                     onArchive = {
-                        val goalId = selectedGoalForEdit!!.id
+                        val goalId = currentGoal.id
                         viewModel.updateGoalStatus(goalId, GoalStatus.ARCHIVED)
                         selectedGoalForEdit = null
                         showBubbleEditor = false
                     },
                     onDelete = {
-                        val goalId = selectedGoalForEdit!!.id
+                        val goalId = currentGoal.id
                         // Archive the goal instead of deleting it
                         viewModel.updateGoalStatus(goalId, GoalStatus.ARCHIVED)
                         coroutineScope.launch {
-                            snackbarHostState.showSnackbar("Goal archived: ${selectedGoalForEdit!!.text}")
+                            snackbarHostState.showSnackbar("Goal archived: ${currentGoal.text}")
                         }
                         selectedGoalForEdit = null
                         showBubbleEditor = false
@@ -1091,15 +1123,16 @@ fun EmptyGoalCell(
 @Composable
 fun GoalCreationDialog(
     onDismiss: () -> Unit,
-    onGoalCreated: (text: String, imageResId: Int?) -> Unit
+    onGoalCreated: (text: String, imageResId: Int?, customImage: String?) -> Unit
 ) {
     var goalText by remember { mutableStateOf("") }
     var selectedImageResId by remember { mutableStateOf<Int?>(R.drawable.ic_goal_notes) }
+    var customImageUri by remember { mutableStateOf<Uri?>(null) }
+    var isUploading by remember { mutableStateOf(false) }
     
     // For media upload functionality
     var selectedMediaTab by remember { mutableStateOf(0) }
     val mediaTabs = listOf("Icon", "Image", "GIF", "Sticker")
-    var customImageUri by remember { mutableStateOf<Uri?>(null) }
     
     // For sticker selection
     var showStickerSelector by remember { mutableStateOf(false) }
@@ -1112,8 +1145,35 @@ fun GoalCreationDialog(
         R.drawable.ic_sticker_thinking
     )
     
+    // For GIF selection
+    var showGifSelector by remember { mutableStateOf(false) }
+    val gifs = listOf(
+        R.drawable.ic_gif_celebration,
+        R.drawable.ic_gif_thumbsup,
+        R.drawable.ic_gif_clapping,
+        R.drawable.ic_gif_party,
+        R.drawable.ic_gif_dance,
+        R.drawable.ic_gif_smile
+    )
+    
     val context = LocalContext.current
-
+    val coroutineScope = rememberCoroutineScope()
+    
+    // Image picker launcher
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            isUploading = true
+            coroutineScope.launch {
+                val compressedUri = compressAndSaveImage(context, it)
+                customImageUri = compressedUri
+                selectedImageResId = null
+                isUploading = false
+            }
+        }
+    }
+    
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = RoundedCornerShape(16.dp),
@@ -1132,9 +1192,9 @@ fun GoalCreationDialog(
                     fontWeight = FontWeight.Bold,
                     color = RusticGold
                 )
-
+                
                 Spacer(modifier = Modifier.height(16.dp))
-
+                
                 // Goal text input
                 androidx.compose.material3.OutlinedTextField(
                     value = goalText,
@@ -1143,7 +1203,7 @@ fun GoalCreationDialog(
                     modifier = Modifier.fillMaxWidth(),
                     maxLines = 3
                 )
-
+                
                 Spacer(modifier = Modifier.height(16.dp))
                 
                 // Media type selector tabs
@@ -1158,6 +1218,9 @@ fun GoalCreationDialog(
                                 selectedMediaTab = index
                                 if (index == 3) { // Sticker tab
                                     showStickerSelector = true
+                                }
+                                if (index == 2) { // GIF tab
+                                    showGifSelector = true
                                 }
                             },
                             text = { Text(title) }
@@ -1210,7 +1273,7 @@ fun GoalCreationDialog(
                             }
                         }
                     }
-                    1, 2 -> { // Image or GIF upload
+                    1 -> { // Image upload
                         // Media preview or upload button
                         Box(
                             modifier = Modifier
@@ -1218,13 +1281,31 @@ fun GoalCreationDialog(
                                 .height(120.dp)
                                 .clip(RoundedCornerShape(8.dp))
                                 .background(MaterialTheme.colorScheme.surfaceVariant)
-                                .clickable {
-                                    // In a real implementation, this would launch a file picker
-                                    // For now, we'll just show a placeholder
+                                .clickable(enabled = !isUploading) {
+                                    imagePickerLauncher.launch("image/*")
                                 },
                             contentAlignment = Alignment.Center
                         ) {
-                            if (customImageUri != null) {
+                            if (isUploading) {
+                                // Show loading indicator while uploading
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(32.dp),
+                                        color = MaterialTheme.colorScheme.primary,
+                                        strokeWidth = 2.dp
+                                    )
+                                    
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    
+                                    Text(
+                                        text = "Compressing image...",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            } else if (customImageUri != null) {
                                 // Show uploaded image
                                 AsyncImage(
                                     model = customImageUri,
@@ -1255,15 +1336,13 @@ fun GoalCreationDialog(
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
                                     Icon(
-                                        painter = painterResource(
-                                            id = if (selectedMediaTab == 1) R.drawable.ic_upload else R.drawable.ic_gif
-                                        ),
-                                        contentDescription = if (selectedMediaTab == 1) "Upload image" else "Upload GIF",
+                                        painter = painterResource(id = R.drawable.ic_upload),
+                                        contentDescription = "Upload image",
                                         tint = MaterialTheme.colorScheme.primary
                                     )
                                     
                                     Text(
-                                        text = if (selectedMediaTab == 1) "Upload Image" else "Upload GIF",
+                                        text = "Upload Image",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.primary
                                     )
@@ -1278,7 +1357,72 @@ fun GoalCreationDialog(
                             }
                         }
                     }
-                    3 -> { // Sticker selection
+                    2 -> { // GIF selection (will be handled by popup)
+                        // Media preview or upload button
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(120.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                                .clickable {
+                                    showGifSelector = true
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (customImageUri != null && selectedMediaTab == 2) {
+                                // Show selected GIF
+                                AsyncImage(
+                                    model = customImageUri,
+                                    contentDescription = "Selected GIF",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                                
+                                // Show cloud upload indicator
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.TopEnd)
+                                        .padding(4.dp)
+                                        .size(24.dp)
+                                        .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.ic_upload),
+                                        contentDescription = "Saved to cloud",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            } else {
+                                // Show browse button
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.ic_gif),
+                                        contentDescription = "Browse GIFs",
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                    
+                                    Text(
+                                        text = "Browse GIFs",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                    
+                                    // Add cloud storage indication
+                                    Text(
+                                        text = "Will be saved to Cloud",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    3 -> { // Sticker selection (will be handled by popup)
                         // Sticker grid
                         Text(
                             text = "Select Sticker",
@@ -1308,8 +1452,9 @@ fun GoalCreationDialog(
                                             shape = RoundedCornerShape(8.dp)
                                         )
                                         .clickable {
-                                            selectedImageResId = stickerId
-                                            customImageUri = null
+                                            val uri = Uri.parse("android.resource://${context.packageName}/$stickerId")
+                                            customImageUri = uri
+                                            selectedImageResId = null
                                         },
                                     contentAlignment = Alignment.Center
                                 ) {
@@ -1341,13 +1486,74 @@ fun GoalCreationDialog(
                     androidx.compose.material3.Button(
                         onClick = {
                             if (goalText.isNotBlank()) {
-                                // In a real implementation, we would also pass customImageUri
-                                onGoalCreated(goalText, selectedImageResId)
+                                // Pass both the icon resource ID and custom image URI
+                                onGoalCreated(
+                                    goalText, 
+                                    selectedImageResId,
+                                    customImageUri?.toString()
+                                )
                             }
                         },
                         enabled = goalText.isNotBlank()
                     ) {
                         Text("Create")
+                    }
+                }
+            }
+        }
+    }
+    
+    // GIF selector popup
+    if (showGifSelector) {
+        Popup(
+            alignment = Alignment.Center,
+            onDismissRequest = { showGifSelector = false }
+        ) {
+            Card(
+                modifier = Modifier
+                    .width(280.dp)
+                    .padding(8.dp)
+                    .shadow(8.dp, RoundedCornerShape(16.dp)),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "Select a GIF",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+                    
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(2),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(240.dp)
+                    ) {
+                        items(gifs) { gifId ->
+                            Box(
+                                modifier = Modifier
+                                    .padding(4.dp)
+                                    .size(100.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                                    .clickable {
+                                        // Create a "fake" URI for the GIF
+                                        val uri = Uri.parse("android.resource://${context.packageName}/$gifId")
+                                        customImageUri = uri
+                                        selectedImageResId = null
+                                        showGifSelector = false
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    painter = painterResource(id = gifId),
+                                    contentDescription = "GIF",
+                                    modifier = Modifier.size(80.dp),
+                                    tint = Color.Unspecified
+                                )
+                            }
+                        }
                     }
                 }
             }

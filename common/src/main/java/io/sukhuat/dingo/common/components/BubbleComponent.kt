@@ -1,6 +1,8 @@
 package io.sukhuat.dingo.common.components
 
 import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -22,8 +24,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -37,6 +38,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -56,6 +58,7 @@ import androidx.compose.ui.window.PopupProperties
 import coil.compose.AsyncImage
 import io.sukhuat.dingo.common.R
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
 
 enum class MediaType {
@@ -78,6 +81,7 @@ fun BubbleComponent(
 ) {
     val density = LocalDensity.current
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     
     // Animation for bubble appearance
     var isVisible by remember { mutableStateOf(false) }
@@ -134,7 +138,12 @@ fun BubbleComponent(
     var textValue by remember { mutableStateOf(text) }
     
     // Track uploaded media
-    var uploadedImageUri by remember { mutableStateOf<Uri?>(null) }
+    var uploadedImageUri by remember(customImage) { 
+        mutableStateOf<Uri?>(
+            if (customImage != null) Uri.parse(customImage) else null
+        ) 
+    }
+    var isUploading by remember { mutableStateOf(false) }
     
     // Track selected media tab
     var selectedMediaTab by remember { mutableStateOf(0) }
@@ -161,6 +170,24 @@ fun BubbleComponent(
         R.drawable.ic_gif_dance,
         R.drawable.ic_gif_smile
     )
+    
+    // Image picker launcher
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            isUploading = true
+            android.util.Log.d("BubbleComponent", "Image selected: $uri")
+            // We'll simulate a short delay for the upload process
+            coroutineScope.launch {
+                kotlinx.coroutines.delay(500) // Simulate processing time
+                uploadedImageUri = uri
+                android.util.Log.d("BubbleComponent", "Setting uploadedImageUri to: $uri")
+                onMediaUpload(uri, MediaType.IMAGE)
+                isUploading = false
+            }
+        }
+    }
     
     // Dismiss on outside click
     Box(
@@ -198,7 +225,7 @@ fun BubbleComponent(
                 Column(
                     modifier = Modifier.padding(12.dp)
                 ) {
-                    // Header with Archive button
+                    // Header
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
@@ -210,21 +237,6 @@ fun BubbleComponent(
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.weight(1f)
                         )
-                        
-                        // Archive button inside the bubble header
-                        IconButton(
-                            onClick = onArchive,
-                            modifier = Modifier
-                                .size(40.dp)
-                                .background(MaterialTheme.colorScheme.primaryContainer, CircleShape)
-                        ) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.ic_archive),
-                                contentDescription = "Archive goal",
-                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
                     }
                     
                     Spacer(modifier = Modifier.height(8.dp))
@@ -296,14 +308,11 @@ fun BubbleComponent(
                             .height(100.dp)
                             .clip(RoundedCornerShape(8.dp))
                             .background(MaterialTheme.colorScheme.surfaceVariant)
-                            .clickable(enabled = isEditable) {
+                            .clickable(enabled = isEditable && !isUploading) {
                                 when (selectedMediaTab) {
                                     0 -> {
-                                        // Show mock image upload message
-                                        // In a real app, you would launch an image picker here
-                                        val mockUri = Uri.parse("content://mock/image.jpg")
-                                        uploadedImageUri = mockUri
-                                        onMediaUpload(mockUri, MediaType.IMAGE)
+                                        // Launch real image picker
+                                        imagePickerLauncher.launch("image/*")
                                     }
                                     1 -> {
                                         // Show GIF selector
@@ -317,7 +326,26 @@ fun BubbleComponent(
                             },
                         contentAlignment = Alignment.Center
                     ) {
-                        if (uploadedImageUri != null) {
+                        if (isUploading) {
+                            // Show loading indicator while uploading
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(32.dp),
+                                    color = MaterialTheme.colorScheme.primary,
+                                    strokeWidth = 2.dp
+                                )
+                                
+                                Spacer(modifier = Modifier.height(4.dp))
+                                
+                                Text(
+                                    text = "Processing image...",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        } else if (uploadedImageUri != null) {
                             // Show uploaded image
                             AsyncImage(
                                 model = uploadedImageUri,
@@ -343,7 +371,8 @@ fun BubbleComponent(
                                 )
                             }
                         } else if (customImage != null) {
-                            // Show existing custom image
+                            // This branch should not be reached normally since uploadedImageUri is initialized with customImage
+                            // But kept as a fallback
                             AsyncImage(
                                 model = customImage,
                                 contentDescription = "Goal image",
@@ -416,7 +445,7 @@ fun BubbleComponent(
                         }
                         
                         // Show upload overlay if editable
-                        if (isEditable && (uploadedImageUri != null || customImage != null || imageResId != null)) {
+                        if (isEditable && !isUploading && (uploadedImageUri != null || imageResId != null)) {
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
@@ -431,6 +460,48 @@ fun BubbleComponent(
                             }
                         }
                     }
+                }
+            }
+            
+            // Action buttons outside the bubble with more space
+            Row(
+                modifier = Modifier
+                    .offset(
+                        x = with(density) { bubbleWidth / 2 - 60.dp },
+                        y = with(density) { bubbleHeight + 24.dp }  // Increased spacing
+                    ),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Archive button
+                IconButton(
+                    onClick = onArchive,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .shadow(4.dp, CircleShape)
+                        .background(MaterialTheme.colorScheme.primaryContainer, CircleShape)
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_archive),
+                        contentDescription = "Archive goal",
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+                
+                Spacer(modifier = Modifier.width(16.dp))  // Increased spacing between buttons
+                
+                // Delete button (shown as permanent archive)
+                IconButton(
+                    onClick = onDelete,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .shadow(4.dp, CircleShape)
+                        .background(MaterialTheme.colorScheme.errorContainer, CircleShape)
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_delete_goal),
+                        contentDescription = "Archive goal permanently",
+                        tint = MaterialTheme.colorScheme.error
+                    )
                 }
             }
         }

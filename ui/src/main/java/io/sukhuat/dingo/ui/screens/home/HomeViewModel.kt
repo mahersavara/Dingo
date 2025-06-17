@@ -221,8 +221,21 @@ class HomeViewModel @Inject constructor(
     fun updateGoalImage(goalId: String, customImage: String?) {
         viewModelScope.launch {
             try {
-                updateGoalUseCase.updateImage(goalId, customImage)
+                val result = updateGoalUseCase.updateImage(goalId, customImage)
+                if (result.isSuccess) {
+                    // Temporarily set loading state to trigger a UI refresh
+                    val currentState = _uiState.value
+                    _uiState.value = HomeUiState.Loading
+                    // Restore previous state to avoid disrupting the UI
+                    _uiState.value = currentState
+                    
+                    Log.d(TAG, "Goal image updated successfully: $goalId with image $customImage")
+                } else {
+                    Log.e(TAG, "Failed to update goal image: ${result.exceptionOrNull()?.message}")
+                    _uiState.value = HomeUiState.Error("Failed to update goal image")
+                }
             } catch (e: Exception) {
+                Log.e(TAG, "Exception updating goal image", e)
                 _uiState.value = HomeUiState.Error("Failed to update goal image: ${e.message}")
             }
         }
