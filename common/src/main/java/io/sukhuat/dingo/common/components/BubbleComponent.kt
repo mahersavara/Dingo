@@ -15,6 +15,9 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
@@ -148,6 +151,17 @@ fun BubbleComponent(
         R.drawable.ic_sticker_thinking
     )
     
+    // GIF selection
+    var showGifSelector by remember { mutableStateOf(false) }
+    val gifs = listOf(
+        R.drawable.ic_gif_celebration,
+        R.drawable.ic_gif_thumbsup,
+        R.drawable.ic_gif_clapping,
+        R.drawable.ic_gif_party,
+        R.drawable.ic_gif_dance,
+        R.drawable.ic_gif_smile
+    )
+    
     // Dismiss on outside click
     Box(
         modifier = Modifier
@@ -262,12 +276,23 @@ fun BubbleComponent(
                             .clip(RoundedCornerShape(8.dp))
                             .background(MaterialTheme.colorScheme.surfaceVariant)
                             .clickable(enabled = isEditable) {
-                                if (selectedMediaTab == 2) {
-                                    // Show sticker selector
-                                    showStickerSelector = true
+                                when (selectedMediaTab) {
+                                    0 -> {
+                                        // Show mock image upload message
+                                        // In a real app, you would launch an image picker here
+                                        val mockUri = Uri.parse("content://mock/image.jpg")
+                                        uploadedImageUri = mockUri
+                                        onMediaUpload(mockUri, MediaType.IMAGE)
+                                    }
+                                    1 -> {
+                                        // Show GIF selector
+                                        showGifSelector = true
+                                    }
+                                    2 -> {
+                                        // Show sticker selector
+                                        showStickerSelector = true
+                                    }
                                 }
-                                // For Image and GIF, we would trigger a file picker
-                                // This would be handled in the actual implementation
                             },
                         contentAlignment = Alignment.Center
                     ) {
@@ -344,7 +369,7 @@ fun BubbleComponent(
                                     ),
                                     contentDescription = when (selectedMediaTab) {
                                         0 -> "Upload image"
-                                        1 -> "Upload GIF"
+                                        1 -> "Browse GIFs"
                                         else -> "Select sticker"
                                     },
                                     tint = MaterialTheme.colorScheme.primary
@@ -353,7 +378,7 @@ fun BubbleComponent(
                                 Text(
                                     text = when (selectedMediaTab) {
                                         0 -> "Upload Image"
-                                        1 -> "Upload GIF"
+                                        1 -> "Browse GIFs"
                                         else -> "Select Sticker"
                                     },
                                     style = MaterialTheme.typography.bodySmall,
@@ -384,63 +409,16 @@ fun BubbleComponent(
                                 )
                             }
                         }
-                        
-                        // Sticker selector dropdown
-                        if (showStickerSelector) {
-                            DropdownMenu(
-                                expanded = showStickerSelector,
-                                onDismissRequest = { showStickerSelector = false },
-                                modifier = Modifier
-                                    .width(200.dp)
-                                    .background(MaterialTheme.colorScheme.surface)
-                            ) {
-                                Text(
-                                    text = "Select a Sticker",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    modifier = Modifier.padding(8.dp)
-                                )
-                                
-                                stickers.chunked(3).forEach { rowStickers ->
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(4.dp)
-                                    ) {
-                                        rowStickers.forEach { stickerId ->
-                                            Box(
-                                                modifier = Modifier
-                                                    .weight(1f)
-                                                    .padding(4.dp)
-                                                    .clickable {
-                                                        // Create a "fake" URI for the sticker
-                                                        val uri = Uri.parse("android.resource://${context.packageName}/$stickerId")
-                                                        uploadedImageUri = uri
-                                                        onMediaUpload(uri, MediaType.STICKER)
-                                                        showStickerSelector = false
-                                                    }
-                                            ) {
-                                                Icon(
-                                                    painter = painterResource(id = stickerId),
-                                                    contentDescription = "Sticker",
-                                                    modifier = Modifier.size(48.dp),
-                                                    tint = Color.Unspecified
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
                     }
                 }
             }
             
-            // Action buttons outside the bubble
+            // Action buttons outside the bubble with more space
             Row(
                 modifier = Modifier
                     .offset(
                         x = with(density) { bubbleWidth / 2 - 60.dp },
-                        y = with(density) { bubbleHeight + 16.dp }
+                        y = with(density) { bubbleHeight + 24.dp }  // Increased spacing
                     ),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -459,7 +437,7 @@ fun BubbleComponent(
                     )
                 }
                 
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(16.dp))  // Increased spacing between buttons
                 
                 // Delete button (shown as permanent archive)
                 IconButton(
@@ -474,6 +452,118 @@ fun BubbleComponent(
                         contentDescription = "Archive goal permanently",
                         tint = MaterialTheme.colorScheme.error
                     )
+                }
+            }
+        }
+        
+        // Sticker selector popup
+        if (showStickerSelector) {
+            Popup(
+                alignment = Alignment.Center,
+                onDismissRequest = { showStickerSelector = false }
+            ) {
+                Card(
+                    modifier = Modifier
+                        .width(280.dp)
+                        .padding(8.dp)
+                        .shadow(8.dp, RoundedCornerShape(16.dp)),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = "Select a Sticker",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(bottom = 16.dp)
+                        )
+                        
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(3),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(200.dp)
+                        ) {
+                            items(stickers) { stickerId ->
+                                Box(
+                                    modifier = Modifier
+                                        .padding(4.dp)
+                                        .size(64.dp)
+                                        .clickable {
+                                            // Create a "fake" URI for the sticker
+                                            val uri = Uri.parse("android.resource://${context.packageName}/$stickerId")
+                                            uploadedImageUri = uri
+                                            onMediaUpload(uri, MediaType.STICKER)
+                                            showStickerSelector = false
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        painter = painterResource(id = stickerId),
+                                        contentDescription = "Sticker",
+                                        modifier = Modifier.size(48.dp),
+                                        tint = Color.Unspecified
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // GIF selector popup
+        if (showGifSelector) {
+            Popup(
+                alignment = Alignment.Center,
+                onDismissRequest = { showGifSelector = false }
+            ) {
+                Card(
+                    modifier = Modifier
+                        .width(280.dp)
+                        .padding(8.dp)
+                        .shadow(8.dp, RoundedCornerShape(16.dp)),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = "Select a GIF",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(bottom = 16.dp)
+                        )
+                        
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(2),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(240.dp)
+                        ) {
+                            items(gifs) { gifId ->
+                                Box(
+                                    modifier = Modifier
+                                        .padding(4.dp)
+                                        .size(100.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                                        .clickable {
+                                            // Create a "fake" URI for the GIF
+                                            val uri = Uri.parse("android.resource://${context.packageName}/$gifId")
+                                            uploadedImageUri = uri
+                                            onMediaUpload(uri, MediaType.GIF)
+                                            showGifSelector = false
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        painter = painterResource(id = gifId),
+                                        contentDescription = "GIF",
+                                        modifier = Modifier.size(80.dp),
+                                        tint = Color.Unspecified
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
