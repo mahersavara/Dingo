@@ -1,5 +1,6 @@
 package io.sukhuat.dingo.common.components
 
+import android.content.Context
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -57,6 +58,8 @@ import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import coil.compose.AsyncImage
 import io.sukhuat.dingo.common.R
+import io.sukhuat.dingo.common.utils.getSafeImageUri
+import io.sukhuat.dingo.common.utils.uploadImageToFirebase
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
@@ -138,11 +141,23 @@ fun BubbleComponent(
     var textValue by remember { mutableStateOf(text) }
     
     // Track uploaded media
-    var uploadedImageUri by remember(customImage) { 
-        mutableStateOf<Uri?>(
-            if (customImage != null) Uri.parse(customImage) else null
-        ) 
+    var uploadedImageUri by remember { 
+        mutableStateOf<Uri?>(null) 
     }
+    
+    // Initialize uploadedImageUri from customImage
+    LaunchedEffect(customImage) {
+        if (customImage != null) {
+            try {
+                val safeUri = getSafeImageUri(context, customImage)
+                uploadedImageUri = safeUri
+                android.util.Log.d("BubbleComponent", "Initialized uploadedImageUri from customImage: $safeUri")
+            } catch (e: Exception) {
+                android.util.Log.e("BubbleComponent", "Error parsing URI: $customImage", e)
+            }
+        }
+    }
+    
     var isUploading by remember { mutableStateOf(false) }
     
     // Track selected media tab
@@ -178,13 +193,29 @@ fun BubbleComponent(
         uri?.let {
             isUploading = true
             android.util.Log.d("BubbleComponent", "Image selected: $uri")
-            // We'll simulate a short delay for the upload process
+            
+            // Upload to Firebase Storage
             coroutineScope.launch {
-                kotlinx.coroutines.delay(500) // Simulate processing time
-                uploadedImageUri = uri
-                android.util.Log.d("BubbleComponent", "Setting uploadedImageUri to: $uri")
-                onMediaUpload(uri, MediaType.IMAGE)
-                isUploading = false
+                try {
+                    // Upload image to Firebase Storage
+                    val firebaseUri = uploadImageToFirebase(context, uri)
+                    
+                    // Update UI with Firebase URL
+                    uploadedImageUri = firebaseUri
+                    android.util.Log.d("BubbleComponent", "Image uploaded to Firebase: $firebaseUri")
+                    
+                    // Notify parent about the uploaded image
+                    firebaseUri?.let { uploadedUri ->
+                        onMediaUpload(uploadedUri, MediaType.IMAGE)
+                    }
+                } catch (e: Exception) {
+                    android.util.Log.e("BubbleComponent", "Error uploading image", e)
+                    // Fallback to original URI
+                    uploadedImageUri = uri
+                    onMediaUpload(uri, MediaType.IMAGE)
+                } finally {
+                    isUploading = false
+                }
             }
         }
     }
@@ -351,7 +382,10 @@ fun BubbleComponent(
                                 model = uploadedImageUri,
                                 contentDescription = "Uploaded media",
                                 modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
+                                contentScale = ContentScale.Crop,
+                                onError = {
+                                    android.util.Log.e("BubbleComponent", "Error loading image: $uploadedImageUri")
+                                }
                             )
                             
                             // Show cloud upload indicator
@@ -370,30 +404,44 @@ fun BubbleComponent(
                                     modifier = Modifier.size(16.dp)
                                 )
                             }
-                        } else if (customImage != null) {
-                            // This branch should not be reached normally since uploadedImageUri is initialized with customImage
-                            // But kept as a fallback
-                            AsyncImage(
-                                model = customImage,
-                                contentDescription = "Goal image",
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
-                            )
+                        } else if (customImage != null && uploadedImageUri == null) {
+                            // This branch is a fallback in case uploadedImageUri is null but customImage is not
+                            val safeImageUri = getSafeImageUri(context, customImage)
                             
-                            // Show cloud indicator
-                            Box(
-                                modifier = Modifier
-                                    .align(Alignment.TopEnd)
-                                    .padding(4.dp)
-                                    .size(24.dp)
-                                    .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
-                                contentAlignment = Alignment.Center
-                            ) {
+                            if (safeImageUri != null) {
+                                AsyncImage(
+                                    model = safeImageUri,
+                                    contentDescription = "Goal image",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop,
+                                    onError = {
+                                        android.util.Log.e("BubbleComponent", "Error loading image: $safeImageUri")
+                                    }
+                                )
+                                
+                                // Show cloud indicator
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.TopEnd)
+                                        .padding(4.dp)
+                                        .size(24.dp)
+                                        .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.ic_upload),
+                                        contentDescription = "Saved to cloud",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            } else {
+                                // Fallback to default icon if URI is invalid
                                 Icon(
-                                    painter = painterResource(id = R.drawable.ic_upload),
-                                    contentDescription = "Saved to cloud",
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(16.dp)
+                                    painter = painterResource(id = R.drawable.ic_goal_notes),
+                                    contentDescription = null,
+                                    tint = Color.Unspecified,
+                                    modifier = Modifier.size(48.dp)
                                 )
                             }
                         } else if (imageResId != null) {
@@ -541,9 +589,27 @@ fun BubbleComponent(
                                         .clickable {
                                             // Create a "fake" URI for the sticker
                                             val uri = Uri.parse("android.resource://${context.packageName}/$stickerId")
-                                            uploadedImageUri = uri
-                                            onMediaUpload(uri, MediaType.STICKER)
-                                            showStickerSelector = false
+                                            isUploading = true
+                                            coroutineScope.launch {
+                                                try {
+                                                    // Upload sticker to Firebase Storage
+                                                    val firebaseUri = uploadImageToFirebase(context, uri, false)
+                                                    uploadedImageUri = firebaseUri
+                                                    
+                                                    // Notify parent about the uploaded sticker
+                                                    firebaseUri?.let { uploadedUri ->
+                                                        onMediaUpload(uploadedUri, MediaType.STICKER)
+                                                    }
+                                                } catch (e: Exception) {
+                                                    android.util.Log.e("BubbleComponent", "Error uploading sticker", e)
+                                                    // Fallback to original URI
+                                                    uploadedImageUri = uri
+                                                    onMediaUpload(uri, MediaType.STICKER)
+                                                } finally {
+                                                    isUploading = false
+                                                    showStickerSelector = false
+                                                }
+                                            }
                                         },
                                     contentAlignment = Alignment.Center
                                 ) {
@@ -598,9 +664,27 @@ fun BubbleComponent(
                                         .clickable {
                                             // Create a "fake" URI for the GIF
                                             val uri = Uri.parse("android.resource://${context.packageName}/$gifId")
-                                            uploadedImageUri = uri
-                                            onMediaUpload(uri, MediaType.GIF)
-                                            showGifSelector = false
+                                            isUploading = true
+                                            coroutineScope.launch {
+                                                try {
+                                                    // Upload GIF to Firebase Storage
+                                                    val firebaseUri = uploadImageToFirebase(context, uri, false)
+                                                    uploadedImageUri = firebaseUri
+                                                    
+                                                    // Notify parent about the uploaded GIF
+                                                    firebaseUri?.let { uploadedUri ->
+                                                        onMediaUpload(uploadedUri, MediaType.GIF)
+                                                    }
+                                                } catch (e: Exception) {
+                                                    android.util.Log.e("BubbleComponent", "Error uploading GIF", e)
+                                                    // Fallback to original URI
+                                                    uploadedImageUri = uri
+                                                    onMediaUpload(uri, MediaType.GIF)
+                                                } finally {
+                                                    isUploading = false
+                                                    showGifSelector = false
+                                                }
+                                            }
                                         },
                                     contentAlignment = Alignment.Center
                                 ) {

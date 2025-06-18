@@ -1,6 +1,7 @@
 package io.sukhuat.dingo
 
 import android.app.Application
+import com.google.firebase.FirebaseApp
 import dagger.hilt.android.HiltAndroidApp
 import io.sukhuat.dingo.data.sync.SyncManager
 import javax.inject.Inject
@@ -17,6 +18,9 @@ class DingoApplication : Application() {
     
     override fun onCreate() {
         super.onCreate()
+        
+        // Initialize Firebase
+        FirebaseApp.initializeApp(this)
         
         // Start observing network connectivity for data sync
         syncManager.startSyncObserver()

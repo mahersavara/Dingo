@@ -63,6 +63,9 @@ dependencies {
     // Konfetti (Confetti Animation)
     implementation(libs.konfetti.compose)
 
+    // Firebase
+    implementation("com.google.firebase:firebase-storage-ktx:20.3.0")
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.espresso.core)

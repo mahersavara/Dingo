@@ -59,6 +59,10 @@ dependencies {
     implementation(libs.play.services.auth.v2130)
     implementation(libs.reorderable)
 
+    // Firebase
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.storage)
+
     // Hilt
     implementation(libs.hilt.android)
     implementation(libs.hilt.navigation.compose)

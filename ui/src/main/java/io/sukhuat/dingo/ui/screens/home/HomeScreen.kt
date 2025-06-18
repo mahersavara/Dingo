@@ -44,12 +44,14 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -116,6 +118,8 @@ import java.util.UUID
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import androidx.compose.ui.window.Popup
+import io.sukhuat.dingo.common.utils.getSafeImageUri
+import io.sukhuat.dingo.common.utils.uploadImageToFirebase
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -253,8 +257,8 @@ fun HomeScreen(
 
     // Function to save custom image
     val saveCustomImage = { uri: Uri ->
-        // In a real app, you would save the image to internal storage or cloud storage
-        // For this example, we'll just return the URI as a string
+        // For Firebase Storage, we just return the URL string
+        // The actual upload happens in uploadImageToFirebase
         uri.toString()
     }
 
@@ -568,25 +572,39 @@ fun HomeScreen(
                         // Don't dismiss the editor immediately to allow for multiple edits
                     },
                     onMediaUpload = { uri, mediaType ->
-                        val savedImagePath = saveCustomImage(uri)
-                        android.util.Log.d("HomeScreen", "Saving image: $uri as $savedImagePath")
-                        
-                        // Update the goal in the ViewModel
-                        viewModel.updateGoalImage(currentGoal.id, savedImagePath)
-                        
-                        // Update the selected goal to reflect the new image
-                        val updatedGoal = currentGoal.copy(customImage = savedImagePath, imageResId = null)
-                        android.util.Log.d("HomeScreen", "Updated goal with new image: ${updatedGoal.customImage}")
-                        selectedGoalForEdit = updatedGoal
-
-                        // Show update message based on media type
+                        // First show a loading indicator
                         coroutineScope.launch {
-                            val mediaTypeText = when (mediaType) {
-                                MediaType.IMAGE -> "Image"
-                                MediaType.GIF -> "GIF"
-                                MediaType.STICKER -> "Sticker"
+                            snackbarHostState.showSnackbar("Saving media to Firebase Storage...")
+                        }
+                        
+                        // Launch in a coroutine to avoid blocking the UI
+                        coroutineScope.launch {
+                            try {
+                                // The uri is already a Firebase Storage URL from uploadImageToFirebase
+                                // Just need to save it to the goal
+                                val savedImagePath = uri.toString()
+                                
+                                android.util.Log.d("HomeScreen", "Saving Firebase image URL: $savedImagePath")
+                                
+                                // Update the goal in the ViewModel
+                                viewModel.updateGoalImage(currentGoal.id, savedImagePath)
+                                
+                                // Update the selected goal to reflect the new image
+                                val updatedGoal = currentGoal.copy(customImage = savedImagePath, imageResId = null)
+                                android.util.Log.d("HomeScreen", "Updated goal with Firebase image: ${updatedGoal.customImage}")
+                                selectedGoalForEdit = updatedGoal
+
+                                // Show success message based on media type
+                                val mediaTypeText = when (mediaType) {
+                                    MediaType.IMAGE -> "Image"
+                                    MediaType.GIF -> "GIF"
+                                    MediaType.STICKER -> "Sticker"
+                                }
+                                snackbarHostState.showSnackbar("$mediaTypeText saved successfully")
+                            } catch (e: Exception) {
+                                android.util.Log.e("HomeScreen", "Error saving image", e)
+                                snackbarHostState.showSnackbar("Error saving image: ${e.message}")
                             }
-                            snackbarHostState.showSnackbar("$mediaTypeText updated successfully")
                         }
                     },
                     onArchive = {
@@ -893,14 +911,51 @@ fun GoalCell(
                     contentAlignment = Alignment.Center
                 ) {
                     if (goal.customImage != null) {
-                        AsyncImage(
-                            model = goal.customImage,
-                            contentDescription = null,
-                            contentScale = ContentScale.Fit,
-                            modifier = Modifier
-                                .fillMaxSize(0.8f)
-                                .padding(4.dp)
-                        )
+                        // Use our utility function to get a safe URI
+                        val context = LocalContext.current
+                        val customImage = goal.customImage // Store in local variable to avoid smart cast issue
+                        val safeImageUri = if (customImage != null) getSafeImageUri(context, customImage) else null
+                        
+                        if (safeImageUri != null) {
+                            AsyncImage(
+                                model = safeImageUri,
+                                contentDescription = null,
+                                contentScale = ContentScale.Fit,
+                                modifier = Modifier
+                                    .fillMaxSize(0.8f)
+                                    .padding(4.dp),
+                                onError = {
+                                    android.util.Log.e("GoalCell", "Error loading image: $safeImageUri")
+                                }
+                            )
+                            
+                            // Show cloud indicator for Firebase Storage URLs
+                            if (customImage != null && customImage.startsWith("https://firebasestorage.googleapis.com")) {
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.TopEnd)
+                                        .padding(4.dp)
+                                        .size(16.dp)
+                                        .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.ic_upload),
+                                        contentDescription = "Stored in Firebase",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(12.dp)
+                                    )
+                                }
+                            }
+                        } else {
+                            // Fallback to default icon if URI is invalid
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_goal_notes),
+                                contentDescription = null,
+                                tint = Color.Unspecified,
+                                modifier = Modifier.size(64.dp)
+                            )
+                        }
                     } else if (goal.imageResId != null) {
                         // Use null-safe approach to avoid smart cast issue
                         val resId = goal.imageResId ?: R.drawable.ic_goal_notes
@@ -1165,11 +1220,38 @@ fun GoalCreationDialog(
     ) { uri: Uri? ->
         uri?.let {
             isUploading = true
+            
+            // Show uploading message
+            android.widget.Toast.makeText(
+                context,
+                "Uploading to Firebase Storage...",
+                android.widget.Toast.LENGTH_SHORT
+            ).show()
+            
             coroutineScope.launch {
-                val compressedUri = compressAndSaveImage(context, it)
-                customImageUri = compressedUri
-                selectedImageResId = null
-                isUploading = false
+                try {
+                    // Upload image to Firebase Storage
+                    val firebaseUri = uploadImageToFirebase(context, it)
+                    customImageUri = firebaseUri
+                    selectedImageResId = null
+                    android.util.Log.d("GoalCreationDialog", "Image uploaded to Firebase: $firebaseUri")
+                } catch (e: Exception) {
+                    android.util.Log.e("GoalCreationDialog", "Error uploading image", e)
+                    // If upload fails, use the original URI as fallback
+                    customImageUri = it
+                    selectedImageResId = null
+                    
+                    // Show error message
+                    withContext(Dispatchers.Main) {
+                        android.widget.Toast.makeText(
+                            context,
+                            "Failed to upload image: ${e.message}",
+                            android.widget.Toast.LENGTH_LONG
+                        ).show()
+                    }
+                } finally {
+                    isUploading = false
+                }
             }
         }
     }
@@ -1178,12 +1260,10 @@ fun GoalCreationDialog(
         Surface(
             shape = RoundedCornerShape(16.dp),
             color = MaterialTheme.colorScheme.surface,
-            shadowElevation = 8.dp
+            modifier = Modifier.fillMaxWidth(0.9f)
         ) {
             Column(
-                modifier = Modifier
-                    .padding(16.dp)
-                    .fillMaxWidth(),
+                modifier = Modifier.padding(20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
@@ -1192,21 +1272,21 @@ fun GoalCreationDialog(
                     fontWeight = FontWeight.Bold,
                     color = RusticGold
                 )
-                
+
                 Spacer(modifier = Modifier.height(16.dp))
-                
+
                 // Goal text input
-                androidx.compose.material3.OutlinedTextField(
+                OutlinedTextField(
                     value = goalText,
                     onValueChange = { goalText = it },
                     label = { Text("Goal Description") },
                     modifier = Modifier.fillMaxWidth(),
                     maxLines = 3
                 )
-                
+
                 Spacer(modifier = Modifier.height(16.dp))
-                
-                // Media type selector tabs
+
+                // Media type selector
                 TabRow(
                     selectedTabIndex = selectedMediaTab,
                     modifier = Modifier.fillMaxWidth()
@@ -1214,346 +1294,205 @@ fun GoalCreationDialog(
                     mediaTabs.forEachIndexed { index, title ->
                         Tab(
                             selected = selectedMediaTab == index,
-                            onClick = { 
-                                selectedMediaTab = index
-                                if (index == 3) { // Sticker tab
-                                    showStickerSelector = true
-                                }
-                                if (index == 2) { // GIF tab
-                                    showGifSelector = true
-                                }
-                            },
+                            onClick = { selectedMediaTab = index },
                             text = { Text(title) }
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-                when (selectedMediaTab) {
-                    0 -> { // Icon selection
-                        // Icon selection grid
-                        Text(
-                            text = "Select Icon",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        
-                        Spacer(modifier = Modifier.height(8.dp))
-                        
-                        // Icon grid
-                        val iconOptions = listOf(
-                            R.drawable.ic_goal_learn,
-                            R.drawable.ic_goal_book,
-                            R.drawable.ic_goal_debt,
-                            R.drawable.ic_goal_save,
-                            R.drawable.ic_goal_travel,
-                            R.drawable.ic_goal_walk,
-                            R.drawable.ic_goal_steps,
-                            R.drawable.ic_goal_notes,
-                            R.drawable.ic_goal_organize
-                        )
-
-                        LazyVerticalGrid(
-                            columns = GridCells.Fixed(3),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(120.dp)
-                        ) {
-                            items(iconOptions.size) { index ->
-                                val iconResId = iconOptions[index]
-                                IconSelectionItem(
-                                    iconResId = iconResId,
-                                    isSelected = selectedImageResId == iconResId && customImageUri == null,
-                                    onClick = { 
-                                        selectedImageResId = iconResId
-                                        customImageUri = null
+                // Media content based on selected tab
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    when (selectedMediaTab) {
+                        0 -> {
+                            // Icon selection
+                            val iconOptions = listOf(
+                                R.drawable.ic_goal_learn,
+                                R.drawable.ic_goal_book,
+                                R.drawable.ic_goal_debt,
+                                R.drawable.ic_goal_save,
+                                R.drawable.ic_goal_travel,
+                                R.drawable.ic_goal_walk,
+                                R.drawable.ic_goal_steps,
+                                R.drawable.ic_goal_notes,
+                                R.drawable.ic_goal_organize
+                            )
+                            
+                            LazyVerticalGrid(
+                                columns = GridCells.Fixed(3),
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                items(iconOptions.size) { index ->
+                                    val iconResId = iconOptions[index]
+                                    IconSelectionItem(
+                                        iconResId = iconResId,
+                                        isSelected = selectedImageResId == iconResId && customImageUri == null,
+                                        onClick = { 
+                                            selectedImageResId = iconResId
+                                            customImageUri = null
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                        1 -> {
+                            // Image upload
+                            Column(
+                                modifier = Modifier.fillMaxSize(),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                if (isUploading) {
+                                    CircularProgressIndicator()
+                                    Text(
+                                        text = "Uploading image...",
+                                        modifier = Modifier.padding(top = 8.dp)
+                                    )
+                                } else if (customImageUri != null) {
+                                    // Display the selected image
+                                    AsyncImage(
+                                        model = customImageUri,
+                                        contentDescription = null,
+                                        modifier = Modifier
+                                            .size(150.dp)
+                                            .clip(RoundedCornerShape(8.dp)),
+                                        contentScale = ContentScale.Fit
+                                    )
+                                    
+                                    // Show Firebase indicator if it's a Firebase URL
+                                    if (customImageUri.toString().startsWith("https://firebasestorage.googleapis.com")) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.padding(top = 8.dp)
+                                        ) {
+                                            Icon(
+                                                painter = painterResource(id = R.drawable.ic_upload),
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(
+                                                text = "Stored in Firebase",
+                                                style = MaterialTheme.typography.bodySmall
+                                            )
+                                        }
                                     }
-                                )
-                            }
-                        }
-                    }
-                    1 -> { // Image upload
-                        // Media preview or upload button
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(120.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant)
-                                .clickable(enabled = !isUploading) {
-                                    imagePickerLauncher.launch("image/*")
-                                },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            if (isUploading) {
-                                // Show loading indicator while uploading
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(32.dp),
-                                        color = MaterialTheme.colorScheme.primary,
-                                        strokeWidth = 2.dp
-                                    )
                                     
-                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Spacer(modifier = Modifier.height(8.dp))
                                     
-                                    Text(
-                                        text = "Compressing image...",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                            } else if (customImageUri != null) {
-                                // Show uploaded image
-                                AsyncImage(
-                                    model = customImageUri,
-                                    contentDescription = "Uploaded media",
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Crop
-                                )
-                                
-                                // Show cloud upload indicator
-                                Box(
-                                    modifier = Modifier
-                                        .align(Alignment.TopEnd)
-                                        .padding(4.dp)
-                                        .size(24.dp)
-                                        .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        painter = painterResource(id = R.drawable.ic_upload),
-                                        contentDescription = "Saved to cloud",
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                }
-                            } else {
-                                // Show upload button
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Icon(
-                                        painter = painterResource(id = R.drawable.ic_upload),
-                                        contentDescription = "Upload image",
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
-                                    
-                                    Text(
-                                        text = "Upload Image",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                    
-                                    // Add cloud storage indication
-                                    Text(
-                                        text = "Will be saved to Cloud",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
-                                    )
-                                }
-                            }
-                        }
-                    }
-                    2 -> { // GIF selection (will be handled by popup)
-                        // Media preview or upload button
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(120.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant)
-                                .clickable {
-                                    showGifSelector = true
-                                },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            if (customImageUri != null && selectedMediaTab == 2) {
-                                // Show selected GIF
-                                AsyncImage(
-                                    model = customImageUri,
-                                    contentDescription = "Selected GIF",
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Crop
-                                )
-                                
-                                // Show cloud upload indicator
-                                Box(
-                                    modifier = Modifier
-                                        .align(Alignment.TopEnd)
-                                        .padding(4.dp)
-                                        .size(24.dp)
-                                        .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        painter = painterResource(id = R.drawable.ic_upload),
-                                        contentDescription = "Saved to cloud",
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                }
-                            } else {
-                                // Show browse button
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Icon(
-                                        painter = painterResource(id = R.drawable.ic_gif),
-                                        contentDescription = "Browse GIFs",
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
-                                    
-                                    Text(
-                                        text = "Browse GIFs",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                    
-                                    // Add cloud storage indication
-                                    Text(
-                                        text = "Will be saved to Cloud",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
-                                    )
-                                }
-                            }
-                        }
-                    }
-                    3 -> { // Sticker selection (will be handled by popup)
-                        // Sticker grid
-                        Text(
-                            text = "Select Sticker",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        
-                        Spacer(modifier = Modifier.height(8.dp))
-                        
-                        LazyVerticalGrid(
-                            columns = GridCells.Fixed(3),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(120.dp)
-                        ) {
-                            items(stickers.size) { index ->
-                                val stickerId = stickers[index]
-                                Box(
-                                    modifier = Modifier
-                                        .padding(4.dp)
-                                        .size(64.dp)
-                                        .background(
-                                            color = if (selectedImageResId == stickerId) 
-                                                MaterialTheme.colorScheme.primaryContainer 
-                                            else 
-                                                MaterialTheme.colorScheme.surface,
-                                            shape = RoundedCornerShape(8.dp)
+                                    TextButton(onClick = {
+                                        customImageUri = null
+                                        selectedImageResId = R.drawable.ic_goal_notes
+                                    }) {
+                                        Text("Remove Image")
+                                    }
+                                } else {
+                                    // Upload button
+                                    Button(onClick = {
+                                        imagePickerLauncher.launch("image/*")
+                                    }) {
+                                        Icon(
+                                            painter = painterResource(id = R.drawable.ic_upload),
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp)
                                         )
-                                        .clickable {
-                                            val uri = Uri.parse("android.resource://${context.packageName}/$stickerId")
-                                            customImageUri = uri
-                                            selectedImageResId = null
-                                        },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        painter = painterResource(id = stickerId),
-                                        contentDescription = "Sticker",
-                                        modifier = Modifier.size(48.dp),
-                                        tint = Color.Unspecified
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text("Upload Image")
+                                    }
+                                    Text(
+                                        text = "Upload an image from your device",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        modifier = Modifier.padding(top = 8.dp)
                                     )
+                                }
+                            }
+                        }
+                        2 -> {
+                            // GIF selection (placeholder)
+                            Text("GIF selection coming soon")
+                        }
+                        3 -> {
+                            // Sticker selection
+                            LazyVerticalGrid(
+                                columns = GridCells.Fixed(3),
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                items(stickers.size) { index ->
+                                    val stickerResId = stickers[index]
+                                    Box(
+                                        modifier = Modifier
+                                            .padding(4.dp)
+                                            .background(
+                                                color = if (selectedImageResId == stickerResId) 
+                                                    MaterialTheme.colorScheme.primaryContainer 
+                                                else Color.Transparent,
+                                                shape = RoundedCornerShape(8.dp)
+                                            )
+                                            .clickable {
+                                                selectedImageResId = stickerResId
+                                                customImageUri = null
+                                            },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(id = stickerResId),
+                                            contentDescription = null,
+                                            modifier = Modifier.size(48.dp),
+                                            tint = Color.Unspecified
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
                 // Action buttons
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End
                 ) {
-                    androidx.compose.material3.TextButton(onClick = onDismiss) {
+                    TextButton(onClick = onDismiss) {
                         Text("Cancel")
                     }
-
+                    
                     Spacer(modifier = Modifier.width(8.dp))
-
-                    androidx.compose.material3.Button(
+                    
+                    Button(
                         onClick = {
                             if (goalText.isNotBlank()) {
+                                // Pass the Firebase Storage URL as the customImage
+                                val finalCustomImage = customImageUri?.toString()
+                                
+                                android.util.Log.d("GoalCreationDialog", "Creating goal with Firebase image: $finalCustomImage")
+                                
                                 // Pass both the icon resource ID and custom image URI
                                 onGoalCreated(
                                     goalText, 
                                     selectedImageResId,
-                                    customImageUri?.toString()
+                                    finalCustomImage
                                 )
+                                
+                                // Show success message
+                                android.widget.Toast.makeText(
+                                    context,
+                                    "Goal created successfully!",
+                                    android.widget.Toast.LENGTH_SHORT
+                                ).show()
                             }
                         },
                         enabled = goalText.isNotBlank()
                     ) {
                         Text("Create")
-                    }
-                }
-            }
-        }
-    }
-    
-    // GIF selector popup
-    if (showGifSelector) {
-        Popup(
-            alignment = Alignment.Center,
-            onDismissRequest = { showGifSelector = false }
-        ) {
-            Card(
-                modifier = Modifier
-                    .width(280.dp)
-                    .padding(8.dp)
-                    .shadow(8.dp, RoundedCornerShape(16.dp)),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "Select a GIF",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    )
-                    
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(2),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(240.dp)
-                    ) {
-                        items(gifs) { gifId ->
-                            Box(
-                                modifier = Modifier
-                                    .padding(4.dp)
-                                    .size(100.dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                                    .clickable {
-                                        // Create a "fake" URI for the GIF
-                                        val uri = Uri.parse("android.resource://${context.packageName}/$gifId")
-                                        customImageUri = uri
-                                        selectedImageResId = null
-                                        showGifSelector = false
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    painter = painterResource(id = gifId),
-                                    contentDescription = "GIF",
-                                    modifier = Modifier.size(80.dp),
-                                    tint = Color.Unspecified
-                                )
-                            }
-                        }
                     }
                 }
             }
