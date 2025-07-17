@@ -1,7 +1,22 @@
 package io.sukhuat.dingo.common.components
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.offset
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -63,6 +78,8 @@ fun UserDropdownMenu(
 ) {
     var expanded by remember { mutableStateOf(false) }
     var showLanguageSelector by remember { mutableStateOf(false) }
+    var languageOptionPosition by remember { mutableStateOf(Offset.Zero) }
+    val density = LocalDensity.current
 
     // Scale animation for the icon when clicked
     val scale by animateFloatAsState(
@@ -101,7 +118,10 @@ fun UserDropdownMenu(
         // Main dropdown menu
         DropdownMenu(
             expanded = expanded,
-            onDismissRequest = { expanded = false },
+            onDismissRequest = { 
+                expanded = false
+                showLanguageSelector = false
+            },
             modifier = Modifier
                 .width(200.dp)
                 .background(MaterialTheme.colorScheme.surface)
@@ -169,10 +189,12 @@ fun UserDropdownMenu(
                 )
             }
 
-            // Language option
+            // Language option with position tracking
             DropdownMenuItem(
                 text = { Text("Language") },
-                onClick = { showLanguageSelector = true },
+                onClick = { 
+                    showLanguageSelector = !showLanguageSelector
+                },
                 leadingIcon = {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_language),
@@ -184,6 +206,9 @@ fun UserDropdownMenu(
                         imageVector = Icons.Default.ArrowDropDown,
                         contentDescription = null
                     )
+                },
+                modifier = Modifier.onGloballyPositioned { coordinates ->
+                    languageOptionPosition = coordinates.positionInWindow()
                 }
             )
 
@@ -221,28 +246,39 @@ fun UserDropdownMenu(
                 )
             }
 
-            // Language selector submenu
-            if (showLanguageSelector) {
-                Divider()
 
-                Text(
-                    text = "Select Language",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+        }
+
+        // Language selector submenu positioned to the left
+        DropdownMenu(
+            expanded = showLanguageSelector,
+            onDismissRequest = { showLanguageSelector = false },
+            modifier = Modifier
+                .width(180.dp)
+                .background(MaterialTheme.colorScheme.surface),
+            offset = androidx.compose.ui.unit.DpOffset(
+                x = (-200).dp, // Position to the left of main dropdown
+                y = if (isAuthenticated) 180.dp else 48.dp // Align with language option
+            )
+        ) {
+            Text(
+                text = "Select Language",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+
+            Divider()
+
+            for (language in SupportedLanguages) {
+                LanguageItem(
+                    language = language,
+                    isSelected = language.code == currentLanguage.code,
+                    onClick = {
+                        onLanguageChange(language.code)
+                        showLanguageSelector = false
+                    }
                 )
-
-                for (language in SupportedLanguages) {
-                    LanguageItem(
-                        language = language,
-                        isSelected = language.code == currentLanguage.code,
-                        onClick = {
-                            onLanguageChange(language.code)
-                            showLanguageSelector = false
-                            expanded = false
-                        }
-                    )
-                }
             }
         }
     }
