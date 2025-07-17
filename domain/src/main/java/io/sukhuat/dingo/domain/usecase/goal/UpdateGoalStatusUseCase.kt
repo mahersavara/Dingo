@@ -22,4 +22,4 @@ class UpdateGoalStatusUseCase @Inject constructor(
             Result.failure(e)
         }
     }
-} 
+}

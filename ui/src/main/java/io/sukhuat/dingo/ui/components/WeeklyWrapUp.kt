@@ -35,8 +35,7 @@ private val motivationalQuotes = listOf(
 
 /**
  * Weekly Wrap-Up component that shows a summary of completed goals at the end of the week
- * 
- * @param completedGoals List of completed goals
+ * * @param completedGoals List of completed goals
  * @param totalGoals Total number of goals
  * @param onDismiss Called when the user dismisses the dialog
  * @param onShare Called when the user clicks the share button
@@ -50,7 +49,7 @@ fun WeeklyWrapUp(
 ) {
     // Get a random motivational quote
     val randomQuote = motivationalQuotes.random()
-    
+
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             modifier = Modifier
@@ -72,18 +71,18 @@ fun WeeklyWrapUp(
                     fontWeight = FontWeight.Bold,
                     color = RusticGold
                 )
-                
+
                 Spacer(modifier = Modifier.height(16.dp))
-                
+
                 // Progress summary with a friendly tone
                 Text(
                     text = "You completed ${completedGoals.size}/$totalGoals goals this week!",
                     style = MaterialTheme.typography.titleMedium,
                     textAlign = TextAlign.Center
                 )
-                
+
                 Spacer(modifier = Modifier.height(16.dp))
-                
+
                 // Progress bar with a softer, more encouraging look
                 LinearProgressIndicator(
                     progress = { if (totalGoals > 0) completedGoals.size.toFloat() / totalGoals else 0f },
@@ -94,9 +93,9 @@ fun WeeklyWrapUp(
                     color = RusticGold,
                     trackColor = MaterialTheme.colorScheme.surfaceVariant
                 )
-                
+
                 Spacer(modifier = Modifier.height(24.dp))
-                
+
                 // Missed goals section with a more supportive tone
                 val missedGoals = totalGoals - completedGoals.size
                 if (missedGoals > 0) {
@@ -105,9 +104,9 @@ fun WeeklyWrapUp(
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold
                     )
-                    
+
                     Spacer(modifier = Modifier.height(8.dp))
-                    
+
                     // List missed goals with a more encouraging message
                     Column(
                         modifier = Modifier
@@ -122,9 +121,9 @@ fun WeeklyWrapUp(
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        
+
                         Spacer(modifier = Modifier.height(4.dp))
-                        
+
                         Text(
                             text = "Every step counts! You'll get there.",
                             style = MaterialTheme.typography.bodySmall,
@@ -132,7 +131,7 @@ fun WeeklyWrapUp(
                             fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
                         )
                     }
-                    
+
                     Spacer(modifier = Modifier.height(24.dp))
                 } else {
                     // Congratulate on completing all goals
@@ -144,10 +143,10 @@ fun WeeklyWrapUp(
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(vertical = 8.dp)
                     )
-                    
+
                     Spacer(modifier = Modifier.height(16.dp))
                 }
-                
+
                 // Motivational quote with a softer presentation
                 Text(
                     text = "\"$randomQuote\"",
@@ -157,9 +156,9 @@ fun WeeklyWrapUp(
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
                     modifier = Modifier.padding(horizontal = 16.dp)
                 )
-                
+
                 Spacer(modifier = Modifier.height(24.dp))
-                
+
                 // Action buttons
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -172,9 +171,9 @@ fun WeeklyWrapUp(
                     ) {
                         Text("Share")
                     }
-                    
+
                     Spacer(modifier = Modifier.width(16.dp))
-                    
+
                     // Dismiss button
                     Button(
                         onClick = onDismiss,
@@ -223,4 +222,4 @@ fun WeeklyWrapUpPreview() {
             onShare = {}
         )
     }
-} 
+}

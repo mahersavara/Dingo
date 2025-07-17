@@ -1,6 +1,5 @@
 package io.sukhuat.dingo.domain.usecase.goal
 
-import io.sukhuat.dingo.domain.model.Goal
 import io.sukhuat.dingo.domain.repository.GoalRepository
 import io.sukhuat.dingo.domain.repository.StorageRepository
 import kotlinx.coroutines.flow.firstOrNull
@@ -23,16 +22,16 @@ class DeleteGoalImageUseCase @Inject constructor(
         return try {
             // First delete the image from storage
             val deleteSuccess = storageRepository.deleteImage(imageUrl)
-            
+
             if (deleteSuccess) {
                 // If deletion was successful, update the goal to remove the image URL
                 val goal = goalRepository.getGoalById(goalId).firstOrNull()
-                
+
                 if (goal != null) {
                     // Update the goal with a null imageUrl
                     val updatedGoal = goal.copy(imageUrl = null)
                     val updateSuccess = goalRepository.updateGoal(updatedGoal)
-                    
+
                     if (updateSuccess) {
                         Result.success(true)
                     } else {
@@ -48,4 +47,4 @@ class DeleteGoalImageUseCase @Inject constructor(
             Result.failure(e)
         }
     }
-} 
+}

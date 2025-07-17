@@ -25,10 +25,10 @@ private const val TAG = "GoalRepositoryImpl"
 class GoalRepositoryImpl @Inject constructor(
     private val firebaseGoalService: FirebaseGoalService
 ) : GoalRepository {
-    
+
     // Coroutine scope for background operations
     private val repositoryScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-    
+
     override fun getAllGoals(): Flow<List<Goal>> {
         // Return goals directly from Firebase
         return firebaseGoalService.getAllGoals().catch { error ->
@@ -36,7 +36,7 @@ class GoalRepositoryImpl @Inject constructor(
             emit(emptyList())
         }
     }
-    
+
     override fun getGoalsByStatus(status: GoalStatus): Flow<List<Goal>> {
         // Return goals with specific status from Firebase
         return firebaseGoalService.getGoalsByStatus(status).catch { error ->
@@ -44,7 +44,7 @@ class GoalRepositoryImpl @Inject constructor(
             emit(emptyList())
         }
     }
-    
+
     override fun getGoalById(id: String): Flow<Goal?> {
         // Return specific goal from Firebase
         return firebaseGoalService.getGoalById(id).catch { error ->
@@ -52,7 +52,7 @@ class GoalRepositoryImpl @Inject constructor(
             emit(null)
         }
     }
-    
+
     override suspend fun createGoal(goal: Goal): String {
         try {
             // Assign position if not set
@@ -64,7 +64,7 @@ class GoalRepositoryImpl @Inject constructor(
             } else {
                 goal
             }
-            
+
             // Save directly to Firebase
             return firebaseGoalService.createGoal(newGoal)
         } catch (e: Exception) {
@@ -72,7 +72,7 @@ class GoalRepositoryImpl @Inject constructor(
             throw e
         }
     }
-    
+
     override suspend fun updateGoal(goal: Goal): Boolean {
         try {
             // Update directly in Firebase
@@ -83,7 +83,7 @@ class GoalRepositoryImpl @Inject constructor(
             return false
         }
     }
-    
+
     override suspend fun updateGoalStatus(goalId: String, status: GoalStatus): Boolean {
         try {
             // Update directly in Firebase
@@ -94,7 +94,7 @@ class GoalRepositoryImpl @Inject constructor(
             return false
         }
     }
-    
+
     override suspend fun updateGoalText(goalId: String, text: String): Boolean {
         try {
             // Update directly in Firebase
@@ -105,7 +105,7 @@ class GoalRepositoryImpl @Inject constructor(
             return false
         }
     }
-    
+
     override suspend fun updateGoalImage(goalId: String, customImage: String?): Boolean {
         try {
             // Update directly in Firebase
@@ -116,7 +116,7 @@ class GoalRepositoryImpl @Inject constructor(
             return false
         }
     }
-    
+
     override suspend fun updateGoalImageUrl(goalId: String, imageUrl: String?): Boolean {
         try {
             // Update directly in Firebase
@@ -127,7 +127,7 @@ class GoalRepositoryImpl @Inject constructor(
             return false
         }
     }
-    
+
     override suspend fun deleteGoal(goalId: String): Boolean {
         try {
             // Delete directly from Firebase
@@ -138,7 +138,7 @@ class GoalRepositoryImpl @Inject constructor(
             return false
         }
     }
-    
+
     override suspend fun reorderGoals(goalIds: List<String>): Boolean {
         try {
             // Update directly in Firebase
@@ -149,7 +149,7 @@ class GoalRepositoryImpl @Inject constructor(
             return false
         }
     }
-    
+
     /**
      * Clears all goals from the local database
      * This should be called when a user logs out or switches accounts
@@ -160,4 +160,4 @@ class GoalRepositoryImpl @Inject constructor(
         // Firebase handles user scoping of data automatically
         Log.d(TAG, "clearAllGoals called - no action needed with Firebase implementation")
     }
-} 
+}

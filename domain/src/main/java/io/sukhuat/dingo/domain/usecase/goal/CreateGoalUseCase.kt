@@ -21,11 +21,11 @@ class CreateGoalUseCase @Inject constructor(
                 imageResId = imageResId,
                 customImage = customImage
             )
-            
+
             val goalId = goalRepository.createGoal(goal)
             Result.success(goalId)
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
-} 
+}

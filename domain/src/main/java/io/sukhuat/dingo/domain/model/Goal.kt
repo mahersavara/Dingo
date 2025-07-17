@@ -24,4 +24,4 @@ data class Goal(
     val customImage: String? = null,
     val imageUrl: String? = null, // URL of the image stored in Firebase Storage
     val position: Int = -1 // For ordering goals in the grid
-) 
+)

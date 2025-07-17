@@ -22,7 +22,7 @@ fun getSafeImageUri(context: Context, uriString: String?): Uri? {
     if (uriString.isNullOrEmpty()) {
         return null
     }
-    
+
     return try {
         // Check if it's a Firebase Storage URL
         if (uriString.startsWith("https://firebasestorage.googleapis.com")) {
@@ -32,7 +32,7 @@ fun getSafeImageUri(context: Context, uriString: String?): Uri? {
         } else {
             // For local URIs, ensure they're valid
             val uri = uriString.toUri()
-            
+
             // Additional validation for local files
             if (uriString.startsWith("file://")) {
                 val file = File(uri.path ?: "")
@@ -61,19 +61,19 @@ fun compressAndSaveImage(context: Context, imageUri: Uri, quality: Int = 80): Ur
         // Create a unique filename
         val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
         val filename = "IMG_${timestamp}_${UUID.randomUUID().toString().substring(0, 8)}.jpg"
-        
+
         // Get the input stream from the URI
         val inputStream = context.contentResolver.openInputStream(imageUri)
-        
+
         // Decode the bitmap
         val originalBitmap = BitmapFactory.decodeStream(inputStream)
         inputStream?.close()
-        
+
         if (originalBitmap == null) {
             Log.e("ImageUtils", "Failed to decode bitmap from URI: $imageUri")
             return null
         }
-        
+
         // Scale down the image if it's too large
         val maxDimension = 1024
         val scaledBitmap = if (originalBitmap.width > maxDimension || originalBitmap.height > maxDimension) {
@@ -84,30 +84,30 @@ fun compressAndSaveImage(context: Context, imageUri: Uri, quality: Int = 80): Ur
         } else {
             originalBitmap
         }
-        
+
         // Create output file in app's private directory
         val imagesDir = File(context.filesDir, "images")
         if (!imagesDir.exists()) {
             imagesDir.mkdirs()
         }
-        
+
         val outputFile = File(imagesDir, filename)
         val outputStream = FileOutputStream(outputFile)
-        
+
         // Compress and save
         scaledBitmap.compress(Bitmap.CompressFormat.JPEG, quality, outputStream)
         outputStream.flush()
         outputStream.close()
-        
+
         // If we created a new scaled bitmap, recycle the original
         if (scaledBitmap != originalBitmap) {
             originalBitmap.recycle()
         }
-        
+
         // Return the URI of the saved file
         Uri.fromFile(outputFile)
     } catch (e: IOException) {
         Log.e("ImageUtils", "Error compressing and saving image", e)
         null
     }
-} 
+}

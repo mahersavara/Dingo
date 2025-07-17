@@ -10,9 +10,9 @@ import androidx.compose.ui.unit.dp
  * Represents different screen size classes
  */
 enum class ScreenSizeClass {
-    COMPACT,  // Phone portrait
-    MEDIUM,   // Phone landscape, tablet portrait
-    EXPANDED  // Tablet landscape
+    COMPACT, // Phone portrait
+    MEDIUM, // Phone landscape, tablet portrait
+    EXPANDED // Tablet landscape
 }
 
 /**
@@ -81,13 +81,13 @@ fun rememberResponsiveValues(): ResponsiveValues {
 fun rememberResponsiveGridColumns(): Int {
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp
-    
+
     return remember(screenWidth) {
         when {
-            screenWidth < 600 -> 3  // Phone portrait
-            screenWidth < 840 -> 4  // Phone landscape or small tablet
+            screenWidth < 600 -> 3 // Phone portrait
+            screenWidth < 840 -> 4 // Phone landscape or small tablet
             screenWidth < 1080 -> 5 // Medium tablet
-            else -> 6               // Large tablet
+            else -> 6 // Large tablet
         }
     }
 }
@@ -99,7 +99,7 @@ fun rememberResponsiveGridColumns(): Int {
 fun rememberResponsivePadding(): Dp {
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp
-    
+
     return remember(screenWidth) {
         when {
             screenWidth < 600 -> 16.dp
@@ -116,7 +116,7 @@ fun rememberResponsivePadding(): Dp {
 fun rememberResponsiveGridSpacing(): Dp {
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp
-    
+
     return remember(screenWidth) {
         when {
             screenWidth < 600 -> 12.dp
@@ -124,4 +124,4 @@ fun rememberResponsiveGridSpacing(): Dp {
             else -> 20.dp
         }
     }
-} 
+}

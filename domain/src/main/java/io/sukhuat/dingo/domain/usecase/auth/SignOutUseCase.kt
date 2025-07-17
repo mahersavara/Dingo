@@ -10,4 +10,4 @@ class SignOutUseCase @Inject constructor() {
         // In a real app, this would handle authentication logout
         // For now, it's just a placeholder
     }
-} 
+}

@@ -34,9 +34,9 @@ class SyncManager @Inject constructor(
      */
     fun startSyncObserver() {
         if (isSyncObserverActive) return
-        
+
         isSyncObserverActive = true
-        
+
         syncScope.launch {
             try {
                 networkConnectivityObserver.observe()

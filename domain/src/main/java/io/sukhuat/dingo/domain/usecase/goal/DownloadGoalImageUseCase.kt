@@ -28,4 +28,4 @@ class DownloadGoalImageUseCase @Inject constructor(
             Result.failure(e)
         }
     }
-} 
+}

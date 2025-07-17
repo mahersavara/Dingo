@@ -7,26 +7,26 @@ import androidx.activity.result.ActivityResult
 import androidx.activity.result.ActivityResultLauncher
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.common.api.ApiException
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import io.sukhuat.dingo.common.localization.LanguagePreferences
+import io.sukhuat.dingo.common.localization.LocaleHelper
 import io.sukhuat.dingo.common.utils.ToastHelper
 import io.sukhuat.dingo.data.auth.GoogleAuthService
 import io.sukhuat.dingo.domain.repository.AuthResult
 import io.sukhuat.dingo.usecases.auth.SignInUseCase
 import io.sukhuat.dingo.usecases.auth.SignUpWithEmailUseCase
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import javax.inject.Inject
-import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.common.api.ApiException
-import io.sukhuat.dingo.common.localization.LocaleHelper
-import io.sukhuat.dingo.common.localization.LanguagePreferences
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.flow.first
+import javax.inject.Inject
 
 private const val TAG = "AuthViewModel"
 
@@ -40,31 +40,31 @@ class AuthViewModel @Inject constructor(
 
     private val _authState = MutableStateFlow<AuthUiState>(AuthUiState.Initial)
     val authState: StateFlow<AuthUiState> = _authState
-    
+
     // Language change state
     private val _languageCode = MutableStateFlow<String?>(null)
     val languageCode: StateFlow<String?> = _languageCode
-    
+
     // Non-composable function to change language
     fun changeLanguage(languageCode: String) {
         viewModelScope.launch {
             // Check if this is already the current language
             val languagePreferences = LanguagePreferences(context)
             val currentLanguageCode = languagePreferences.languageCodeFlow.first()
-            
+
             // Only proceed if the language is actually changing
             if (currentLanguageCode != languageCode) {
                 // Save the language preference
                 withContext(Dispatchers.IO) {
                     languagePreferences.setLanguageCode(languageCode)
                 }
-                
+
                 // Apply the new locale
                 LocaleHelper.setLocale(context, languageCode)
-                
+
                 // Update the state to trigger UI updates
                 _languageCode.value = languageCode
-                
+
                 // Note: We can't recreate the activity from the ViewModel with application context
                 // The UI layer will handle the recreation based on the languageCode state change
             }
@@ -90,13 +90,13 @@ class AuthViewModel @Inject constructor(
             ToastHelper.showLong(context, errorMsg)
         }
     }
-    
+
     fun handleGoogleSignInResult(result: ActivityResult) {
         try {
             val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
             val account = task.getResult(ApiException::class.java)
             val idToken = account.idToken
-            
+
             if (idToken != null) {
                 signInWithGoogle(idToken)
             } else {

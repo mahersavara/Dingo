@@ -21,4 +21,4 @@ class ReorderGoalsUseCase @Inject constructor(
             Result.failure(e)
         }
     }
-} 
+}

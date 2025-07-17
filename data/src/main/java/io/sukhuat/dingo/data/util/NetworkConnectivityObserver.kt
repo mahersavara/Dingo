@@ -29,7 +29,7 @@ class NetworkConnectivityObserver @Inject constructor(
     private val context: Context
 ) {
     private val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-    
+
     /**
      * Observe network connectivity changes
      * @return Flow of ConnectionStatus
@@ -38,19 +38,19 @@ class NetworkConnectivityObserver @Inject constructor(
         // Initial status check
         val initialStatus = getCurrentConnectionStatus()
         trySend(initialStatus)
-        
+
         // Callback for network changes
         val networkCallback = object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) {
                 super.onAvailable(network)
                 launch { trySend(ConnectionStatus.AVAILABLE) }
             }
-            
+
             override fun onLost(network: Network) {
                 super.onLost(network)
                 launch { trySend(ConnectionStatus.UNAVAILABLE) }
             }
-            
+
             override fun onCapabilitiesChanged(
                 network: Network,
                 networkCapabilities: NetworkCapabilities
@@ -67,19 +67,19 @@ class NetworkConnectivityObserver @Inject constructor(
                 launch { trySend(status) }
             }
         }
-        
+
         // Register the callback
         val networkRequest = NetworkRequest.Builder()
             .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
             .build()
         connectivityManager.registerNetworkCallback(networkRequest, networkCallback)
-        
+
         // Clean up when the flow is cancelled
         awaitClose {
             connectivityManager.unregisterNetworkCallback(networkCallback)
         }
     }.distinctUntilChanged()
-    
+
     /**
      * Get the current connection status
      */
@@ -90,7 +90,7 @@ class NetworkConnectivityObserver @Inject constructor(
             ConnectionStatus.UNAVAILABLE
         }
     }
-    
+
     /**
      * Check if the network is currently available
      */
@@ -98,14 +98,12 @@ class NetworkConnectivityObserver @Inject constructor(
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             val network = connectivityManager.activeNetwork ?: return false
             val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
-            
+
             capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
-                    capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+                capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
         } else {
             @Suppress("DEPRECATION")
             connectivityManager.activeNetworkInfo?.isConnected == true
         }
     }
 }
-
-

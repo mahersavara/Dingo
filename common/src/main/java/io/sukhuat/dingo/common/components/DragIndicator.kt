@@ -41,14 +41,14 @@ fun DragIndicator(
     tint: Color = Color.Unspecified
 ) {
     if (!isDragging) return
-    
+
     val density = LocalDensity.current
     val size = 48.dp
     val halfSize = with(density) { (size / 2).toPx() }
-    
+
     // Animation for scale effect
     val scale = remember { Animatable(0.8f) }
-    
+
     // Animate scale when dragging starts
     LaunchedEffect(isDragging) {
         if (isDragging) {
@@ -70,7 +70,7 @@ fun DragIndicator(
             }
         }
     }
-    
+
     // Position the indicator at the drag position
     Box(
         modifier = Modifier
@@ -114,4 +114,4 @@ fun DragIndicator(
             }
         }
     }
-} 
+}

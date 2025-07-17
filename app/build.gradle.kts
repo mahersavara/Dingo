@@ -86,6 +86,9 @@ dependencies {
     implementation(libs.firebase.analytics)
     implementation(libs.play.services.auth)
 
+    // DataStore for preferences
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
+
     // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.ext.junit)

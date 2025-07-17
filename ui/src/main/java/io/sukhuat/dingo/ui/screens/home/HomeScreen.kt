@@ -1,12 +1,15 @@
 package io.sukhuat.dingo.ui.screens.home
 
 import android.content.Context
+import android.content.Intent
 import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -15,6 +18,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -41,7 +45,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -67,9 +70,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -85,41 +88,31 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.activity.result.contract.ActivityResultContracts
 import coil.compose.AsyncImage
 import io.sukhuat.dingo.common.R
-import io.sukhuat.dingo.common.localization.LocalAppLanguage
-import io.sukhuat.dingo.common.localization.LocaleHelper
-import io.sukhuat.dingo.common.localization.LanguagePreferences
-import io.sukhuat.dingo.common.theme.MountainSunriseTheme
-import io.sukhuat.dingo.common.theme.RusticGold
-import kotlinx.coroutines.launch
-import java.util.Calendar
-import java.util.Locale
-import kotlin.math.abs
+import io.sukhuat.dingo.common.components.BubbleComponent
+import io.sukhuat.dingo.common.components.GoalCompletionCelebration
+import io.sukhuat.dingo.common.components.MediaType
+import io.sukhuat.dingo.common.components.ScreenSizeClass
 import io.sukhuat.dingo.common.components.popInAnimation
 import io.sukhuat.dingo.common.components.rememberResponsiveValues
-import io.sukhuat.dingo.common.components.ScreenSizeClass
-import io.sukhuat.dingo.common.components.BubbleComponent
-import io.sukhuat.dingo.common.components.MediaType
-import io.sukhuat.dingo.common.components.GoalCompletionCelebration
+import io.sukhuat.dingo.common.localization.LanguagePreferences
+import io.sukhuat.dingo.common.localization.LocalAppLanguage
+import io.sukhuat.dingo.common.localization.LocaleHelper
+import io.sukhuat.dingo.common.theme.MountainSunriseTheme
+import io.sukhuat.dingo.common.theme.RusticGold
+import io.sukhuat.dingo.common.utils.getSafeImageUri
+import io.sukhuat.dingo.common.utils.uploadImageToFirebase
 import io.sukhuat.dingo.domain.model.Goal
 import io.sukhuat.dingo.domain.model.GoalStatus
 import io.sukhuat.dingo.ui.components.DingoAppScaffold
 import io.sukhuat.dingo.ui.components.WeeklyWrapUp
-import android.content.Intent
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.activity.compose.rememberLauncherForActivityResult
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.File
-import java.io.FileOutputStream
-import java.util.UUID
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import androidx.compose.ui.window.Popup
-import io.sukhuat.dingo.common.utils.getSafeImageUri
-import io.sukhuat.dingo.common.utils.uploadImageToFirebase
+import java.util.Calendar
+import java.util.Locale
+import kotlin.math.abs
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -169,10 +162,10 @@ fun HomeScreen(
         coroutineScope.launch {
             // Save the language code to preferences
             languagePreferences.setLanguageCode(languageCode)
-            
+
             // Apply the new locale
             LocaleHelper.setLocale(context, languageCode)
-            
+
             // Recreate the activity to apply the language change
             if (context is android.app.Activity) {
                 // Force activity recreation with animation
@@ -332,10 +325,10 @@ fun HomeScreen(
                                     GoalStatus.ACTIVE -> {
                                         // Mark goal as complete
                                         viewModel.updateGoalStatus(goal.id, GoalStatus.COMPLETED)
-                                        
+
                                         // Find the most up-to-date goal data from allGoals
                                         val updatedGoal = allGoals.find { it.id == goal.id } ?: goal
-                                        
+
                                         // Show celebration with the most up-to-date goal data
                                         celebrateGoalCompletion(updatedGoal)
                                     }
@@ -370,12 +363,12 @@ fun HomeScreen(
                                 // Find the most up-to-date goal data from allGoals
                                 val updatedGoal = allGoals.find { it.id == goal.id } ?: goal
                                 selectedGoalForEdit = updatedGoal
-                                
+
                                 // Calculate offset for the BubbleEditor to position it next to the goal
                                 // Position the bubble to the right of the goal with a slight offset
-                                val offsetX = position.first + 60f  // Move right from the goal
-                                val offsetY = position.second - 30f  // Move slightly up
-                                
+                                val offsetX = position.first + 60f // Move right from the goal
+                                val offsetY = position.second - 30f // Move slightly up
+
                                 bubbleEditorPosition = Pair(offsetX, offsetY)
                                 showBubbleEditor = true
                             },
@@ -473,10 +466,10 @@ fun HomeScreen(
                                         GoalStatus.ACTIVE -> {
                                             // Mark goal as complete
                                             viewModel.updateGoalStatus(goal.id, GoalStatus.COMPLETED)
-                                            
+
                                             // Find the most up-to-date goal data from allGoals
                                             val updatedGoal = allGoals.find { it.id == goal.id } ?: goal
-                                            
+
                                             // Show celebration with the most up-to-date goal data
                                             celebrateGoalCompletion(updatedGoal)
                                         }
@@ -511,12 +504,12 @@ fun HomeScreen(
                                     // Find the most up-to-date goal data from allGoals
                                     val updatedGoal = allGoals.find { it.id == goal.id } ?: goal
                                     selectedGoalForEdit = updatedGoal
-                                    
+
                                     // Calculate offset for the BubbleEditor to position it next to the goal
                                     // Position the bubble to the right of the goal with a slight offset
-                                    val offsetX = position.first + 60f  // Move right from the goal
-                                    val offsetY = position.second - 30f  // Move slightly up
-                                    
+                                    val offsetX = position.first + 60f // Move right from the goal
+                                    val offsetY = position.second - 30f // Move slightly up
+
                                     bubbleEditorPosition = Pair(offsetX, offsetY)
                                     showBubbleEditor = true
                                 },
@@ -558,7 +551,7 @@ fun HomeScreen(
             if (showBubbleEditor && selectedGoalForEdit != null) {
                 // Ensure we have the most up-to-date goal data
                 val currentGoal = allGoals.find { it.id == selectedGoalForEdit!!.id } ?: selectedGoalForEdit!!
-                
+
                 BubbleComponent(
                     id = currentGoal.id.hashCode(), // Convert string ID to int
                     text = currentGoal.text,
@@ -576,19 +569,19 @@ fun HomeScreen(
                         coroutineScope.launch {
                             snackbarHostState.showSnackbar("Saving media to Firebase Storage...")
                         }
-                        
+
                         // Launch in a coroutine to avoid blocking the UI
                         coroutineScope.launch {
                             try {
                                 // The uri is already a Firebase Storage URL from uploadImageToFirebase
                                 // Just need to save it to the goal
                                 val savedImagePath = uri.toString()
-                                
+
                                 android.util.Log.d("HomeScreen", "Saving Firebase image URL: $savedImagePath")
-                                
+
                                 // Update the goal in the ViewModel
                                 viewModel.updateGoalImage(currentGoal.id, savedImagePath)
-                                
+
                                 // Update the selected goal to reflect the new image
                                 val updatedGoal = currentGoal.copy(customImage = savedImagePath, imageResId = null)
                                 android.util.Log.d("HomeScreen", "Updated goal with Firebase image: ${updatedGoal.customImage}")
@@ -656,7 +649,7 @@ fun HomeScreen(
                             putExtra(Intent.EXTRA_TEXT, viewModel.getWeeklySummaryText())
                             type = "text/plain"
                         }
-                        
+
                         // Start the share activity
                         context.startActivity(Intent.createChooser(sendIntent, "Share Weekly Summary"))
                     }
@@ -670,9 +663,9 @@ fun HomeScreen(
 fun WeeklyOverviewHeader(textSizeMultiplier: Float = 1.0f) {
     // State to track the week offset (0 = current week, -1 = previous week, etc.)
     var weekOffset by remember { mutableStateOf(0) }
-    
+
     // Calculate current week and days dynamically using Calendar
-    val calendar = remember(weekOffset) { 
+    val calendar = remember(weekOffset) {
         Calendar.getInstance().apply {
             // Add weekOffset weeks to the current date
             add(Calendar.WEEK_OF_YEAR, weekOffset)
@@ -695,12 +688,12 @@ fun WeeklyOverviewHeader(textSizeMultiplier: Float = 1.0f) {
     val year = calendar.get(Calendar.YEAR)
 
     val weekProgress = dayOfWeek.toFloat() / 7f
-    
+
     // Detect horizontal swipe gestures
     val density = LocalDensity.current
     val configuration = LocalConfiguration.current
     val screenWidthPx = with(density) { configuration.screenWidthDp.dp.toPx() }
-    
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -747,7 +740,7 @@ fun WeeklyOverviewHeader(textSizeMultiplier: Float = 1.0f) {
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
         )
-        
+
         Text(
             text = "${weekOfMonth}${getOrdinalSuffix(weekOfMonth)} Week of $monthName $year",
             style = MaterialTheme.typography.headlineSmall.copy(
@@ -767,7 +760,7 @@ fun WeeklyOverviewHeader(textSizeMultiplier: Float = 1.0f) {
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
                 modifier = Modifier.padding(vertical = 4.dp)
             )
-            
+
             // Progress bar for current week
             LinearProgressIndicator(
                 progress = weekProgress,
@@ -788,7 +781,7 @@ fun WeeklyOverviewHeader(textSizeMultiplier: Float = 1.0f) {
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
                 modifier = Modifier.padding(vertical = 4.dp)
             )
-            
+
             // Show swipe hint
             Text(
                 text = "Swipe right to see more recent weeks",
@@ -796,7 +789,7 @@ fun WeeklyOverviewHeader(textSizeMultiplier: Float = 1.0f) {
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
             )
         }
-        
+
         // Show swipe left hint only for current week
         if (weekOffset == 0) {
             Text(
@@ -829,7 +822,7 @@ fun GoalsGrid(
     val gridState = rememberLazyGridState()
     val columns = GridCells.Fixed(3)
     val itemsVisible = true // For animations
-    
+
     // Always show a grid of 12 cells (4 rows x 3 columns)
     val totalCells = 12
     val emptySlots = maxOf(0, totalCells - goals.size)
@@ -859,7 +852,7 @@ fun GoalsGrid(
                     }
             )
         }
-        
+
         // Add empty cells to fill the grid
         items(emptySlots) { index ->
             EmptyGoalCell(
@@ -915,7 +908,7 @@ fun GoalCell(
                         val context = LocalContext.current
                         val customImage = goal.customImage // Store in local variable to avoid smart cast issue
                         val safeImageUri = if (customImage != null) getSafeImageUri(context, customImage) else null
-                        
+
                         if (safeImageUri != null) {
                             AsyncImage(
                                 model = safeImageUri,
@@ -928,7 +921,7 @@ fun GoalCell(
                                     android.util.Log.e("GoalCell", "Error loading image: $safeImageUri")
                                 }
                             )
-                            
+
                             // Show cloud indicator for Firebase Storage URLs
                             if (customImage != null && customImage.startsWith("https://firebasestorage.googleapis.com")) {
                                 Box(
@@ -967,7 +960,7 @@ fun GoalCell(
                         )
                     }
                 }
-                
+
                 // Text below the image
                 Text(
                     text = goal.text,
@@ -985,7 +978,7 @@ fun GoalCell(
                         .padding(horizontal = 4.dp)
                 )
             }
-            
+
             // Status overlays
             when (goal.status) {
                 GoalStatus.COMPLETED -> {
@@ -1010,13 +1003,13 @@ fun GoalCell(
                                 radius = size.minDimension / 2,
                                 style = Stroke(width = 4f)
                             )
-                            
+
                             // Inner circle
                             drawCircle(
                                 color = Color(0x554CAF50), // More visible green
                                 radius = size.minDimension / 2 - 8f
                             )
-                            
+
                             // Decorative lines
                             for (i in 0 until 8) {
                                 rotate(degrees = i * 45f) {
@@ -1029,7 +1022,7 @@ fun GoalCell(
                                 }
                             }
                         }
-                        
+
                         // "DONE" text in the center of the stamp
                         Text(
                             text = "✅ DONE",
@@ -1072,7 +1065,7 @@ fun GoalCell(
                                 strokeWidth = 5f
                             )
                         }
-                        
+
                         Text(
                             text = "❌ FAILED",
                             color = Color(0xFFFF5252), // Red color
@@ -1108,7 +1101,7 @@ fun GoalCell(
                                 style = Stroke(width = 3f)
                             )
                         }
-                        
+
                         Text(
                             text = "⛔ ARCHIVED",
                             color = Color(0xFF9E9E9E), // Gray color
@@ -1184,11 +1177,11 @@ fun GoalCreationDialog(
     var selectedImageResId by remember { mutableStateOf<Int?>(R.drawable.ic_goal_notes) }
     var customImageUri by remember { mutableStateOf<Uri?>(null) }
     var isUploading by remember { mutableStateOf(false) }
-    
+
     // For media upload functionality
     var selectedMediaTab by remember { mutableStateOf(0) }
     val mediaTabs = listOf("Icon", "Image", "GIF", "Sticker")
-    
+
     // For sticker selection
     var showStickerSelector by remember { mutableStateOf(false) }
     val stickers = listOf(
@@ -1199,7 +1192,7 @@ fun GoalCreationDialog(
         R.drawable.ic_sticker_angry,
         R.drawable.ic_sticker_thinking
     )
-    
+
     // For GIF selection
     var showGifSelector by remember { mutableStateOf(false) }
     val gifs = listOf(
@@ -1210,24 +1203,24 @@ fun GoalCreationDialog(
         R.drawable.ic_gif_dance,
         R.drawable.ic_gif_smile
     )
-    
+
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
-    
+
     // Image picker launcher
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
             isUploading = true
-            
+
             // Show uploading message
             android.widget.Toast.makeText(
                 context,
                 "Uploading to Firebase Storage...",
                 android.widget.Toast.LENGTH_SHORT
             ).show()
-            
+
             coroutineScope.launch {
                 try {
                     // Upload image to Firebase Storage
@@ -1240,7 +1233,7 @@ fun GoalCreationDialog(
                     // If upload fails, use the original URI as fallback
                     customImageUri = it
                     selectedImageResId = null
-                    
+
                     // Show error message
                     withContext(Dispatchers.Main) {
                         android.widget.Toast.makeText(
@@ -1255,7 +1248,7 @@ fun GoalCreationDialog(
             }
         }
     }
-    
+
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = RoundedCornerShape(16.dp),
@@ -1323,7 +1316,7 @@ fun GoalCreationDialog(
                                 R.drawable.ic_goal_notes,
                                 R.drawable.ic_goal_organize
                             )
-                            
+
                             LazyVerticalGrid(
                                 columns = GridCells.Fixed(3),
                                 modifier = Modifier.fillMaxSize()
@@ -1333,7 +1326,7 @@ fun GoalCreationDialog(
                                     IconSelectionItem(
                                         iconResId = iconResId,
                                         isSelected = selectedImageResId == iconResId && customImageUri == null,
-                                        onClick = { 
+                                        onClick = {
                                             selectedImageResId = iconResId
                                             customImageUri = null
                                         }
@@ -1364,7 +1357,7 @@ fun GoalCreationDialog(
                                             .clip(RoundedCornerShape(8.dp)),
                                         contentScale = ContentScale.Fit
                                     )
-                                    
+
                                     // Show Firebase indicator if it's a Firebase URL
                                     if (customImageUri.toString().startsWith("https://firebasestorage.googleapis.com")) {
                                         Row(
@@ -1384,9 +1377,9 @@ fun GoalCreationDialog(
                                             )
                                         }
                                     }
-                                    
+
                                     Spacer(modifier = Modifier.height(8.dp))
-                                    
+
                                     TextButton(onClick = {
                                         customImageUri = null
                                         selectedImageResId = R.drawable.ic_goal_notes
@@ -1430,9 +1423,11 @@ fun GoalCreationDialog(
                                         modifier = Modifier
                                             .padding(4.dp)
                                             .background(
-                                                color = if (selectedImageResId == stickerResId) 
-                                                    MaterialTheme.colorScheme.primaryContainer 
-                                                else Color.Transparent,
+                                                color = if (selectedImageResId == stickerResId) {
+                                                    MaterialTheme.colorScheme.primaryContainer
+                                                } else {
+                                                    Color.Transparent
+                                                },
                                                 shape = RoundedCornerShape(8.dp)
                                             )
                                             .clickable {
@@ -1464,24 +1459,24 @@ fun GoalCreationDialog(
                     TextButton(onClick = onDismiss) {
                         Text("Cancel")
                     }
-                    
+
                     Spacer(modifier = Modifier.width(8.dp))
-                    
+
                     Button(
                         onClick = {
                             if (goalText.isNotBlank()) {
                                 // Pass the Firebase Storage URL as the customImage
                                 val finalCustomImage = customImageUri?.toString()
-                                
+
                                 android.util.Log.d("GoalCreationDialog", "Creating goal with Firebase image: $finalCustomImage")
-                                
+
                                 // Pass both the icon resource ID and custom image URI
                                 onGoalCreated(
-                                    goalText, 
+                                    goalText,
                                     selectedImageResId,
                                     finalCustomImage
                                 )
-                                
+
                                 // Show success message
                                 android.widget.Toast.makeText(
                                     context,
@@ -1520,9 +1515,13 @@ fun IconSelectionItem(
         Icon(
             painter = painterResource(id = iconResId),
             contentDescription = null,
-            tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(
-                alpha = 0.6f
-            )
+            tint = if (isSelected) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.onSurface.copy(
+                    alpha = 0.6f
+                )
+            }
         )
     }
 }

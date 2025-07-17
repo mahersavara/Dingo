@@ -22,10 +22,10 @@ class UploadGoalImageUseCase @Inject constructor(
         return try {
             // Upload the image to storage
             val imageUrl = storageRepository.uploadImage(imageUri, goalId)
-            
+
             // Update the goal with the image URL
             val updateResult = goalRepository.updateGoalImageUrl(goalId, imageUrl)
-            
+
             if (updateResult) {
                 Result.success(imageUrl)
             } else {
@@ -37,4 +37,4 @@ class UploadGoalImageUseCase @Inject constructor(
             Result.failure(e)
         }
     }
-} 
+}

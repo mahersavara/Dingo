@@ -12,16 +12,16 @@ import javax.inject.Inject
  */
 @HiltAndroidApp
 class DingoApplication : Application() {
-    
+
     @Inject
     lateinit var syncManager: SyncManager
-    
+
     override fun onCreate() {
         super.onCreate()
-        
+
         // Initialize Firebase
         FirebaseApp.initializeApp(this)
-        
+
         // Start observing network connectivity for data sync
         syncManager.startSyncObserver()
     }

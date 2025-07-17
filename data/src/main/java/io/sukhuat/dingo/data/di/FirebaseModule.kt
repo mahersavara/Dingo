@@ -50,4 +50,4 @@ object FirebaseModule {
         auth: FirebaseAuth,
         @ApplicationContext context: Context
     ): FirebaseStorageService = FirebaseStorageService(context, storage, auth)
-} 
+}

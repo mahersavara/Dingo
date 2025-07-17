@@ -14,7 +14,7 @@ class GetGoalsUseCase @Inject constructor(
     operator fun invoke(): Flow<List<Goal>> {
         return goalRepository.getAllGoals()
     }
-    
+
     /**
      * Clears all goals from the local database
      * This should be called when a user logs out or switches accounts
@@ -22,4 +22,4 @@ class GetGoalsUseCase @Inject constructor(
     suspend fun clearAllGoals() {
         goalRepository.clearAllGoals()
     }
-} 
+}

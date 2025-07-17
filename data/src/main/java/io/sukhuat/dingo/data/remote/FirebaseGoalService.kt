@@ -21,21 +21,21 @@ class FirebaseGoalService @Inject constructor(
     private val auth: FirebaseAuth
 ) {
     private val goalsCollection = "goals"
-    
+
     /**
      * Get the current user ID or throw an exception if not logged in
      */
     private fun getCurrentUserId(): String {
         return auth.currentUser?.uid ?: throw IllegalStateException("User is not authenticated")
     }
-    
+
     /**
      * Get a reference to the user's goals collection
      */
     private fun getUserGoalsCollection() = firestore.collection("users")
         .document(getCurrentUserId())
         .collection(goalsCollection)
-    
+
     /**
      * Get all goals as a Flow
      */
@@ -47,7 +47,7 @@ class FirebaseGoalService @Inject constructor(
                     close(error)
                     return@addSnapshotListener
                 }
-                
+
                 val goals = snapshot?.documents?.mapNotNull { document ->
                     try {
                         val id = document.id
@@ -63,7 +63,7 @@ class FirebaseGoalService @Inject constructor(
                         val customImage = document.getString("customImage")
                         val imageUrl = document.getString("imageUrl")
                         val position = document.getLong("position")?.toInt() ?: 0
-                        
+
                         Goal(
                             id = id,
                             text = text,
@@ -78,13 +78,13 @@ class FirebaseGoalService @Inject constructor(
                         null
                     }
                 } ?: emptyList()
-                
+
                 trySend(goals)
             }
-        
+
         awaitClose { listenerRegistration.remove() }
     }
-    
+
     /**
      * Get goals by status
      */
@@ -97,7 +97,7 @@ class FirebaseGoalService @Inject constructor(
                     close(error)
                     return@addSnapshotListener
                 }
-                
+
                 val goals = snapshot?.documents?.mapNotNull { document ->
                     try {
                         val id = document.id
@@ -107,7 +107,7 @@ class FirebaseGoalService @Inject constructor(
                         val customImage = document.getString("customImage")
                         val imageUrl = document.getString("imageUrl")
                         val position = document.getLong("position")?.toInt() ?: 0
-                        
+
                         Goal(
                             id = id,
                             text = text,
@@ -122,13 +122,13 @@ class FirebaseGoalService @Inject constructor(
                         null
                     }
                 } ?: emptyList()
-                
+
                 trySend(goals)
             }
-        
+
         awaitClose { listenerRegistration.remove() }
     }
-    
+
     /**
      * Get a specific goal by ID
      */
@@ -140,7 +140,7 @@ class FirebaseGoalService @Inject constructor(
                     close(error)
                     return@addSnapshotListener
                 }
-                
+
                 val goal = try {
                     if (snapshot != null && snapshot.exists()) {
                         val text = snapshot.getString("text") ?: ""
@@ -155,7 +155,7 @@ class FirebaseGoalService @Inject constructor(
                         val customImage = snapshot.getString("customImage")
                         val imageUrl = snapshot.getString("imageUrl")
                         val position = snapshot.getLong("position")?.toInt() ?: 0
-                        
+
                         Goal(
                             id = id,
                             text = text,
@@ -172,13 +172,13 @@ class FirebaseGoalService @Inject constructor(
                 } catch (e: Exception) {
                     null
                 }
-                
+
                 trySend(goal)
             }
-        
+
         awaitClose { listenerRegistration.remove() }
     }
-    
+
     /**
      * Create a new goal
      */
@@ -192,7 +192,7 @@ class FirebaseGoalService @Inject constructor(
             "imageUrl" to goal.imageUrl,
             "position" to goal.position
         )
-        
+
         // Use the goal's ID if it has one, otherwise let Firestore generate an ID
         val documentRef = if (goal.id.isNotEmpty()) {
             getUserGoalsCollection().document(goal.id).set(goalData).await()
@@ -200,10 +200,10 @@ class FirebaseGoalService @Inject constructor(
         } else {
             getUserGoalsCollection().add(goalData).await()
         }
-        
+
         return documentRef.id
     }
-    
+
     /**
      * Update an existing goal
      */
@@ -217,7 +217,7 @@ class FirebaseGoalService @Inject constructor(
             "imageUrl" to goal.imageUrl,
             "position" to goal.position
         )
-        
+
         return try {
             getUserGoalsCollection().document(goal.id).update(goalData.toMap()).await()
             true
@@ -225,7 +225,7 @@ class FirebaseGoalService @Inject constructor(
             false
         }
     }
-    
+
     /**
      * Update the status of a goal
      */
@@ -237,7 +237,7 @@ class FirebaseGoalService @Inject constructor(
             false
         }
     }
-    
+
     /**
      * Update the text of a goal
      */
@@ -249,7 +249,7 @@ class FirebaseGoalService @Inject constructor(
             false
         }
     }
-    
+
     /**
      * Update the custom image of a goal
      */
@@ -261,7 +261,7 @@ class FirebaseGoalService @Inject constructor(
             false
         }
     }
-    
+
     /**
      * Update the image URL of a goal
      */
@@ -273,7 +273,7 @@ class FirebaseGoalService @Inject constructor(
             false
         }
     }
-    
+
     /**
      * Delete a goal
      */
@@ -285,7 +285,7 @@ class FirebaseGoalService @Inject constructor(
             false
         }
     }
-    
+
     /**
      * Update the position of a goal
      */
@@ -297,18 +297,18 @@ class FirebaseGoalService @Inject constructor(
             false
         }
     }
-    
+
     /**
      * Batch update positions for reordering
      */
     suspend fun reorderGoals(goalIds: List<String>): Boolean {
         val batch = firestore.batch()
-        
+
         goalIds.forEachIndexed { index, id ->
             val docRef = getUserGoalsCollection().document(id)
             batch.update(docRef, "position", index)
         }
-        
+
         return try {
             batch.commit().await()
             true
@@ -316,4 +316,4 @@ class FirebaseGoalService @Inject constructor(
             false
         }
     }
-} 
+}

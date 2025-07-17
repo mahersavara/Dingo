@@ -1,6 +1,5 @@
 package io.sukhuat.dingo.common.components
 
-import android.content.Context
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -60,7 +59,6 @@ import coil.compose.AsyncImage
 import io.sukhuat.dingo.common.R
 import io.sukhuat.dingo.common.utils.getSafeImageUri
 import io.sukhuat.dingo.common.utils.uploadImageToFirebase
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
 
@@ -85,7 +83,7 @@ fun BubbleComponent(
     val density = LocalDensity.current
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
-    
+
     // Animation for bubble appearance
     var isVisible by remember { mutableStateOf(false) }
     val scale by androidx.compose.animation.core.animateFloatAsState(
@@ -96,24 +94,24 @@ fun BubbleComponent(
         ),
         label = "bubble_scale"
     )
-    
+
     LaunchedEffect(Unit) {
         isVisible = true
     }
-    
+
     // Calculate if bubble is editable (within 30 minutes of creation)
     val isEditable = remember(createdAt) {
         val fifteenMinutesInMillis = 15 * 60 * 1000
         (System.currentTimeMillis() - createdAt) < fifteenMinutesInMillis
     }
-    
+
     // Calculate time remaining for editing
     val timeRemainingMillis = remember(createdAt) {
         val fifteenMinutesInMillis = 15 * 60 * 1000
         val elapsedMillis = System.currentTimeMillis() - createdAt
         maxOf(0, fifteenMinutesInMillis - elapsedMillis)
     }
-    
+
     // Format time remaining
     val timeRemainingText = remember(timeRemainingMillis) {
         val minutes = TimeUnit.MILLISECONDS.toMinutes(timeRemainingMillis)
@@ -124,7 +122,7 @@ fun BubbleComponent(
             "${seconds}s remaining"
         }
     }
-    
+
     // Calculate bubble dimensions and constraints
     val bubbleWidth = 280.dp
     val bubbleHeight = 220.dp
@@ -132,19 +130,17 @@ fun BubbleComponent(
     val bubbleHeightPx = with(density) { bubbleHeight.roundToPx() }
     val screenWidthPx = with(density) { 360.dp.roundToPx() }
     val screenHeightPx = with(density) { 640.dp.roundToPx() }
-    
+
     // Calculate position, ensuring bubble stays within screen bounds
     val xPos = position.first.coerceIn(0f, (screenWidthPx - bubbleWidthPx).toFloat())
     val yPos = position.second.coerceIn(0f, (screenHeightPx - bubbleHeightPx).toFloat())
-    
+
     // Track text input
     var textValue by remember { mutableStateOf(text) }
-    
+
     // Track uploaded media
-    var uploadedImageUri by remember { 
-        mutableStateOf<Uri?>(null) 
-    }
-    
+    var uploadedImageUri by remember { mutableStateOf<Uri?>(null) }
+
     // Initialize uploadedImageUri from customImage
     LaunchedEffect(customImage) {
         if (customImage != null) {
@@ -157,13 +153,13 @@ fun BubbleComponent(
             }
         }
     }
-    
+
     var isUploading by remember { mutableStateOf(false) }
-    
+
     // Track selected media tab
     var selectedMediaTab by remember { mutableStateOf(0) }
     val mediaTabs = listOf("Image", "GIF", "Sticker")
-    
+
     // Sticker selection
     var showStickerSelector by remember { mutableStateOf(false) }
     val stickers = listOf(
@@ -174,7 +170,7 @@ fun BubbleComponent(
         R.drawable.ic_sticker_angry,
         R.drawable.ic_sticker_thinking
     )
-    
+
     // GIF selection
     var showGifSelector by remember { mutableStateOf(false) }
     val gifs = listOf(
@@ -185,7 +181,7 @@ fun BubbleComponent(
         R.drawable.ic_gif_dance,
         R.drawable.ic_gif_smile
     )
-    
+
     // Image picker launcher
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -193,17 +189,17 @@ fun BubbleComponent(
         uri?.let {
             isUploading = true
             android.util.Log.d("BubbleComponent", "Image selected: $uri")
-            
+
             // Upload to Firebase Storage
             coroutineScope.launch {
                 try {
                     // Upload image to Firebase Storage
                     val firebaseUri = uploadImageToFirebase(context, uri)
-                    
+
                     // Update UI with Firebase URL
                     uploadedImageUri = firebaseUri
                     android.util.Log.d("BubbleComponent", "Image uploaded to Firebase: $firebaseUri")
-                    
+
                     // Notify parent about the uploaded image
                     firebaseUri?.let { uploadedUri ->
                         onMediaUpload(uploadedUri, MediaType.IMAGE)
@@ -219,7 +215,7 @@ fun BubbleComponent(
             }
         }
     }
-    
+
     // Dismiss on outside click
     Box(
         modifier = Modifier
@@ -268,7 +264,7 @@ fun BubbleComponent(
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.weight(1f)
                         )
-                        
+
                         // Archive button in top right
                         IconButton(
                             onClick = onArchive,
@@ -284,14 +280,14 @@ fun BubbleComponent(
                             )
                         }
                     }
-                    
+
                     Spacer(modifier = Modifier.height(8.dp))
-                    
+
                     // Text input
                     if (isEditable) {
                         TextField(
                             value = textValue,
-                            onValueChange = { 
+                            onValueChange = {
                                 if (it.length <= 30) {
                                     textValue = it
                                     onTextChange(it)
@@ -305,7 +301,7 @@ fun BubbleComponent(
                             ),
                             singleLine = true
                         )
-                        
+
                         // Show time remaining for editing
                         Text(
                             text = timeRemainingText,
@@ -319,16 +315,16 @@ fun BubbleComponent(
                             style = MaterialTheme.typography.bodyMedium,
                             modifier = Modifier.fillMaxWidth()
                         )
-                        
+
                         Text(
                             text = "(Created more than 15 minutes ago)",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                         )
                     }
-                    
+
                     Spacer(modifier = Modifier.height(12.dp))
-                    
+
                     // Media type selector tabs
                     if (isEditable) {
                         TabRow(
@@ -343,10 +339,10 @@ fun BubbleComponent(
                                 )
                             }
                         }
-                        
+
                         Spacer(modifier = Modifier.height(8.dp))
                     }
-                    
+
                     // Media preview or upload button
                     Box(
                         modifier = Modifier
@@ -382,9 +378,9 @@ fun BubbleComponent(
                                     color = MaterialTheme.colorScheme.primary,
                                     strokeWidth = 2.dp
                                 )
-                                
+
                                 Spacer(modifier = Modifier.height(4.dp))
-                                
+
                                 Text(
                                     text = "Processing image...",
                                     style = MaterialTheme.typography.bodySmall,
@@ -402,7 +398,7 @@ fun BubbleComponent(
                                     android.util.Log.e("BubbleComponent", "Error loading image: $uploadedImageUri")
                                 }
                             )
-                            
+
                             // Show cloud upload indicator
                             Box(
                                 modifier = Modifier
@@ -422,7 +418,7 @@ fun BubbleComponent(
                         } else if (customImage != null && uploadedImageUri == null) {
                             // This branch is a fallback in case uploadedImageUri is null but customImage is not
                             val safeImageUri = getSafeImageUri(context, customImage)
-                            
+
                             if (safeImageUri != null) {
                                 AsyncImage(
                                     model = safeImageUri,
@@ -433,7 +429,7 @@ fun BubbleComponent(
                                         android.util.Log.e("BubbleComponent", "Error loading image: $safeImageUri")
                                     }
                                 )
-                                
+
                                 // Show cloud indicator
                                 Box(
                                     modifier = Modifier
@@ -487,7 +483,7 @@ fun BubbleComponent(
                                     },
                                     tint = MaterialTheme.colorScheme.primary
                                 )
-                                
+
                                 Text(
                                     text = when (selectedMediaTab) {
                                         0 -> "Upload Image"
@@ -497,7 +493,7 @@ fun BubbleComponent(
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.primary
                                 )
-                                
+
                                 // Add cloud storage indication
                                 Text(
                                     text = "Saved to Cloud",
@@ -506,7 +502,7 @@ fun BubbleComponent(
                                 )
                             }
                         }
-                        
+
                         // Show upload overlay if editable
                         if (isEditable && !isUploading && (uploadedImageUri != null || imageResId != null)) {
                             Box(
@@ -526,7 +522,7 @@ fun BubbleComponent(
                 }
             }
         }
-        
+
         // Sticker selector popup
         if (showStickerSelector) {
             Popup(
@@ -547,7 +543,7 @@ fun BubbleComponent(
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(bottom = 16.dp)
                         )
-                        
+
                         LazyVerticalGrid(
                             columns = GridCells.Fixed(3),
                             modifier = Modifier
@@ -568,7 +564,7 @@ fun BubbleComponent(
                                                     // Upload sticker to Firebase Storage
                                                     val firebaseUri = uploadImageToFirebase(context, uri, false)
                                                     uploadedImageUri = firebaseUri
-                                                    
+
                                                     // Notify parent about the uploaded sticker
                                                     firebaseUri?.let { uploadedUri ->
                                                         onMediaUpload(uploadedUri, MediaType.STICKER)
@@ -599,7 +595,7 @@ fun BubbleComponent(
                 }
             }
         }
-        
+
         // GIF selector popup
         if (showGifSelector) {
             Popup(
@@ -620,7 +616,7 @@ fun BubbleComponent(
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(bottom = 16.dp)
                         )
-                        
+
                         LazyVerticalGrid(
                             columns = GridCells.Fixed(2),
                             modifier = Modifier
@@ -643,7 +639,7 @@ fun BubbleComponent(
                                                     // Upload GIF to Firebase Storage
                                                     val firebaseUri = uploadImageToFirebase(context, uri, false)
                                                     uploadedImageUri = firebaseUri
-                                                    
+
                                                     // Notify parent about the uploaded GIF
                                                     firebaseUri?.let { uploadedUri ->
                                                         onMediaUpload(uploadedUri, MediaType.GIF)
@@ -675,4 +671,4 @@ fun BubbleComponent(
             }
         }
     }
-} 
+}

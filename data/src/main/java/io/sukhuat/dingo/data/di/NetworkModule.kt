@@ -22,7 +22,7 @@ object NetworkModule {
     ): NetworkConnectivityObserver {
         return NetworkConnectivityObserver(context)
     }
-    
+
     @Provides
     @Singleton
     fun provideSyncManager(
@@ -31,4 +31,4 @@ object NetworkModule {
     ): SyncManager {
         return SyncManager(goalRepository, networkConnectivityObserver)
     }
-} 
+}

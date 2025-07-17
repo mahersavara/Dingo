@@ -21,4 +21,4 @@ class DeleteGoalUseCase @Inject constructor(
             Result.failure(e)
         }
     }
-} 
+}

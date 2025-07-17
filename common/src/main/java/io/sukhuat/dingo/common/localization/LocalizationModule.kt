@@ -3,13 +3,13 @@ package io.sukhuat.dingo.common.localization
 import android.content.Context
 import android.content.res.Configuration
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.LaunchedEffect
 import io.sukhuat.dingo.common.R
-import java.util.Locale
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 /**
  * Represents a language supported by the application
@@ -88,24 +88,24 @@ object LocaleHelper {
 @Composable
 fun changeAppLanguage(context: Context, languageCode: String) {
     val state = LocalLanguageUpdateState.current
-    
+
     // Update the language preferences in a coroutine
     val coroutineScope = rememberCoroutineScope()
     LaunchedEffect(languageCode) {
         coroutineScope.launch {
             val languagePreferences = LanguagePreferences(context)
             languagePreferences.setLanguageCode(languageCode)
-            
+
             // Apply the new locale
             LocaleHelper.setLocale(context, languageCode)
-            
+
             // Recreate the activity to apply the language change
             if (context is android.app.Activity) {
                 context.recreate()
             }
         }
     }
-    
+
     // Update the state to trigger recomposition
     state.intValue = state.intValue + 1
-} 
+}

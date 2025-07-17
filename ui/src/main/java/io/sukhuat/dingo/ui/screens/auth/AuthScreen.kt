@@ -42,11 +42,8 @@ import io.sukhuat.dingo.common.components.DingoScaffold
 import io.sukhuat.dingo.common.components.DingoTextField
 import io.sukhuat.dingo.common.components.FloatingLoadingDialog
 import io.sukhuat.dingo.common.localization.LocalAppLanguage
-import io.sukhuat.dingo.common.localization.changeAppLanguage
 import io.sukhuat.dingo.common.theme.RusticGold
 import io.sukhuat.dingo.common.utils.ToastHelper
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.flow.first
 
 private const val TAG = "AuthScreen"
 
@@ -135,7 +132,7 @@ fun AuthScreen(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val currentLanguage = LocalAppLanguage.current
-    
+
     // Observe language changes from ViewModel
     LaunchedEffect(languageCode) {
         // This will trigger a recomposition when the language changes
@@ -147,7 +144,7 @@ fun AuthScreen(
                 val intent = activity.intent
                 activity.finish()
                 activity.startActivity(intent)
-                
+
                 // Use a smoother fade animation
                 activity.overridePendingTransition(
                     android.R.anim.fade_in,

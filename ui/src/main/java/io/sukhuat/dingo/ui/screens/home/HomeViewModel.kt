@@ -13,7 +13,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
-import io.sukhuat.dingo.domain.model.Goal
 import io.sukhuat.dingo.domain.model.GoalStatus
 import io.sukhuat.dingo.domain.usecase.goal.CreateGoalUseCase
 import io.sukhuat.dingo.domain.usecase.goal.DeleteGoalUseCase
@@ -56,7 +55,7 @@ class HomeViewModel @Inject constructor(
     // UI state
     private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
-    
+
     // Goals state
     val allGoals = getGoalsUseCase()
         .catch { emit(emptyList()) }
@@ -65,7 +64,7 @@ class HomeViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList()
         )
-        
+
     val goals = getGoalsUseCase()
         .map { goals -> goals.filter { it.status == GoalStatus.ACTIVE } }
         .catch { emit(emptyList()) }
@@ -74,7 +73,7 @@ class HomeViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList()
         )
-        
+
     val archivedGoals = getGoalsUseCase()
         .map { goals -> goals.filter { it.status == GoalStatus.ARCHIVED } }
         .catch { emit(emptyList()) }
@@ -83,7 +82,7 @@ class HomeViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList()
         )
-        
+
     val completedGoals = getGoalsUseCase()
         .map { goals -> goals.filter { it.status == GoalStatus.COMPLETED } }
         .catch { emit(emptyList()) }
@@ -92,7 +91,7 @@ class HomeViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList()
         )
-        
+
     val failedGoals = getGoalsUseCase()
         .map { goals -> goals.filter { it.status == GoalStatus.FAILED } }
         .catch { emit(emptyList()) }
@@ -105,22 +104,22 @@ class HomeViewModel @Inject constructor(
     // Weekly wrap-up state
     private val _showWeeklyWrapUp = mutableStateOf(false)
     val showWeeklyWrapUp: State<Boolean> = _showWeeklyWrapUp
-    
+
     // Total goals for the week (active + completed + failed)
     val totalWeeklyGoals = MutableStateFlow(0)
 
     // Settings for sound and vibration
     private val _soundEnabled = mutableStateOf(true)
     val soundEnabled: State<Boolean> = _soundEnabled
-    
+
     private val _vibrationEnabled = mutableStateOf(true)
     val vibrationEnabled: State<Boolean> = _vibrationEnabled
-    
+
     init {
         loadGoals()
         checkWeekChange()
     }
-    
+
     private fun loadGoals() {
         viewModelScope.launch {
             _uiState.value = HomeUiState.Loading
@@ -132,23 +131,23 @@ class HomeViewModel @Inject constructor(
             }
         }
     }
-    
+
     /**
      * Check if the week has changed since the last time the app was opened
      * If so, show the weekly wrap-up dialog
      */
     private fun checkWeekChange() {
         val prefs = context.getSharedPreferences("dingo_prefs", Context.MODE_PRIVATE)
-        
+
         // Get current week number and year
         val calendar = Calendar.getInstance()
         val currentWeek = calendar.get(Calendar.WEEK_OF_YEAR)
         val currentYear = calendar.get(Calendar.YEAR)
-        
+
         // Get last recorded week number and year
         val lastWeek = prefs.getInt(PREF_LAST_WEEK_NUMBER, -1)
         val lastYear = prefs.getInt(PREF_LAST_YEAR, -1)
-        
+
         // Check if week has changed
         if (lastWeek != -1 && (currentWeek != lastWeek || currentYear != lastYear)) {
             // Week has changed, show weekly wrap-up
@@ -158,31 +157,31 @@ class HomeViewModel @Inject constructor(
                 val completedCount = completedGoals.value.size
                 val failedCount = failedGoals.value.size
                 totalWeeklyGoals.value = activeCount + completedCount + failedCount
-                
+
                 // Mark incomplete goals as failed
                 goals.value.forEach { goal ->
                     updateGoalStatus(goal.id, GoalStatus.FAILED)
                 }
-                
+
                 // Show weekly wrap-up
                 _showWeeklyWrapUp.value = true
             }
         }
-        
+
         // Save current week number and year
         prefs.edit()
             .putInt(PREF_LAST_WEEK_NUMBER, currentWeek)
             .putInt(PREF_LAST_YEAR, currentYear)
             .apply()
     }
-    
+
     /**
      * Dismiss the weekly wrap-up dialog
      */
     fun dismissWeeklyWrapUp() {
         _showWeeklyWrapUp.value = false
     }
-    
+
     fun createGoal(text: String, imageResId: Int? = null, customImage: String? = null) {
         viewModelScope.launch {
             try {
@@ -192,12 +191,12 @@ class HomeViewModel @Inject constructor(
             }
         }
     }
-    
+
     fun updateGoalStatus(goalId: String, status: GoalStatus) {
         viewModelScope.launch {
             try {
                 updateGoalStatusUseCase(goalId, status)
-                
+
                 // Provide haptic feedback if completing a goal
                 if (status == GoalStatus.COMPLETED) {
                     vibrateOnGoalCompleted()
@@ -207,7 +206,7 @@ class HomeViewModel @Inject constructor(
             }
         }
     }
-    
+
     fun updateGoalText(goalId: String, text: String) {
         viewModelScope.launch {
             try {
@@ -217,7 +216,7 @@ class HomeViewModel @Inject constructor(
             }
         }
     }
-    
+
     fun updateGoalImage(goalId: String, customImage: String?) {
         viewModelScope.launch {
             try {
@@ -228,7 +227,7 @@ class HomeViewModel @Inject constructor(
                     _uiState.value = HomeUiState.Loading
                     // Restore previous state to avoid disrupting the UI
                     _uiState.value = currentState
-                    
+
                     Log.d(TAG, "Goal image updated successfully: $goalId with image $customImage")
                 } else {
                     Log.e(TAG, "Failed to update goal image: ${result.exceptionOrNull()?.message}")
@@ -240,7 +239,7 @@ class HomeViewModel @Inject constructor(
             }
         }
     }
-    
+
     fun deleteGoal(goalId: String) {
         viewModelScope.launch {
             try {
@@ -250,7 +249,7 @@ class HomeViewModel @Inject constructor(
             }
         }
     }
-    
+
     fun reorderGoals(goalIds: List<String>) {
         viewModelScope.launch {
             try {
@@ -266,7 +265,7 @@ class HomeViewModel @Inject constructor(
             try {
                 // Clear all goals from local database first
                 getGoalsUseCase.clearAllGoals()
-                
+
                 // Then sign out
                 signOutUseCase()
                 onSignOut()
@@ -324,7 +323,7 @@ class HomeViewModel @Inject constructor(
     fun toggleSound() {
         _soundEnabled.value = !_soundEnabled.value
     }
-    
+
     /**
      * Share weekly summary
      * @return A string with the weekly summary
@@ -333,7 +332,7 @@ class HomeViewModel @Inject constructor(
         val completedCount = completedGoals.value.size
         val totalCount = totalWeeklyGoals.value
         val percentage = if (totalCount > 0) (completedCount * 100 / totalCount) else 0
-        
+
         return "Weekly Wrap-Up: I completed $completedCount/$totalCount goals ($percentage%)! #Dingo #WeeklyGoals"
     }
 }

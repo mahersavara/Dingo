@@ -63,7 +63,7 @@ fun EnhancedConfettiAnimation(
         Color(0xFFFFEB3B), // Yellow
         Color(0xFF4CAF50), // Green
         Color(0xFF2196F3), // Blue
-        Color(0xFF9C27B0)  // Purple
+        Color(0xFF9C27B0) // Purple
     ),
     targetPosition: Pair<Float, Float> = Pair(0.5f, 0.5f),
     duration: Int = 3000,
@@ -82,7 +82,7 @@ fun EnhancedConfettiAnimation(
         ),
         label = "confetti_progress"
     )
-    
+
     // Generate confetti pieces
     val confettiPieces = remember {
         List(particleCount) {
@@ -91,7 +91,7 @@ fun EnhancedConfettiAnimation(
                 1 -> ConfettiShape.SQUARE
                 else -> ConfettiShape.TRIANGLE
             }
-            
+
             ConfettiPiece(
                 color = colors[Random.nextInt(colors.size)],
                 size = Random.nextFloat() * 20f + 5f,
@@ -105,7 +105,7 @@ fun EnhancedConfettiAnimation(
             )
         }
     }
-    
+
     // Handle animation lifecycle
     LaunchedEffect(Unit) {
         delay(duration.toLong())
@@ -113,20 +113,20 @@ fun EnhancedConfettiAnimation(
         delay(fadeOutDuration.toLong())
         onAnimationEnd()
     }
-    
+
     // Draw confetti
     Box(modifier = Modifier.fillMaxSize()) {
         if (isAnimating) {
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val gravity = 0.5f // Gravity acceleration
-                
+
                 confettiPieces.forEach { piece ->
                     // Apply physics
                     piece.y += piece.yVelocity
                     piece.x += piece.xVelocity
                     piece.yVelocity += gravity
                     piece.rotation += piece.rotationVelocity
-                    
+
                     // Draw the confetti piece
                     translate(piece.x * size.width, piece.y * size.height) {
                         rotate(piece.rotation) {
@@ -163,4 +163,4 @@ fun EnhancedConfettiAnimation(
             }
         }
     }
-} 
+}

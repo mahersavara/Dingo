@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.ArrowDropDown
@@ -37,7 +36,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -65,13 +63,13 @@ fun UserDropdownMenu(
 ) {
     var expanded by remember { mutableStateOf(false) }
     var showLanguageSelector by remember { mutableStateOf(false) }
-    
+
     // Scale animation for the icon when clicked
     val scale by animateFloatAsState(
         targetValue = if (expanded) 1.1f else 1.0f,
         label = "IconScale"
     )
-    
+
     Box {
         // User icon button
         IconButton(
@@ -99,7 +97,7 @@ fun UserDropdownMenu(
                 )
             }
         }
-        
+
         // Main dropdown menu
         DropdownMenu(
             expanded = expanded,
@@ -135,25 +133,25 @@ fun UserDropdownMenu(
                             modifier = Modifier.size(64.dp)
                         )
                     }
-                    
+
                     Spacer(modifier = Modifier.height(8.dp))
-                    
+
                     Text(
                         text = "User Name", // Replace with actual user name
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
-                    
+
                     Text(
                         text = "user@example.com", // Replace with actual user email
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                     )
                 }
-                
+
                 Divider()
             }
-            
+
             // Profile option
             if (isAuthenticated) {
                 DropdownMenuItem(
@@ -170,7 +168,7 @@ fun UserDropdownMenu(
                     }
                 )
             }
-            
+
             // Language option
             DropdownMenuItem(
                 text = { Text("Language") },
@@ -188,7 +186,7 @@ fun UserDropdownMenu(
                     )
                 }
             )
-            
+
             // Settings option
             DropdownMenuItem(
                 text = { Text("Settings") },
@@ -203,11 +201,11 @@ fun UserDropdownMenu(
                     )
                 }
             )
-            
+
             // Logout option
             if (isAuthenticated) {
                 Divider()
-                
+
                 DropdownMenuItem(
                     text = { Text("Logout") },
                     onClick = {
@@ -222,18 +220,18 @@ fun UserDropdownMenu(
                     }
                 )
             }
-            
+
             // Language selector submenu
             if (showLanguageSelector) {
                 Divider()
-                
+
                 Text(
                     text = "Select Language",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                 )
-                
+
                 for (language in SupportedLanguages) {
                     LanguageItem(
                         language = language,
@@ -271,16 +269,16 @@ fun LanguageItem(
                 .size(24.dp)
                 .clip(CircleShape)
         )
-        
+
         Spacer(modifier = Modifier.width(16.dp))
-        
+
         // Language name
         Text(
             text = language.displayName,
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.weight(1f)
         )
-        
+
         // Selection check
         if (isSelected) {
             Icon(
@@ -299,7 +297,7 @@ fun UserDropdownMenuPreview() {
         Surface {
             UserDropdownMenu(
                 isAuthenticated = true,
-                currentLanguage = SupportedLanguages[0],
+                currentLanguage = SupportedLanguages[0]
             )
         }
     }
@@ -312,7 +310,7 @@ fun UserDropdownMenuGuestPreview() {
         Surface {
             UserDropdownMenu(
                 isAuthenticated = false,
-                currentLanguage = SupportedLanguages[0],
+                currentLanguage = SupportedLanguages[0]
             )
         }
     }

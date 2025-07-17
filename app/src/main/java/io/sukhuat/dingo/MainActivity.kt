@@ -13,9 +13,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -23,11 +21,11 @@ import androidx.navigation.compose.rememberNavController
 import dagger.hilt.android.AndroidEntryPoint
 import io.sukhuat.dingo.common.localization.LocalAppLanguage
 import io.sukhuat.dingo.common.localization.LocalLanguageUpdateState
-import io.sukhuat.dingo.common.localization.SupportedLanguages
 import io.sukhuat.dingo.common.theme.DingoTheme
 import io.sukhuat.dingo.navigation.Screen
 import io.sukhuat.dingo.ui.screens.auth.AuthScreen
 import io.sukhuat.dingo.ui.screens.home.HomeScreen
+import io.sukhuat.dingo.ui.screens.settings.SettingsScreen
 import io.sukhuat.dingo.ui.screens.splash.SplashScreen
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -46,7 +44,7 @@ class MainActivity : ComponentActivity() {
         if (isLanguageChange) {
             // Use a smoother crossfade animation
             overridePendingTransition(
-                android.R.anim.fade_in, 
+                android.R.anim.fade_in,
                 android.R.anim.fade_out
             )
             isLanguageChange = false
@@ -63,7 +61,7 @@ class MainActivity : ComponentActivity() {
                     val languagePreferences = remember { io.sukhuat.dingo.common.localization.LanguagePreferences(this) }
                     val languageCode = runBlocking { languagePreferences.languageCodeFlow.first() }
                     val currentLanguage = io.sukhuat.dingo.common.localization.LocaleHelper.getLanguageFromCode(languageCode)
-                    
+
                     // Provide the language context with the saved language
                     CompositionLocalProvider(
                         LocalAppLanguage provides currentLanguage,
@@ -145,6 +143,16 @@ fun DingoApp() {
                             // Clear the back stack so user can't go back to Home after signing out
                             popUpTo(Screen.Home.route) { inclusive = true }
                         }
+                    },
+                    onNavigateToSettings = {
+                        navController.navigate(Screen.Settings.route)
+                    }
+                )
+            }
+            composable(Screen.Settings.route) {
+                SettingsScreen(
+                    onNavigateBack = {
+                        navController.popBackStack()
                     }
                 )
             }

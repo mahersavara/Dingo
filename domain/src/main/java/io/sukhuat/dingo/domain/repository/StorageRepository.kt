@@ -29,4 +29,4 @@ interface StorageRepository {
      * @return True if the deletion was successful, false otherwise
      */
     suspend fun deleteImage(imageUrl: String): Boolean
-} 
+}

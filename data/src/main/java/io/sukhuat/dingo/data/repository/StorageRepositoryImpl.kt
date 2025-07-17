@@ -14,16 +14,16 @@ import javax.inject.Singleton
 class StorageRepositoryImpl @Inject constructor(
     private val firebaseStorageService: FirebaseStorageService
 ) : StorageRepository {
-    
+
     override suspend fun uploadImage(imageUri: Uri, goalId: String?): String {
         return firebaseStorageService.uploadImage(imageUri, goalId)
     }
-    
+
     override suspend fun downloadImage(imageUrl: String, file: File): Boolean {
         return firebaseStorageService.downloadImage(imageUrl, file)
     }
-    
+
     override suspend fun deleteImage(imageUrl: String): Boolean {
         return firebaseStorageService.deleteImage(imageUrl)
     }
-} 
+}

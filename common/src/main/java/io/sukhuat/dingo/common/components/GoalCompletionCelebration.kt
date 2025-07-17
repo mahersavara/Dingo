@@ -61,10 +61,10 @@ fun GoalCompletionCelebration(
 ) {
     var showOverlay by remember { mutableStateOf(false) }
     var showConfetti by remember { mutableStateOf(true) }
-    
+
     // Scale animation for the celebration card
     val scale = remember { Animatable(0.6f) }
-    
+
     // Rotation animation for the celebration card
     val rotation by animateFloatAsState(
         targetValue = if (showOverlay) 0f else -10f,
@@ -74,12 +74,12 @@ fun GoalCompletionCelebration(
         ),
         label = "rotation"
     )
-    
+
     // Show the overlay after a short delay
     LaunchedEffect(Unit) {
         delay(500) // Let confetti start first
         showOverlay = true
-        
+
         launch {
             scale.animateTo(
                 targetValue = 1.1f,
@@ -96,7 +96,7 @@ fun GoalCompletionCelebration(
                 )
             )
         }
-        
+
         // Hide the celebration after a delay
         delay(2500)
         showOverlay = false
@@ -105,7 +105,7 @@ fun GoalCompletionCelebration(
         delay(200) // Wait for confetti to clean up
         onAnimationEnd()
     }
-    
+
     Box(modifier = Modifier.fillMaxSize()) {
         // Confetti animation
         if (showConfetti) {
@@ -114,7 +114,7 @@ fun GoalCompletionCelebration(
                 onAnimationEnd = {}
             )
         }
-        
+
         // Celebration overlay
         AnimatedVisibility(
             visible = showOverlay,
@@ -153,9 +153,9 @@ fun GoalCompletionCelebration(
                             modifier = Modifier.size(48.dp)
                         )
                     }
-                    
+
                     Spacer(modifier = Modifier.height(16.dp))
-                    
+
                     // Goal completed text
                     Text(
                         text = "Goal Completed!",
@@ -163,9 +163,9 @@ fun GoalCompletionCelebration(
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
                     )
-                    
+
                     Spacer(modifier = Modifier.height(8.dp))
-                    
+
                     // Goal text
                     Text(
                         text = goalText,
@@ -173,9 +173,9 @@ fun GoalCompletionCelebration(
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(horizontal = 8.dp)
                     )
-                    
+
                     Spacer(modifier = Modifier.height(16.dp))
-                    
+
                     // Goal image if available
                     if (customImage != null) {
                         AsyncImage(
@@ -194,9 +194,9 @@ fun GoalCompletionCelebration(
                             tint = Color.Unspecified
                         )
                     }
-                    
+
                     Spacer(modifier = Modifier.height(8.dp))
-                    
+
                     // Congratulations text
                     Text(
                         text = "Congratulations!",
@@ -208,4 +208,4 @@ fun GoalCompletionCelebration(
             }
         }
     }
-} 
+}

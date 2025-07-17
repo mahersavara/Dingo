@@ -22,7 +22,7 @@ class UpdateGoalUseCase @Inject constructor(
             Result.failure(e)
         }
     }
-    
+
     suspend fun updateText(goalId: String, text: String): Result<Boolean> {
         return try {
             val result = goalRepository.updateGoalText(goalId, text)
@@ -35,7 +35,7 @@ class UpdateGoalUseCase @Inject constructor(
             Result.failure(e)
         }
     }
-    
+
     suspend fun updateImage(goalId: String, customImage: String?): Result<Boolean> {
         return try {
             val result = goalRepository.updateGoalImage(goalId, customImage)
@@ -48,4 +48,4 @@ class UpdateGoalUseCase @Inject constructor(
             Result.failure(e)
         }
     }
-} 
+}

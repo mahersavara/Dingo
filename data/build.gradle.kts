@@ -48,6 +48,9 @@ dependencies {
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
 
+    // DataStore for preferences
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
+
     // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.ext.junit)

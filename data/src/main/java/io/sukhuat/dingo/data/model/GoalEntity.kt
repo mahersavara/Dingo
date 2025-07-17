@@ -50,4 +50,4 @@ data class GoalEntity(
             )
         }
     }
-} 
+}

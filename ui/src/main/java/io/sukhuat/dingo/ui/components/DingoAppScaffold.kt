@@ -64,7 +64,7 @@ fun DingoAppScaffold(
     content: @Composable (PaddingValues) -> Unit
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
-    
+
     // Show error message in snackbar if provided
     LaunchedEffect(errorMessage) {
         errorMessage?.let {
@@ -73,13 +73,13 @@ fun DingoAppScaffold(
                 actionLabel = "Dismiss",
                 duration = SnackbarDuration.Long
             )
-            
+
             if (result == SnackbarResult.Dismissed || result == SnackbarResult.ActionPerformed) {
                 onErrorDismiss()
             }
         }
     }
-    
+
     DingoScaffold(
         title = title,
         showTopBar = showTopBar,
@@ -124,9 +124,9 @@ fun SnackbarHostState.showError(
             actionLabel = actionLabel,
             duration = SnackbarDuration.Long
         )
-        
+
         if (result == SnackbarResult.Dismissed || result == SnackbarResult.ActionPerformed) {
             onDismiss()
         }
     }
-} 
+}
