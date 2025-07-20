@@ -30,10 +30,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import io.sukhuat.dingo.common.R
 import io.sukhuat.dingo.common.components.GeneralItem
 import io.sukhuat.dingo.common.components.LoadingIndicator
 import io.sukhuat.dingo.common.components.TrailingContent
@@ -63,12 +65,12 @@ fun SettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Settings") },
+                title = { Text(stringResource(R.string.settings_title)) },
                 navigationIcon = {
                     androidx.compose.material3.IconButton(onClick = onNavigateBack) {
                         androidx.compose.material3.Icon(
                             imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = stringResource(R.string.back)
                         )
                     }
                 },
@@ -117,7 +119,7 @@ fun SettingsScreen(
                     verticalArrangement = Arrangement.Center
                 ) {
                     Text(
-                        text = "Error loading settings",
+                        text = stringResource(R.string.error_loading_settings),
                         style = MaterialTheme.typography.headlineSmall,
                         color = MaterialTheme.colorScheme.error
                     )
@@ -136,8 +138,8 @@ fun SettingsScreen(
     if (showResetDialog) {
         AlertDialog(
             onDismissRequest = { showResetDialog = false },
-            title = { Text("Reset Settings") },
-            text = { Text("Are you sure you want to reset all settings to their default values? This action cannot be undone.") },
+            title = { Text(stringResource(R.string.reset_settings_title)) },
+            text = { Text(stringResource(R.string.reset_settings_confirmation)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -145,12 +147,12 @@ fun SettingsScreen(
                         showResetDialog = false
                     }
                 ) {
-                    Text("Reset")
+                    Text(stringResource(R.string.reset))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showResetDialog = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -187,15 +189,52 @@ private fun SettingsContent(
     onProfileClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Extract all string resources at the beginning
+    val profileSectionTitle = stringResource(R.string.profile)
+    val userProfileTitle = stringResource(R.string.user_profile)
+    val userProfileDescription = stringResource(R.string.user_profile_description)
+    val audioFeedbackSectionTitle = stringResource(R.string.audio_feedback)
+    val soundEffectsTitle = stringResource(R.string.sound_effects)
+    val soundEffectsDescription = stringResource(R.string.sound_effects_description)
+    val vibrationTitle = stringResource(R.string.vibration)
+    val vibrationDescription = stringResource(R.string.vibration_description)
+    val notificationsSectionTitle = stringResource(R.string.notifications_settings)
+    val notificationsTitle = stringResource(R.string.notifications_settings)
+    val notificationsDescription = stringResource(R.string.notifications_description)
+    val weeklyRemindersTitle = stringResource(R.string.weekly_reminders)
+    val weeklyRemindersDescription = stringResource(R.string.weekly_reminders_description)
+    val goalCompletionTitle = stringResource(R.string.goal_completion_notifications)
+    val goalCompletionDescription = stringResource(R.string.goal_completion_description)
+    val appearanceSectionTitle = stringResource(R.string.appearance)
+    val darkModeTitle = stringResource(R.string.dark_mode)
+    val darkModeDescription = stringResource(R.string.dark_mode_description)
+    val languageTitle = stringResource(R.string.language)
+    val currentLanguageLabel = stringResource(R.string.current_language, currentLanguage)
+    val privacySectionTitle = stringResource(R.string.privacy_security)
+    val autoBackupTitle = stringResource(R.string.auto_backup)
+    val autoBackupDescription = stringResource(R.string.auto_backup_description)
+    val analyticsTitle = stringResource(R.string.analytics)
+    val analyticsDescription = stringResource(R.string.analytics_description)
+    val aboutSectionTitle = stringResource(R.string.about_info)
+    val appVersionTitle = stringResource(R.string.app_version)
+    val resetSettingsTitle = stringResource(R.string.reset_settings)
+    val resetSettingsDescription = stringResource(R.string.reset_settings_description)
+
     LazyColumn(
         modifier = modifier.fillMaxSize()
     ) {
         // Profile Section
         item {
-            SettingsSectionHeader(title = "Profile")
+            SettingsSectionHeader(title = profileSectionTitle)
         }
 
-        items(getProfileSettings(onProfileClick)) { setting ->
+        items(
+            getProfileSettings(
+                onProfileClick = onProfileClick,
+                userProfileTitle = userProfileTitle,
+                userProfileDescription = userProfileDescription
+            )
+        ) { setting ->
             GeneralItem(
                 title = setting.title,
                 description = setting.description,
@@ -209,10 +248,20 @@ private fun SettingsContent(
 
         // Audio & Feedback Section
         item {
-            SettingsSectionHeader(title = "Audio & Feedback")
+            SettingsSectionHeader(title = audioFeedbackSectionTitle)
         }
 
-        items(getAudioFeedbackSettings(preferences, onSoundToggle, onVibrationToggle)) { setting ->
+        items(
+            getAudioFeedbackSettings(
+                preferences = preferences,
+                onSoundToggle = onSoundToggle,
+                onVibrationToggle = onVibrationToggle,
+                soundEffectsTitle = soundEffectsTitle,
+                soundEffectsDescription = soundEffectsDescription,
+                vibrationTitle = vibrationTitle,
+                vibrationDescription = vibrationDescription
+            )
+        ) { setting ->
             GeneralItem(
                 title = setting.title,
                 description = setting.description,
@@ -225,10 +274,23 @@ private fun SettingsContent(
 
         // Notifications Section
         item {
-            SettingsSectionHeader(title = "Notifications")
+            SettingsSectionHeader(title = notificationsSectionTitle)
         }
 
-        items(getNotificationSettings(preferences, onNotificationsToggle, onWeeklyRemindersToggle, onGoalCompletionNotificationsToggle)) { setting ->
+        items(
+            getNotificationSettings(
+                preferences = preferences,
+                onNotificationsToggle = onNotificationsToggle,
+                onWeeklyRemindersToggle = onWeeklyRemindersToggle,
+                onGoalCompletionNotificationsToggle = onGoalCompletionNotificationsToggle,
+                notificationsTitle = notificationsTitle,
+                notificationsDescription = notificationsDescription,
+                weeklyRemindersTitle = weeklyRemindersTitle,
+                weeklyRemindersDescription = weeklyRemindersDescription,
+                goalCompletionTitle = goalCompletionTitle,
+                goalCompletionDescription = goalCompletionDescription
+            )
+        ) { setting ->
             GeneralItem(
                 title = setting.title,
                 description = setting.description,
@@ -241,10 +303,21 @@ private fun SettingsContent(
 
         // Appearance Section
         item {
-            SettingsSectionHeader(title = "Appearance")
+            SettingsSectionHeader(title = appearanceSectionTitle)
         }
 
-        items(getAppearanceSettings(preferences, currentLanguage, onDarkModeToggle, onLanguageClick)) { setting ->
+        items(
+            getAppearanceSettings(
+                preferences = preferences,
+                currentLanguage = currentLanguage,
+                onDarkModeToggle = onDarkModeToggle,
+                onLanguageClick = onLanguageClick,
+                darkModeTitle = darkModeTitle,
+                darkModeDescription = darkModeDescription,
+                languageTitle = languageTitle,
+                currentLanguageLabel = currentLanguageLabel
+            )
+        ) { setting ->
             GeneralItem(
                 title = setting.title,
                 description = setting.description,
@@ -258,10 +331,20 @@ private fun SettingsContent(
 
         // Privacy & Data Section
         item {
-            SettingsSectionHeader(title = "Privacy & Data")
+            SettingsSectionHeader(title = privacySectionTitle)
         }
 
-        items(getPrivacyDataSettings(preferences, onAutoBackupToggle, onAnalyticsToggle)) { setting ->
+        items(
+            getPrivacyDataSettings(
+                preferences = preferences,
+                onAutoBackupToggle = onAutoBackupToggle,
+                onAnalyticsToggle = onAnalyticsToggle,
+                autoBackupTitle = autoBackupTitle,
+                autoBackupDescription = autoBackupDescription,
+                analyticsTitle = analyticsTitle,
+                analyticsDescription = analyticsDescription
+            )
+        ) { setting ->
             GeneralItem(
                 title = setting.title,
                 description = setting.description,
@@ -274,10 +357,17 @@ private fun SettingsContent(
 
         // About Section
         item {
-            SettingsSectionHeader(title = "About")
+            SettingsSectionHeader(title = aboutSectionTitle)
         }
 
-        items(getAboutSettings(onResetClick)) { setting ->
+        items(
+            getAboutSettings(
+                onResetClick = onResetClick,
+                appVersionTitle = appVersionTitle,
+                resetSettingsTitle = resetSettingsTitle,
+                resetSettingsDescription = resetSettingsDescription
+            )
+        ) { setting ->
             GeneralItem(
                 title = setting.title,
                 description = setting.description,
@@ -308,7 +398,7 @@ private fun LanguageSelectionDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Select Language") },
+        title = { Text(stringResource(R.string.select_language)) },
         text = {
             Column {
                 SupportedLanguages.forEach { language ->
@@ -327,7 +417,7 @@ private fun LanguageSelectionDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.cancel))
             }
         }
     )
@@ -344,11 +434,13 @@ private data class SettingItem(
 
 // Settings data functions
 private fun getProfileSettings(
-    onProfileClick: () -> Unit
+    onProfileClick: () -> Unit,
+    userProfileTitle: String,
+    userProfileDescription: String
 ): List<SettingItem> = listOf(
     SettingItem(
-        title = "User Profile",
-        description = "Manage your profile, statistics, and account settings",
+        title = userProfileTitle,
+        description = userProfileDescription,
         icon = Icons.Default.Settings,
         trailingContent = TrailingContent.Arrow,
         onClick = onProfileClick
@@ -358,11 +450,15 @@ private fun getProfileSettings(
 private fun getAudioFeedbackSettings(
     preferences: UserPreferences,
     onSoundToggle: (Boolean) -> Unit,
-    onVibrationToggle: (Boolean) -> Unit
+    onVibrationToggle: (Boolean) -> Unit,
+    soundEffectsTitle: String,
+    soundEffectsDescription: String,
+    vibrationTitle: String,
+    vibrationDescription: String
 ): List<SettingItem> = listOf(
     SettingItem(
-        title = "Sound Effects",
-        description = "Play sounds for interactions and achievements",
+        title = soundEffectsTitle,
+        description = soundEffectsDescription,
         icon = MedievalIcons.Lute,
         trailingContent = TrailingContent.Switch(
             checked = preferences.soundEnabled,
@@ -370,8 +466,8 @@ private fun getAudioFeedbackSettings(
         )
     ),
     SettingItem(
-        title = "Vibration",
-        description = "Haptic feedback for goal completions",
+        title = vibrationTitle,
+        description = vibrationDescription,
         icon = MedievalIcons.Bell,
         trailingContent = TrailingContent.Switch(
             checked = preferences.vibrationEnabled,
@@ -384,11 +480,17 @@ private fun getNotificationSettings(
     preferences: UserPreferences,
     onNotificationsToggle: (Boolean) -> Unit,
     onWeeklyRemindersToggle: (Boolean) -> Unit,
-    onGoalCompletionNotificationsToggle: (Boolean) -> Unit
+    onGoalCompletionNotificationsToggle: (Boolean) -> Unit,
+    notificationsTitle: String,
+    notificationsDescription: String,
+    weeklyRemindersTitle: String,
+    weeklyRemindersDescription: String,
+    goalCompletionTitle: String,
+    goalCompletionDescription: String
 ): List<SettingItem> = listOf(
     SettingItem(
-        title = "Notifications",
-        description = "Enable all app notifications",
+        title = notificationsTitle,
+        description = notificationsDescription,
         icon = Icons.Default.Notifications,
         trailingContent = TrailingContent.Switch(
             checked = preferences.notificationsEnabled,
@@ -396,8 +498,8 @@ private fun getNotificationSettings(
         )
     ),
     SettingItem(
-        title = "Weekly Reminders",
-        description = "Get reminded about your weekly goals",
+        title = weeklyRemindersTitle,
+        description = weeklyRemindersDescription,
         icon = MedievalIcons.Bell,
         trailingContent = TrailingContent.Switch(
             checked = preferences.weeklyRemindersEnabled,
@@ -405,8 +507,8 @@ private fun getNotificationSettings(
         )
     ),
     SettingItem(
-        title = "Goal Completion",
-        description = "Notifications when you complete goals",
+        title = goalCompletionTitle,
+        description = goalCompletionDescription,
         icon = MedievalIcons.Bell,
         trailingContent = TrailingContent.Switch(
             checked = preferences.goalCompletionNotifications,
@@ -419,11 +521,15 @@ private fun getAppearanceSettings(
     preferences: UserPreferences,
     currentLanguage: String,
     onDarkModeToggle: (Boolean) -> Unit,
-    onLanguageClick: () -> Unit
+    onLanguageClick: () -> Unit,
+    darkModeTitle: String,
+    darkModeDescription: String,
+    languageTitle: String,
+    currentLanguageLabel: String
 ): List<SettingItem> = listOf(
     SettingItem(
-        title = "Dark Mode",
-        description = "Use dark theme throughout the app",
+        title = darkModeTitle,
+        description = darkModeDescription,
         icon = MedievalIcons.Sun,
         trailingContent = TrailingContent.Switch(
             checked = preferences.darkModeEnabled,
@@ -431,8 +537,8 @@ private fun getAppearanceSettings(
         )
     ),
     SettingItem(
-        title = "Language",
-        description = "Current: $currentLanguage",
+        title = languageTitle,
+        description = currentLanguageLabel,
         icon = MedievalIcons.Scroll,
         trailingContent = TrailingContent.Arrow,
         onClick = onLanguageClick
@@ -442,11 +548,15 @@ private fun getAppearanceSettings(
 private fun getPrivacyDataSettings(
     preferences: UserPreferences,
     onAutoBackupToggle: (Boolean) -> Unit,
-    onAnalyticsToggle: (Boolean) -> Unit
+    onAnalyticsToggle: (Boolean) -> Unit,
+    autoBackupTitle: String,
+    autoBackupDescription: String,
+    analyticsTitle: String,
+    analyticsDescription: String
 ): List<SettingItem> = listOf(
     SettingItem(
-        title = "Auto Backup",
-        description = "Automatically backup your goals to cloud",
+        title = autoBackupTitle,
+        description = autoBackupDescription,
         icon = MedievalIcons.CloudWind,
         trailingContent = TrailingContent.Switch(
             checked = preferences.autoBackupEnabled,
@@ -454,8 +564,8 @@ private fun getPrivacyDataSettings(
         )
     ),
     SettingItem(
-        title = "Analytics",
-        description = "Help improve the app by sharing usage data",
+        title = analyticsTitle,
+        description = analyticsDescription,
         icon = Icons.Default.Lock,
         trailingContent = TrailingContent.Switch(
             checked = preferences.analyticsEnabled,
@@ -465,17 +575,20 @@ private fun getPrivacyDataSettings(
 )
 
 private fun getAboutSettings(
-    onResetClick: () -> Unit
+    onResetClick: () -> Unit,
+    appVersionTitle: String,
+    resetSettingsTitle: String,
+    resetSettingsDescription: String
 ): List<SettingItem> = listOf(
     SettingItem(
-        title = "App Version",
+        title = appVersionTitle,
         description = "1.0.0",
         icon = Icons.Default.Info,
         trailingContent = TrailingContent.None
     ),
     SettingItem(
-        title = "Reset Settings",
-        description = "Reset all settings to default values",
+        title = resetSettingsTitle,
+        description = resetSettingsDescription,
         icon = Icons.Default.Refresh,
         trailingContent = TrailingContent.Arrow,
         onClick = onResetClick

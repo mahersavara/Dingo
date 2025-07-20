@@ -9,6 +9,7 @@ import io.sukhuat.dingo.domain.usecase.auth.SignOutUseCase
 import io.sukhuat.dingo.domain.usecase.goal.CreateGoalUseCase
 import io.sukhuat.dingo.domain.usecase.goal.DeleteGoalUseCase
 import io.sukhuat.dingo.domain.usecase.goal.GetGoalsUseCase
+import io.sukhuat.dingo.domain.usecase.goal.MigrateGoalWeekDataUseCase
 import io.sukhuat.dingo.domain.usecase.goal.ReorderGoalsUseCase
 import io.sukhuat.dingo.domain.usecase.goal.UpdateGoalStatusUseCase
 import io.sukhuat.dingo.domain.usecase.goal.UpdateGoalUseCase
@@ -58,5 +59,11 @@ object UseCaseModule {
     @Singleton
     fun provideReorderGoalsUseCase(repository: GoalRepository): ReorderGoalsUseCase {
         return ReorderGoalsUseCase(repository)
+    }
+
+    @Provides
+    @Singleton
+    fun provideMigrateGoalWeekDataUseCase(repository: GoalRepository): MigrateGoalWeekDataUseCase {
+        return MigrateGoalWeekDataUseCase(repository)
     }
 }

@@ -3,6 +3,7 @@ package io.sukhuat.dingo.data.remote
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
+import io.sukhuat.dingo.data.model.GoalEntity
 import io.sukhuat.dingo.domain.model.Goal
 import io.sukhuat.dingo.domain.model.GoalStatus
 import kotlinx.coroutines.channels.awaitClose
@@ -63,17 +64,23 @@ class FirebaseGoalService @Inject constructor(
                         val customImage = document.getString("customImage")
                         val imageUrl = document.getString("imageUrl")
                         val position = document.getLong("position")?.toInt() ?: 0
+                        val weekOfYear = document.getLong("weekOfYear")?.toInt()
+                        val yearCreated = document.getLong("yearCreated")?.toInt()
 
-                        Goal(
+                        // Create GoalEntity and convert to domain model to ensure proper week calculation
+                        val goalEntity = GoalEntity(
                             id = id,
                             text = text,
                             imageResId = imageResId,
-                            status = status,
+                            status = status.name,
                             createdAt = createdAt,
                             customImage = customImage,
                             imageUrl = imageUrl,
-                            position = position
+                            position = position,
+                            weekOfYear = weekOfYear,
+                            yearCreated = yearCreated
                         )
+                        goalEntity.toDomainModel()
                     } catch (e: Exception) {
                         null
                     }
@@ -107,17 +114,23 @@ class FirebaseGoalService @Inject constructor(
                         val customImage = document.getString("customImage")
                         val imageUrl = document.getString("imageUrl")
                         val position = document.getLong("position")?.toInt() ?: 0
+                        val weekOfYear = document.getLong("weekOfYear")?.toInt()
+                        val yearCreated = document.getLong("yearCreated")?.toInt()
 
-                        Goal(
+                        // Create GoalEntity and convert to domain model to ensure proper week calculation
+                        val goalEntity = GoalEntity(
                             id = id,
                             text = text,
                             imageResId = imageResId,
-                            status = status,
+                            status = status.name,
                             createdAt = createdAt,
                             customImage = customImage,
                             imageUrl = imageUrl,
-                            position = position
+                            position = position,
+                            weekOfYear = weekOfYear,
+                            yearCreated = yearCreated
                         )
+                        goalEntity.toDomainModel()
                     } catch (e: Exception) {
                         null
                     }
@@ -190,7 +203,9 @@ class FirebaseGoalService @Inject constructor(
             "createdAt" to goal.createdAt,
             "customImage" to goal.customImage,
             "imageUrl" to goal.imageUrl,
-            "position" to goal.position
+            "position" to goal.position,
+            "weekOfYear" to goal.weekOfYear,
+            "yearCreated" to goal.yearCreated
         )
 
         // Use the goal's ID if it has one, otherwise let Firestore generate an ID
@@ -215,7 +230,9 @@ class FirebaseGoalService @Inject constructor(
             "createdAt" to goal.createdAt,
             "customImage" to goal.customImage,
             "imageUrl" to goal.imageUrl,
-            "position" to goal.position
+            "position" to goal.position,
+            "weekOfYear" to goal.weekOfYear,
+            "yearCreated" to goal.yearCreated
         )
 
         return try {

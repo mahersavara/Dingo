@@ -46,4 +46,107 @@
     <!-- Language Selection -->
     <string name="language_english">Tiếng Anh</string>
     <string name="language_vietnamese">Tiếng Việt</string>
+    
+    <!-- Week Navigation -->
+    <string name="current_week">Tuần Hiện Tại</string>
+    <string name="last_week">Tuần Trước</string>
+    <string name="weeks_ago">%d Tuần Trước</string>
+    <string name="future_week">Tuần Tương Lai</string>
+    <string name="days_left" formatted="false">Còn %d ngày%s!</string>
+    <string name="day_singular"></string>
+    <string name="day_plural"></string>
+    <string name="week_completed">Tuần này đã kết thúc</string>
+    <string name="swipe_right_hint">Swipe phải để xem tuần gần đây hơn</string>
+    <string name="swipe_left_hint">Swipe trái để xem tuần cũ</string>
+    <string name="week_of_month_format" formatted="false">Tuần %s của %s %d</string>
+    
+    <!-- Settings Screen -->
+    <string name="settings_title">Cài Đặt</string>
+    <string name="notifications_settings">Thông Báo</string>
+    <string name="general_settings">Tổng Quát</string>
+    <string name="privacy_security">Riêng Tư &amp; Bảo Mật</string>
+    <string name="about_info">Thông Tin &amp; Giới Thiệu</string>
+    <string name="notification_preferences">Tùy Chọn Thông Báo</string>
+    <string name="general_preferences">Tùy Chọn Tổng Quát</string>
+    <string name="privacy_security_settings">Cài Đặt Riêng Tư &amp; Bảo Mật</string>
+    <string name="app_information">Thông Tin Ứng Dụng</string>
+    <string name="close">Đóng</string>
+    <string name="error_loading_settings">Lỗi tải cài đặt</string>
+    <string name="reset_settings_title">Khôi Phục Cài Đặt</string>
+    <string name="reset_settings_confirmation">Bạn có chắc chắn muốn khôi phục tất cả cài đặt về giá trị mặc định? Hành động này không thể hoàn tác.</string>
+    <string name="reset">Khôi Phục</string>
+    <string name="audio_feedback">Âm Thanh &amp; Phản Hồi</string>
+    <string name="appearance">Giao Diện</string>
+    <string name="user_profile">Hồ Sơ Người Dùng</string>
+    <string name="user_profile_description">Quản lý hồ sơ, thống kê và cài đặt tài khoản</string>
+    <string name="sound_effects">Hiệu Ứng Âm Thanh</string>
+    <string name="sound_effects_description">Phát âm thanh cho tương tác và thành tích</string>
+    <string name="vibration">Rung</string>
+    <string name="vibration_description">Phản hồi xúc giác khi hoàn thành mục tiêu</string>
+    <string name="notifications_description">Bật tất cả thông báo ứng dụng</string>
+    <string name="weekly_reminders">Nhắc Nhở Hàng Tuần</string>
+    <string name="weekly_reminders_description">Nhắc nhở về mục tiêu hàng tuần của bạn</string>
+    <string name="goal_completion_notifications">Hoàn Thành Mục Tiêu</string>
+    <string name="goal_completion_description">Thông báo khi bạn hoàn thành mục tiêu</string>
+    <string name="dark_mode">Chế Độ Tối</string>
+    <string name="dark_mode_description">Sử dụng giao diện tối trên toàn ứng dụng</string>
+    <string name="current_language" formatted="false">Hiện tại: %s</string>
+    <string name="auto_backup">Sao Lưu Tự Động</string>
+    <string name="auto_backup_description">Tự động sao lưu mục tiêu lên đám mây</string>
+    <string name="analytics">Phân Tích</string>
+    <string name="analytics_description">Góp phần cải thiện ứng dụng bằng cách chia sẻ dữ liệu sử dụng</string>
+    <string name="app_version">Phiên Bản Ứng Dụng</string>
+    <string name="reset_settings">Khôi Phục Cài Đặt</string>
+    <string name="reset_settings_description">Khôi phục tất cả cài đặt về giá trị mặc định</string>
+    
+    <!-- Profile Screen -->
+    <string name="profile_title">Hồ Sơ</string>
+    <string name="edit_profile">Chỉnh Sửa Hồ Sơ</string>
+    <string name="account_settings">Cài Đặt Tài Khoản</string>
+    <string name="achievements">Thành Tích</string>
+    <string name="statistics">Thống Kê</string>
+    <string name="goals_completed">Mục Tiêu Hoàn Thành</string>
+    <string name="current_streak">Chuỗi Thành Công Hiện Tại</string>
+    <string name="total_goals">Tổng Mục Tiêu</string>
+    <string name="success_rate">Tỷ Lệ Thành Công</string>
+    <string name="overview">Tổng Quan</string>
+    <string name="quick_stats">Thống Kê Nhanh</string>
+    <string name="account_security">Bảo Mật Tài Khoản</string>
+    <string name="account_security_placeholder">Các tính năng bảo mật tài khoản sẽ có sẵn ở đây</string>
+    <string name="data_management">Quản Lý Dữ Liệu</string>
+    <string name="data_management_placeholder">Các tính năng quản lý dữ liệu sẽ có sẵn ở đây</string>
+    <string name="help_support">Trợ Giúp &amp; Hỗ Trợ</string>
+    <string name="help_support_placeholder">Các tính năng trợ giúp và hỗ trợ sẽ có sẵn ở đây</string>
+    <string name="error_loading_profile">Lỗi tải hồ sơ</string>
+    <string name="retry">Thử Lại</string>
+    <string name="selected">Đã Chọn</string>
+    <string name="not_selected">Chưa Chọn</string>
+    
+    <!-- Weekly Wrap-Up -->
+    <string name="weekly_wrapup_title">Tổng Kết Tuần</string>
+    <string name="weekly_progress">Tiến Độ Tuần</string>
+    <string name="goals_completed_this_week">Bạn đã hoàn thành</string>
+    <string name="out_of" formatted="false">%d trên %d</string>
+    <string name="completion_rate">Tỷ Lệ Hoàn Thành</string>
+    <string name="keep_it_up">Tiếp tục phát huy!</string>
+    <string name="room_for_improvement">Còn chỗ để cải thiện!</string>
+    <string name="great_work">Làm rất tốt!</string>
+    <string name="share_progress">Chia Sẻ</string>
+    <string name="continue_journey">OK</string>
+    <string name="goals_for_next_week">Mục Tiêu Tuần Tới</string>
+    <string name="goals_to_carry_forward" formatted="false">%d mục tiêu cần tiếp tục</string>
+    <string name="encouragement_message">Mỗi bước đều có giá trị! Bạn sẽ thành công.</string>
+    <string name="all_goals_completed">Tuyệt vời! Bạn đã hoàn thành tất cả mục tiêu! 🎉</string>
+    
+    <!-- Motivational Quotes -->
+    <string name="quote_1">Mọi thành tựu đều bắt đầu bằng quyết định thử nghiệm.</string>
+    <string name="quote_2">Tiến bộ nhỏ vẫn là tiến bộ.</string>
+    <string name="quote_3">Hành trình nghìn dặm bắt đầu bằng một bước chân.</string>
+    <string name="quote_4">Thành công không phải là kết thúc, thất bại không phải là giai đoạn cuối: đó là lòng dũng cảm tiếp tục mới quan trọng.</string>
+    <string name="quote_5">Bạn không cần phải giỏi để bắt đầu, nhưng bạn phải bắt đầu để trở nên giỏi.</string>
+    <string name="quote_6">Cách duy nhất để làm việc tuyệt vời là yêu thích những gì bạn làm.</string>
+    <string name="quote_7">Tin tưởng bạn có thể và bạn đã đi được nửa chặng đường.</string>
+    <string name="quote_8">Mọi thứ luôn có vẻ bất khả thi cho đến khi nó hoàn thành.</string>
+    <string name="quote_9">Đừng nhìn đồng hồ; hãy làm như nó làm. Cứ tiếp tục.</string>
+    <string name="quote_10">Tương lai phụ thuộc vào những gì bạn làm hôm nay.</string>
 </resources> 

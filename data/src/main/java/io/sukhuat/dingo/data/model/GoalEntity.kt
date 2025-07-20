@@ -2,6 +2,7 @@ package io.sukhuat.dingo.data.model
 
 import io.sukhuat.dingo.domain.model.Goal
 import io.sukhuat.dingo.domain.model.GoalStatus
+import java.util.Calendar
 
 /**
  * Data Transfer Object for Firebase to store goals
@@ -15,12 +16,19 @@ data class GoalEntity(
     val createdAt: Long,
     val customImage: String?,
     val imageUrl: String?,
-    val position: Int
+    val position: Int,
+    val weekOfYear: Int? = null, // For backward compatibility
+    val yearCreated: Int? = null // For backward compatibility
 ) {
     /**
      * Convert the entity to a domain model
      */
     fun toDomainModel(): Goal {
+        // For goals without week/year info, calculate from createdAt
+        val calendar = Calendar.getInstance().apply {
+            timeInMillis = createdAt
+        }
+
         return Goal(
             id = id,
             text = text,
@@ -29,7 +37,9 @@ data class GoalEntity(
             createdAt = createdAt,
             customImage = customImage,
             imageUrl = imageUrl,
-            position = position
+            position = position,
+            weekOfYear = weekOfYear ?: calendar.get(Calendar.WEEK_OF_YEAR),
+            yearCreated = yearCreated ?: calendar.get(Calendar.YEAR)
         )
     }
 
@@ -46,7 +56,9 @@ data class GoalEntity(
                 createdAt = goal.createdAt,
                 customImage = goal.customImage,
                 imageUrl = goal.imageUrl,
-                position = goal.position
+                position = goal.position,
+                weekOfYear = goal.weekOfYear,
+                yearCreated = goal.yearCreated
             )
         }
     }

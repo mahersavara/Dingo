@@ -21,28 +21,30 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import io.sukhuat.dingo.common.R
 import io.sukhuat.dingo.common.theme.RusticGold
 import io.sukhuat.dingo.domain.model.Goal
 import io.sukhuat.dingo.domain.model.GoalStatus
 
 /**
- * A list of motivational quotes to display in the weekly wrap-up
+ * Get localized motivational quotes
  */
-private val motivationalQuotes = listOf(
-    "Every accomplishment starts with the decision to try.",
-    "Small progress is still progress.",
-    "The journey of a thousand miles begins with a single step.",
-    "Success is not final, failure is not fatal: it is the courage to continue that counts.",
-    "You don't have to be great to start, but you have to start to be great.",
-    "The only way to do great work is to love what you do.",
-    "Believe you can and you're halfway there.",
-    "It always seems impossible until it's done.",
-    "Don't watch the clock; do what it does. Keep going.",
-    "The future depends on what you do today."
+@Composable
+private fun getMotivationalQuotes(): List<String> = listOf(
+    stringResource(R.string.quote_1),
+    stringResource(R.string.quote_2), stringResource(R.string.quote_3),
+    stringResource(R.string.quote_4),
+    stringResource(R.string.quote_5),
+    stringResource(R.string.quote_6),
+    stringResource(R.string.quote_7),
+    stringResource(R.string.quote_8),
+    stringResource(R.string.quote_9),
+    stringResource(R.string.quote_10)
 )
 
 /**
@@ -59,8 +61,9 @@ fun WeeklyWrapUp(
     onDismiss: () -> Unit,
     onShare: () -> Unit = {}
 ) {
-    // Get a random motivational quote
-    val randomQuote = motivationalQuotes.random()
+    // Get localized motivational quotes and pick random one
+    val quotes = getMotivationalQuotes()
+    val randomQuote = quotes.random()
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -78,7 +81,7 @@ fun WeeklyWrapUp(
             ) {
                 // Header
                 Text(
-                    text = "Weekly Wrap-Up",
+                    text = stringResource(R.string.weekly_wrapup_title),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     color = RusticGold
@@ -88,7 +91,13 @@ fun WeeklyWrapUp(
 
                 // Progress summary with a friendly tone
                 Text(
-                    text = "You completed ${completedGoals.size}/$totalGoals goals this week!",
+                    text = stringResource(
+                        R.string.goals_completed_this_week
+                    ) + " " + stringResource(
+                        R.string.out_of,
+                        completedGoals.size,
+                        totalGoals
+                    ) + "!",
                     style = MaterialTheme.typography.titleMedium,
                     textAlign = TextAlign.Center
                 )
@@ -112,7 +121,7 @@ fun WeeklyWrapUp(
                 val missedGoals = totalGoals - completedGoals.size
                 if (missedGoals > 0) {
                     Text(
-                        text = "Goals for Next Week",
+                        text = stringResource(R.string.goals_for_next_week),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold
                     )
@@ -129,7 +138,10 @@ fun WeeklyWrapUp(
                             .padding(12.dp)
                     ) {
                         Text(
-                            text = "❌ $missedGoals ${if (missedGoals == 1) "goal" else "goals"} to carry forward",
+                            text = "❌ " + stringResource(
+                                R.string.goals_to_carry_forward,
+                                missedGoals
+                            ),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -137,7 +149,7 @@ fun WeeklyWrapUp(
                         Spacer(modifier = Modifier.height(4.dp))
 
                         Text(
-                            text = "Every step counts! You'll get there.",
+                            text = stringResource(R.string.encouragement_message),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                             fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
@@ -148,7 +160,7 @@ fun WeeklyWrapUp(
                 } else {
                     // Congratulate on completing all goals
                     Text(
-                        text = "Amazing work! You completed all your goals! 🎉",
+                        text = stringResource(R.string.all_goals_completed),
                         style = MaterialTheme.typography.bodyLarge,
                         color = Color(0xFF4CAF50),
                         fontWeight = FontWeight.Medium,
@@ -181,7 +193,7 @@ fun WeeklyWrapUp(
                         onClick = onShare,
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Share")
+                        Text(stringResource(R.string.share_progress))
                     }
 
                     Spacer(modifier = Modifier.width(16.dp))
@@ -191,7 +203,7 @@ fun WeeklyWrapUp(
                         onClick = onDismiss,
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("OK")
+                        Text(stringResource(R.string.continue_journey))
                     }
                 }
             }

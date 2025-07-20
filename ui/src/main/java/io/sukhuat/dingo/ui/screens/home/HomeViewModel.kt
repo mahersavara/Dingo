@@ -17,6 +17,7 @@ import io.sukhuat.dingo.domain.model.GoalStatus
 import io.sukhuat.dingo.domain.usecase.goal.CreateGoalUseCase
 import io.sukhuat.dingo.domain.usecase.goal.DeleteGoalUseCase
 import io.sukhuat.dingo.domain.usecase.goal.GetGoalsUseCase
+import io.sukhuat.dingo.domain.usecase.goal.MigrateGoalWeekDataUseCase
 import io.sukhuat.dingo.domain.usecase.goal.ReorderGoalsUseCase
 import io.sukhuat.dingo.domain.usecase.goal.UpdateGoalStatusUseCase
 import io.sukhuat.dingo.domain.usecase.goal.UpdateGoalUseCase
@@ -26,6 +27,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -48,6 +50,7 @@ class HomeViewModel @Inject constructor(
     private val updateGoalStatusUseCase: UpdateGoalStatusUseCase,
     private val deleteGoalUseCase: DeleteGoalUseCase,
     private val reorderGoalsUseCase: ReorderGoalsUseCase,
+    private val migrateGoalWeekDataUseCase: MigrateGoalWeekDataUseCase,
     private val signOutUseCase: SignOutUseCase,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
@@ -115,9 +118,51 @@ class HomeViewModel @Inject constructor(
     private val _vibrationEnabled = mutableStateOf(true)
     val vibrationEnabled: State<Boolean> = _vibrationEnabled
 
+    // Week navigation state
+    private val _currentWeekOffset = MutableStateFlow(0)
+    val currentWeekOffset: StateFlow<Int> = _currentWeekOffset.asStateFlow()
+
+    // Available weeks with goals
+    val weeksWithGoals = getGoalsUseCase.getWeeksWithGoals()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = listOf(0) // Always include current week
+        )
+
+    // Goals for current week being viewed
+    val currentWeekGoals = _currentWeekOffset
+        .flatMapLatest { offset -> getGoalsUseCase.getGoalsForWeek(offset) }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
     init {
         loadGoals()
         checkWeekChange()
+        migrateOldGoalData()
+    }
+
+    /**
+     * Migrate old goals that don't have proper week/year data
+     */
+    private fun migrateOldGoalData() {
+        viewModelScope.launch {
+            try {
+                val result = migrateGoalWeekDataUseCase()
+                result.onSuccess { count ->
+                    if (count > 0) {
+                        Log.d(TAG, "Migrated $count goals with week/year data")
+                    }
+                }.onFailure { error ->
+                    Log.e(TAG, "Failed to migrate goal week data", error)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error during goal migration", e)
+            }
+        }
     }
 
     private fun loadGoals() {
@@ -334,5 +379,41 @@ class HomeViewModel @Inject constructor(
         val percentage = if (totalCount > 0) (completedCount * 100 / totalCount) else 0
 
         return "Weekly Wrap-Up: I completed $completedCount/$totalCount goals ($percentage%)! #Dingo #WeeklyGoals"
+    }
+
+    /**
+     * Navigate to a specific week offset
+     */
+    fun navigateToWeek(weekOffset: Int) {
+        _currentWeekOffset.value = weekOffset
+    }
+
+    /**
+     * Navigate to previous week (if exists)
+     */
+    fun navigateToPreviousWeek() {
+        val availableWeeks = weeksWithGoals.value
+        val currentIndex = availableWeeks.indexOf(_currentWeekOffset.value)
+        if (currentIndex > 0) {
+            _currentWeekOffset.value = availableWeeks[currentIndex - 1]
+        }
+    }
+
+    /**
+     * Navigate to next week (if exists)
+     */
+    fun navigateToNextWeek() {
+        val availableWeeks = weeksWithGoals.value
+        val currentIndex = availableWeeks.indexOf(_currentWeekOffset.value)
+        if (currentIndex < availableWeeks.size - 1) {
+            _currentWeekOffset.value = availableWeeks[currentIndex + 1]
+        }
+    }
+
+    /**
+     * Check if current week is read-only (not current week)
+     */
+    fun isCurrentWeekReadOnly(): Boolean {
+        return _currentWeekOffset.value < 0
     }
 }

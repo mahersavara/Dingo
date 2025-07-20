@@ -10,11 +10,15 @@ import android.os.Vibrator
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,7 +41,11 @@ import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -80,10 +88,12 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -137,6 +147,11 @@ fun HomeScreen(
     val archivedGoals by viewModel.archivedGoals.collectAsState()
     val soundEnabled by viewModel.soundEnabled
     val vibrationEnabled by viewModel.vibrationEnabled
+
+    // Week navigation state
+    val weeksWithGoals by viewModel.weeksWithGoals.collectAsState()
+    val currentWeekOffset by viewModel.currentWeekOffset.collectAsState()
+    val currentWeekGoals by viewModel.currentWeekGoals.collectAsState()
 
     // Track if settings dialog is shown
     var showSettingsDialog by remember { mutableStateOf(false) }
@@ -315,13 +330,23 @@ fun HomeScreen(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         // Weekly overview header
-                        WeeklyOverviewHeader(textSizeMultiplier = responsiveValues.headerTextSize)
+                        WeeklyOverviewHeader(
+                            textSizeMultiplier = responsiveValues.headerTextSize,
+                            weekOffset = currentWeekOffset,
+                            onWeekOffsetChange = { offset -> viewModel.navigateToWeek(offset) }
+                        )
 
                         Spacer(modifier = Modifier.height(24.dp))
 
-                        // Goals grid
-                        GoalsGrid(
-                            goals = allGoals,
+                        // Goals grid with week navigation
+                        WeekNavigationGrid(
+                            weeksWithGoals = weeksWithGoals,
+                            currentWeekOffset = currentWeekOffset,
+                            onWeekChange = { offset -> viewModel.navigateToWeek(offset) },
+                            getGoalsForWeek = { offset ->
+                                if (offset == currentWeekOffset) currentWeekGoals else emptyList()
+                            },
+                            isReadOnly = viewModel.isCurrentWeekReadOnly(),
                             onGoalClick = { goal ->
                                 when (goal.status) {
                                     GoalStatus.ACTIVE -> {
@@ -397,7 +422,11 @@ fun HomeScreen(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             // Weekly overview header
-                            WeeklyOverviewHeader(textSizeMultiplier = responsiveValues.headerTextSize)
+                            WeeklyOverviewHeader(
+                                textSizeMultiplier = responsiveValues.headerTextSize,
+                                weekOffset = currentWeekOffset,
+                                onWeekOffsetChange = { offset -> viewModel.navigateToWeek(offset) }
+                            )
 
                             Spacer(modifier = Modifier.height(32.dp))
 
@@ -460,9 +489,15 @@ fun HomeScreen(
                                 .weight(0.7f)
                                 .padding(start = responsiveValues.contentPadding)
                         ) {
-                            // Goals grid
-                            GoalsGrid(
-                                goals = allGoals,
+                            // Goals grid with week navigation
+                            WeekNavigationGrid(
+                                weeksWithGoals = weeksWithGoals,
+                                currentWeekOffset = currentWeekOffset,
+                                onWeekChange = { offset -> viewModel.navigateToWeek(offset) },
+                                getGoalsForWeek = { offset ->
+                                    if (offset == currentWeekOffset) currentWeekGoals else emptyList()
+                                },
+                                isReadOnly = viewModel.isCurrentWeekReadOnly(),
                                 onGoalClick = { goal ->
                                     when (goal.status) {
                                         GoalStatus.ACTIVE -> {
@@ -662,10 +697,11 @@ fun HomeScreen(
 }
 
 @Composable
-fun WeeklyOverviewHeader(textSizeMultiplier: Float = 1.0f) {
-    // State to track the week offset (0 = current week, -1 = previous week, etc.)
-    var weekOffset by remember { mutableStateOf(0) }
-
+fun WeeklyOverviewHeader(
+    textSizeMultiplier: Float = 1.0f,
+    weekOffset: Int = 0,
+    onWeekOffsetChange: (Int) -> Unit = {}
+) {
     // Calculate current week and days dynamically using Calendar
     val calendar = remember(weekOffset) {
         Calendar.getInstance().apply {
@@ -684,8 +720,14 @@ fun WeeklyOverviewHeader(textSizeMultiplier: Float = 1.0f) {
     // Calculate week of month
     val weekOfMonth = calendar.get(Calendar.WEEK_OF_MONTH)
 
-    // Get month name
-    val monthName = calendar.getDisplayName(Calendar.MONTH, Calendar.SHORT, Locale.getDefault())
+    // Get month name using current locale
+    val currentLocale = LocalAppLanguage.current.let { appLanguage ->
+        when (appLanguage.code) {
+            "vi" -> Locale("vi", "VN")
+            else -> Locale.ENGLISH
+        }
+    }
+    val monthName = calendar.getDisplayName(Calendar.MONTH, Calendar.SHORT, currentLocale)
 
     val year = calendar.get(Calendar.YEAR)
 
@@ -704,7 +746,7 @@ fun WeeklyOverviewHeader(textSizeMultiplier: Float = 1.0f) {
                 detectTapGestures(
                     onDoubleTap = {
                         // Reset to current week on double tap
-                        weekOffset = 0
+                        onWeekOffsetChange(0)
                     }
                 )
             }
@@ -720,11 +762,11 @@ fun WeeklyOverviewHeader(textSizeMultiplier: Float = 1.0f) {
                         if (change > screenWidthPx / 4) {
                             // Swipe right - go to next week (if not already at current week)
                             if (weekOffset < 0) {
-                                weekOffset++
+                                onWeekOffsetChange(weekOffset + 1)
                             }
                         } else if (change < -screenWidthPx / 4) {
                             // Swipe left - go to previous week
-                            weekOffset--
+                            onWeekOffsetChange(weekOffset - 1)
                         }
                     }
                 )
@@ -734,17 +776,23 @@ fun WeeklyOverviewHeader(textSizeMultiplier: Float = 1.0f) {
         // Show week navigation indicator
         Text(
             text = when {
-                weekOffset == 0 -> "Current Week"
-                weekOffset == -1 -> "Last Week"
-                weekOffset < -1 -> "${abs(weekOffset)} Weeks Ago"
-                else -> "Future Week" // Should not happen with current logic
+                weekOffset == 0 -> stringResource(R.string.current_week)
+                weekOffset == -1 -> stringResource(R.string.last_week)
+                weekOffset < -1 -> stringResource(R.string.weeks_ago, abs(weekOffset))
+                else -> stringResource(R.string.future_week) // Should not happen with current logic
             },
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
         )
 
+        val ordinalWeek = getLocalizedOrdinalWeek(weekOfMonth, LocalAppLanguage.current.code)
         Text(
-            text = "${weekOfMonth}${getOrdinalSuffix(weekOfMonth)} Week of $monthName $year",
+            text = stringResource(
+                R.string.week_of_month_format,
+                ordinalWeek,
+                monthName ?: "",
+                year
+            ),
             style = MaterialTheme.typography.headlineSmall.copy(
                 fontSize = MaterialTheme.typography.headlineSmall.fontSize * textSizeMultiplier
             ),
@@ -754,8 +802,9 @@ fun WeeklyOverviewHeader(textSizeMultiplier: Float = 1.0f) {
 
         // Show different text based on whether we're viewing current week or past weeks
         if (weekOffset == 0) {
+            val dayText = if (daysLeft != 1) stringResource(R.string.day_plural) else stringResource(R.string.day_singular)
             Text(
-                text = "($daysLeft day${if (daysLeft != 1) "s" else ""} left!)",
+                text = stringResource(R.string.days_left, daysLeft, dayText),
                 style = MaterialTheme.typography.bodyLarge.copy(
                     fontSize = MaterialTheme.typography.bodyLarge.fontSize * textSizeMultiplier
                 ),
@@ -776,7 +825,7 @@ fun WeeklyOverviewHeader(textSizeMultiplier: Float = 1.0f) {
         } else {
             // For past weeks, show completed status instead of progress
             Text(
-                text = "Week completed",
+                text = stringResource(R.string.week_completed),
                 style = MaterialTheme.typography.bodyLarge.copy(
                     fontSize = MaterialTheme.typography.bodyLarge.fontSize * textSizeMultiplier
                 ),
@@ -786,7 +835,7 @@ fun WeeklyOverviewHeader(textSizeMultiplier: Float = 1.0f) {
 
             // Show swipe hint
             Text(
-                text = "Swipe right to see more recent weeks",
+                text = stringResource(R.string.swipe_right_hint),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
             )
@@ -795,10 +844,24 @@ fun WeeklyOverviewHeader(textSizeMultiplier: Float = 1.0f) {
         // Show swipe left hint only for current week
         if (weekOffset == 0) {
             Text(
-                text = "Swipe left to see past weeks",
+                text = stringResource(R.string.swipe_left_hint),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
             )
+        }
+    }
+}
+
+// Helper function to get localized ordinal week text
+private fun getLocalizedOrdinalWeek(weekOfMonth: Int, language: String): String {
+    return when (language) {
+        "vi" -> {
+            // Vietnamese: just number (1, 2, 3, 4)
+            weekOfMonth.toString()
+        }
+        else -> {
+            // English: with ordinal suffix (1st, 2nd, 3rd, 4th)
+            "$weekOfMonth${getOrdinalSuffix(weekOfMonth)}"
         }
     }
 }
@@ -1796,5 +1859,212 @@ fun StatItem(
             ),
             color = color
         )
+    }
+}
+
+@Composable
+fun WeekNavigationGrid(
+    weeksWithGoals: List<Int>,
+    currentWeekOffset: Int,
+    onWeekChange: (Int) -> Unit,
+    getGoalsForWeek: (Int) -> List<Goal>,
+    isReadOnly: Boolean,
+    onGoalClick: (Goal) -> Unit,
+    onGoalLongPress: (Goal, Pair<Float, Float>) -> Unit,
+    onEmptyCellClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val weekGoals = getGoalsForWeek(currentWeekOffset)
+
+    // Swipe gesture state
+    var offsetX by remember { mutableStateOf(0f) }
+    val density = LocalDensity.current
+    val swipeThreshold = with(density) { 100.dp.toPx() }
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .pointerInput(weeksWithGoals, currentWeekOffset) {
+                detectDragGestures(
+                    onDragEnd = {
+                        when {
+                            offsetX > swipeThreshold -> {
+                                // Swipe right - go to previous week
+                                val currentIndex = weeksWithGoals.indexOf(currentWeekOffset)
+                                val canGoLeft = currentIndex > 0 || (currentIndex == -1 && weeksWithGoals.any { it < currentWeekOffset })
+                                if (canGoLeft) {
+                                    val previousWeek = if (currentIndex > 0) {
+                                        weeksWithGoals[currentIndex - 1]
+                                    } else {
+                                        weeksWithGoals.filter { it < currentWeekOffset }.maxOrNull() ?: weeksWithGoals.first()
+                                    }
+                                    onWeekChange(previousWeek)
+                                }
+                            }
+                            offsetX < -swipeThreshold -> {
+                                // Swipe left - go to next week
+                                val currentIndex = weeksWithGoals.indexOf(currentWeekOffset)
+                                val canGoRight = (currentIndex >= 0 && currentIndex < weeksWithGoals.size - 1) || (currentIndex == -1 && weeksWithGoals.any { it > currentWeekOffset })
+                                if (canGoRight) {
+                                    val nextWeek = if (currentIndex >= 0 && currentIndex < weeksWithGoals.size - 1) {
+                                        weeksWithGoals[currentIndex + 1]
+                                    } else {
+                                        weeksWithGoals.filter { it > currentWeekOffset }.minOrNull() ?: weeksWithGoals.last()
+                                    }
+                                    onWeekChange(nextWeek)
+                                }
+                            }
+                        }
+                        offsetX = 0f
+                    }
+                ) { _, dragAmount ->
+                    // Only allow horizontal swipe if there are multiple weeks
+                    if (weeksWithGoals.size > 1) {
+                        offsetX += dragAmount.x
+                        // Limit offset to prevent excessive dragging
+                        offsetX = offsetX.coerceIn(-swipeThreshold * 2, swipeThreshold * 2)
+                    }
+                }
+            }
+    ) {
+        // Main goals grid with swipe offset animation
+        Box(
+            modifier = Modifier
+                .offset { IntOffset(offsetX.toInt(), 0) }
+                .graphicsLayer {
+                    // Add some visual feedback for swipe
+                    alpha = 1f - (kotlin.math.abs(offsetX) / (swipeThreshold * 2)).coerceIn(0f, 0.3f)
+                }
+        ) {
+            GoalsGrid(
+                goals = weekGoals,
+                onGoalClick = if (isReadOnly && currentWeekOffset < 0) {
+                    { /* No action for read-only past weeks */ }
+                } else {
+                    onGoalClick
+                },
+                onGoalLongPress = if (isReadOnly && currentWeekOffset < 0) {
+                    { _, _ -> /* No action for read-only past weeks */ }
+                } else {
+                    onGoalLongPress
+                },
+                onEmptyCellClick = if (isReadOnly && currentWeekOffset < 0) {
+                    { /* No action for read-only past weeks */ }
+                } else {
+                    onEmptyCellClick
+                }
+            )
+        }
+
+        // Swipe indicators
+        if (weeksWithGoals.size > 1 && kotlin.math.abs(offsetX) > 20f) {
+            val currentIndex = weeksWithGoals.indexOf(currentWeekOffset)
+
+            // Left indicator (previous week)
+            if (offsetX > 20f) {
+                val canGoLeft = currentIndex > 0 || (currentIndex == -1 && weeksWithGoals.any { it < currentWeekOffset })
+                if (canGoLeft) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.CenterStart)
+                            .padding(16.dp)
+                            .size(40.dp)
+                            .background(
+                                color = MaterialTheme.colorScheme.primary.copy(
+                                    alpha = (offsetX / swipeThreshold).coerceIn(0f, 0.8f)
+                                ),
+                                shape = CircleShape
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Previous week",
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+            }
+
+            // Right indicator (next week)
+            if (offsetX < -20f) {
+                val canGoRight = (currentIndex >= 0 && currentIndex < weeksWithGoals.size - 1) || (currentIndex == -1 && weeksWithGoals.any { it > currentWeekOffset })
+                if (canGoRight) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.CenterEnd)
+                            .padding(16.dp)
+                            .size(40.dp)
+                            .background(
+                                color = MaterialTheme.colorScheme.primary.copy(
+                                    alpha = (kotlin.math.abs(offsetX) / swipeThreshold).coerceIn(0f, 0.8f)
+                                ),
+                                shape = CircleShape
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = "Next week",
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun NavigationButton(
+    isLeft: Boolean,
+    visible: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+
+    val alpha by animateFloatAsState(
+        targetValue = if (visible) if (isPressed) 0.8f else 0.3f else 0f,
+        animationSpec = tween(300),
+        label = "navigationButtonAlpha"
+    )
+
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 1.2f else 1f,
+        animationSpec = tween(150),
+        label = "navigationButtonScale"
+    )
+
+    if (visible) {
+        Box(
+            modifier = modifier
+                .padding(16.dp)
+                .size(48.dp)
+                .background(
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = alpha),
+                    shape = CircleShape
+                )
+                .clickable(
+                    interactionSource = interactionSource,
+                    indication = null,
+                    onClick = onClick
+                )
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                },
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = if (isLeft) Icons.Default.KeyboardArrowLeft else Icons.Default.KeyboardArrowRight,
+                contentDescription = if (isLeft) "Previous week" else "Next week",
+                tint = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.size(24.dp)
+            )
+        }
     }
 }

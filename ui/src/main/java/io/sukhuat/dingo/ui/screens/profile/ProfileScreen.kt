@@ -123,7 +123,7 @@ fun ProfileScreen(
             ) {
                 Icon(
                     imageVector = Icons.Default.ArrowBack,
-                    contentDescription = stringResource(R.string.back),
+                    contentDescription = "Navigate back",
                     tint = Color.White
                 )
             }
@@ -141,7 +141,7 @@ fun ProfileScreen(
             ) {
                 Icon(
                     imageVector = Icons.Default.Refresh,
-                    contentDescription = stringResource(R.string.refresh),
+                    contentDescription = "Refresh profile data",
                     tint = Color.White
                 )
             }
@@ -284,7 +284,7 @@ fun ProfileContent(
                     }
                 ) {
                     Text(
-                        text = tab.title,
+                        text = stringResource(getTabTitleResource(tab)),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = if (tabState.selectedTab == tab) FontWeight.Bold else FontWeight.Normal,
                         color = if (tabState.selectedTab == tab) RusticGold else MaterialTheme.colorScheme.onSurface,
@@ -412,7 +412,7 @@ private fun ProfileOverviewTab(
         if (statistics.totalGoalsCreated > 0) {
             item {
                 Text(
-                    text = "Quick Stats",
+                    text = stringResource(R.string.quick_stats),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier
@@ -485,7 +485,7 @@ private fun ProfileAccountTab(
         item {
             // Temporarily comment out AccountSecurity until we fix the component parameters
             Text(
-                text = "Account Security",
+                text = stringResource(R.string.account_security),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.semantics {
@@ -494,7 +494,7 @@ private fun ProfileAccountTab(
                 }
             )
             Text(
-                text = "Account security features will be available here",
+                text = stringResource(R.string.account_security_placeholder),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                 modifier = Modifier.semantics {
@@ -506,7 +506,7 @@ private fun ProfileAccountTab(
         item {
             // Temporarily comment out DataManagement until we fix the component parameters
             Text(
-                text = "Data Management",
+                text = stringResource(R.string.data_management),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.semantics {
@@ -515,7 +515,7 @@ private fun ProfileAccountTab(
                 }
             )
             Text(
-                text = "Data management features will be available here",
+                text = stringResource(R.string.data_management_placeholder),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                 modifier = Modifier.semantics {
@@ -543,7 +543,7 @@ private fun ProfileHelpTab(
         item {
             // Temporarily comment out HelpSupport until we fix the component parameters
             Text(
-                text = "Help & Support",
+                text = stringResource(R.string.help_support),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.semantics {
@@ -552,7 +552,7 @@ private fun ProfileHelpTab(
                 }
             )
             Text(
-                text = "Help and support features will be available here",
+                text = stringResource(R.string.help_support_placeholder),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                 modifier = Modifier.semantics {
@@ -580,7 +580,7 @@ fun ProfileErrorContent(
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "Error loading profile",
+            text = stringResource(R.string.error_loading_profile),
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.semantics {
@@ -604,7 +604,7 @@ fun ProfileErrorContent(
                 contentDescription = "Retry loading profile"
             }
         ) {
-            Text("Retry")
+            Text(stringResource(R.string.retry))
         }
     }
 }
@@ -627,6 +627,19 @@ fun ProfileLoadingContent(
         LoadingIndicator(
             isFullScreen = true
         )
+    }
+}
+
+/**
+ * Helper function to get string resource for tab titles
+ */
+@Composable
+private fun getTabTitleResource(tab: ProfileTab): Int {
+    return when (tab) {
+        ProfileTab.OVERVIEW -> R.string.overview
+        ProfileTab.STATISTICS -> R.string.statistics
+        ProfileTab.ACCOUNT -> R.string.account_settings
+        ProfileTab.HELP -> R.string.help_support
     }
 }
 

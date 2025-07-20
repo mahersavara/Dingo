@@ -16,7 +16,7 @@ class CreateGoalUseCase @Inject constructor(
         customImage: String? = null
     ): Result<String> {
         return try {
-            val goal = Goal(
+            val goal = Goal.create(
                 text = text,
                 imageResId = imageResId,
                 customImage = customImage

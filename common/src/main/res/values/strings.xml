@@ -51,4 +51,107 @@
     <!-- Navigation -->
     <string name="back">Back</string>
     <string name="refresh">Refresh</string>
+    
+    <!-- Week Navigation -->
+    <string name="current_week">Current Week</string>
+    <string name="last_week">Last Week</string>
+    <string name="weeks_ago">%d Weeks Ago</string>
+    <string name="future_week">Future Week</string>
+    <string name="days_left" formatted="false">%d day%s left!</string>
+    <string name="day_singular"></string>
+    <string name="day_plural">s</string>
+    <string name="week_completed">This week has ended</string>
+    <string name="swipe_right_hint">Swipe right to see more recent weeks</string>
+    <string name="swipe_left_hint">Swipe left to see past weeks</string>
+    <string name="week_of_month_format" formatted="false">%s Week of %s %d</string>
+    
+    <!-- Settings Screen -->
+    <string name="settings_title">Settings</string>
+    <string name="notifications_settings">Notifications</string>
+    <string name="general_settings">General</string>
+    <string name="privacy_security">Privacy &amp; Security</string>
+    <string name="about_info">About &amp; Info</string>
+    <string name="notification_preferences">Notification Preferences</string>
+    <string name="general_preferences">General Preferences</string>
+    <string name="privacy_security_settings">Privacy &amp; Security Settings</string>
+    <string name="app_information">App Information</string>
+    <string name="close">Close</string>
+    <string name="error_loading_settings">Error loading settings</string>
+    <string name="reset_settings_title">Reset Settings</string>
+    <string name="reset_settings_confirmation">Are you sure you want to reset all settings to their default values? This action cannot be undone.</string>
+    <string name="reset">Reset</string>
+    <string name="audio_feedback">Audio &amp; Feedback</string>
+    <string name="appearance">Appearance</string>
+    <string name="user_profile">User Profile</string>
+    <string name="user_profile_description">Manage your profile, statistics, and account settings</string>
+    <string name="sound_effects">Sound Effects</string>
+    <string name="sound_effects_description">Play sounds for interactions and achievements</string>
+    <string name="vibration">Vibration</string>
+    <string name="vibration_description">Haptic feedback for goal completions</string>
+    <string name="notifications_description">Enable all app notifications</string>
+    <string name="weekly_reminders">Weekly Reminders</string>
+    <string name="weekly_reminders_description">Get reminded about your weekly goals</string>
+    <string name="goal_completion_notifications">Goal Completion</string>
+    <string name="goal_completion_description">Notifications when you complete goals</string>
+    <string name="dark_mode">Dark Mode</string>
+    <string name="dark_mode_description">Use dark theme throughout the app</string>
+    <string name="current_language" formatted="false">Current: %s</string>
+    <string name="auto_backup">Auto Backup</string>
+    <string name="auto_backup_description">Automatically backup your goals to cloud</string>
+    <string name="analytics">Analytics</string>
+    <string name="analytics_description">Help improve the app by sharing usage data</string>
+    <string name="app_version">App Version</string>
+    <string name="reset_settings">Reset Settings</string>
+    <string name="reset_settings_description">Reset all settings to default values</string>
+    
+    <!-- Profile Screen -->
+    <string name="profile_title">Profile</string>
+    <string name="edit_profile">Edit Profile</string>
+    <string name="account_settings">Account Settings</string>
+    <string name="achievements">Achievements</string>
+    <string name="statistics">Statistics</string>
+    <string name="goals_completed">Goals Completed</string>
+    <string name="current_streak">Current Streak</string>
+    <string name="total_goals">Total Goals</string>
+    <string name="success_rate">Success Rate</string>
+    <string name="overview">Overview</string>
+    <string name="quick_stats">Quick Stats</string>
+    <string name="account_security">Account Security</string>
+    <string name="account_security_placeholder">Account security features will be available here</string>
+    <string name="data_management">Data Management</string>
+    <string name="data_management_placeholder">Data management features will be available here</string>
+    <string name="help_support">Help &amp; Support</string>
+    <string name="help_support_placeholder">Help and support features will be available here</string>
+    <string name="error_loading_profile">Error loading profile</string>
+    <string name="retry">Retry</string>
+    <string name="selected">Selected</string>
+    <string name="not_selected">Not selected</string>
+    
+    <!-- Weekly Wrap-Up -->
+    <string name="weekly_wrapup_title">Weekly Wrap-Up</string>
+    <string name="weekly_progress">Weekly Progress</string>
+    <string name="goals_completed_this_week">You completed</string>
+    <string name="out_of" formatted="false">%d out of %d</string>
+    <string name="completion_rate">Completion Rate</string>
+    <string name="keep_it_up">Keep it up!</string>
+    <string name="room_for_improvement">Room for improvement!</string>
+    <string name="great_work">Great work!</string>
+    <string name="share_progress">Share</string>
+    <string name="continue_journey">OK</string>
+    <string name="goals_for_next_week">Goals for Next Week</string>
+    <string name="goals_to_carry_forward" formatted="false">%d goal(s) to carry forward</string>
+    <string name="encouragement_message">Every step counts! You\'ll get there.</string>
+    <string name="all_goals_completed">Amazing work! You completed all your goals! 🎉</string>
+    
+    <!-- Motivational Quotes -->
+    <string name="quote_1">Every accomplishment starts with the decision to try.</string>
+    <string name="quote_2">Small progress is still progress.</string>
+    <string name="quote_3">The journey of a thousand miles begins with a single step.</string>
+    <string name="quote_4">Success is not final, failure is not fatal: it is the courage to continue that counts.</string>
+    <string name="quote_5">You don\'t have to be great to start, but you have to start to be great.</string>
+    <string name="quote_6">The only way to do great work is to love what you do.</string>
+    <string name="quote_7">Believe you can and you\'re halfway there.</string>
+    <string name="quote_8">It always seems impossible until it\'s done.</string>
+    <string name="quote_9">Don\'t watch the clock; do what it does. Keep going.</string>
+    <string name="quote_10">The future depends on what you do today.</string>
 </resources> 

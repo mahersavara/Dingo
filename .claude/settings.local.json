@@ -5,7 +5,14 @@
       "Bash(./gradlew tasks:*)",
       "Bash(./gradlew:*)",
       "Bash(grep:*)",
-      "Bash(adb:*)"
+      "Bash(adb:*)",
+      "Bash(javac:*)",
+      "Bash(java test_calendar:*)",
+      "Bash(node:*)",
+      "Bash(java test_goal_week:*)",
+      "Bash(java:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": []
   }
