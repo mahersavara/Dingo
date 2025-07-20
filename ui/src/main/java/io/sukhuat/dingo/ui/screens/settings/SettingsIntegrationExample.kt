@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Settings
-import io.sukhuat.dingo.common.icons.MedievalIcons
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -27,6 +26,7 @@ import io.sukhuat.dingo.common.components.GeneralItem
 import io.sukhuat.dingo.common.components.NavigableGeneralItem
 import io.sukhuat.dingo.common.components.ToggleGeneralItem
 import io.sukhuat.dingo.common.components.TrailingContent
+import io.sukhuat.dingo.common.icons.MedievalIcons
 import io.sukhuat.dingo.common.theme.MountainSunriseTheme
 import io.sukhuat.dingo.domain.usecase.preferences.NotificationPermissionStatus
 

@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navDeepLink
 import dagger.hilt.android.AndroidEntryPoint
 import io.sukhuat.dingo.common.localization.LocalAppLanguage
 import io.sukhuat.dingo.common.localization.LocalLanguageUpdateState
@@ -25,6 +26,7 @@ import io.sukhuat.dingo.common.theme.DingoTheme
 import io.sukhuat.dingo.navigation.Screen
 import io.sukhuat.dingo.ui.screens.auth.AuthScreen
 import io.sukhuat.dingo.ui.screens.home.HomeScreen
+import io.sukhuat.dingo.ui.screens.profile.ProfileScreen
 import io.sukhuat.dingo.ui.screens.settings.SettingsScreen
 import io.sukhuat.dingo.ui.screens.splash.SplashScreen
 import kotlinx.coroutines.flow.first
@@ -146,6 +148,9 @@ fun DingoApp() {
                     },
                     onNavigateToSettings = {
                         navController.navigate(Screen.Settings.route)
+                    },
+                    onNavigateToProfile = {
+                        navController.navigate(Screen.Profile.route)
                     }
                 )
             }
@@ -153,6 +158,74 @@ fun DingoApp() {
                 SettingsScreen(
                     onNavigateBack = {
                         navController.popBackStack()
+                    },
+                    onNavigateToProfile = {
+                        navController.navigate(Screen.Profile.route)
+                    }
+                )
+            }
+            composable(
+                route = Screen.Profile.route,
+                deepLinks = listOf(navDeepLink { uriPattern = "dingo://profile" })
+            ) {
+                ProfileScreen(
+                    onNavigateBack = {
+                        navController.popBackStack()
+                    },
+                    onNavigateToSettings = {
+                        navController.navigate(Screen.Settings.route)
+                    }
+                )
+            }
+            composable(
+                route = Screen.ProfileEdit.route,
+                deepLinks = listOf(navDeepLink { uriPattern = "dingo://profile/edit" })
+            ) {
+                ProfileScreen(
+                    onNavigateBack = {
+                        navController.popBackStack()
+                    },
+                    onNavigateToSettings = {
+                        navController.navigate(Screen.Settings.route)
+                    }
+                )
+            }
+            composable(
+                route = Screen.ProfileStatistics.route,
+                deepLinks = listOf(navDeepLink { uriPattern = "dingo://profile/statistics" })
+            ) {
+                ProfileScreen(
+                    onNavigateBack = {
+                        navController.popBackStack()
+                    },
+                    onNavigateToSettings = {
+                        navController.navigate(Screen.Settings.route)
+                    }
+                )
+            }
+            composable(
+                route = Screen.ProfileAccount.route,
+                deepLinks = listOf(navDeepLink { uriPattern = "dingo://profile/account" })
+            ) {
+                ProfileScreen(
+                    onNavigateBack = {
+                        navController.popBackStack()
+                    },
+                    onNavigateToSettings = {
+                        navController.navigate(Screen.Settings.route)
+                    }
+                )
+            }
+            composable(
+                route = Screen.ProfileHelp.route,
+                deepLinks = listOf(navDeepLink { uriPattern = "dingo://profile/help" })
+            ) {
+                ProfileScreen(
+                    onNavigateBack = {
+                        navController.popBackStack()
+                    },
+                    onNavigateToSettings = {
+                        navController.navigate(Screen.Settings.route)
                     }
                 )
             }

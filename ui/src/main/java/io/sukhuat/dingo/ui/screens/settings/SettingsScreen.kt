@@ -8,13 +8,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Phone
-import io.sukhuat.dingo.common.icons.MedievalIcons
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -39,6 +37,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import io.sukhuat.dingo.common.components.GeneralItem
 import io.sukhuat.dingo.common.components.LoadingIndicator
 import io.sukhuat.dingo.common.components.TrailingContent
+import io.sukhuat.dingo.common.icons.MedievalIcons
 import io.sukhuat.dingo.common.localization.LocalAppLanguage
 import io.sukhuat.dingo.common.localization.SupportedLanguages
 import io.sukhuat.dingo.common.theme.MountainSunriseTheme
@@ -51,6 +50,7 @@ import io.sukhuat.dingo.domain.model.UserPreferences
 @Composable
 fun SettingsScreen(
     onNavigateBack: () -> Unit,
+    onNavigateToProfile: () -> Unit = {},
     onLanguageChange: (String) -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
@@ -102,6 +102,7 @@ fun SettingsScreen(
                     onAutoBackupToggle = viewModel::toggleAutoBackup,
                     onAnalyticsToggle = viewModel::toggleAnalytics,
                     onResetClick = { showResetDialog = true },
+                    onProfileClick = onNavigateToProfile,
                     modifier = Modifier.padding(paddingValues)
                 )
             }
@@ -183,11 +184,29 @@ private fun SettingsContent(
     onAutoBackupToggle: (Boolean) -> Unit,
     onAnalyticsToggle: (Boolean) -> Unit,
     onResetClick: () -> Unit,
+    onProfileClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize()
     ) {
+        // Profile Section
+        item {
+            SettingsSectionHeader(title = "Profile")
+        }
+
+        items(getProfileSettings(onProfileClick)) { setting ->
+            GeneralItem(
+                title = setting.title,
+                description = setting.description,
+                leadingIcon = setting.icon,
+                trailingContent = setting.trailingContent,
+                onClick = setting.onClick
+            )
+        }
+
+        item { HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp)) }
+
         // Audio & Feedback Section
         item {
             SettingsSectionHeader(title = "Audio & Feedback")
@@ -324,6 +343,18 @@ private data class SettingItem(
 )
 
 // Settings data functions
+private fun getProfileSettings(
+    onProfileClick: () -> Unit
+): List<SettingItem> = listOf(
+    SettingItem(
+        title = "User Profile",
+        description = "Manage your profile, statistics, and account settings",
+        icon = Icons.Default.Settings,
+        trailingContent = TrailingContent.Arrow,
+        onClick = onProfileClick
+    )
+)
+
 private fun getAudioFeedbackSettings(
     preferences: UserPreferences,
     onSoundToggle: (Boolean) -> Unit,

@@ -47,4 +47,8 @@
     <!-- Language Selection -->
     <string name="language_english">English</string>
     <string name="language_vietnamese">Vietnamese</string>
+    
+    <!-- Navigation -->
+    <string name="back">Back</string>
+    <string name="refresh">Refresh</string>
 </resources> 

@@ -67,4 +67,4 @@ class SyncManager @Inject constructor(
         Log.d(TAG, "syncData called - no action needed with Firebase implementation")
         // Firebase handles synchronization automatically
     }
-} 
+}

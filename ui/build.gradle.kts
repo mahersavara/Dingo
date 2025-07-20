@@ -51,6 +51,15 @@ dependencies {
     implementation(libs.compose.ui.tooling.preview)
     implementation(libs.compose.material3)
 
+    // For Icons
+    // implement lottie
+    implementation(libs.lottie.compose)
+//    implementation(libs.iconics.compose)
+    implementation(libs.androidx.material.icons.extended)
+//    implementation("br.com.devsrsouza.compose.icons:material-symbols:1.1.1")
+    // TODO need to doubt this because the vote is not very high
+    // HIX THIS FILE 42 MB ???
+//    implementation(libs.iconsax.compose)
     // Coil for image loading
     implementation(libs.coil.compose.v240)
 
@@ -68,7 +77,13 @@ dependencies {
     ksp(libs.hilt.compiler)
 
     testImplementation(libs.junit)
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
+    testImplementation("io.mockk:mockk:1.13.8")
+    testImplementation("app.cash.turbine:turbine:1.0.0")
+    testImplementation("androidx.arch.core:core-testing:2.2.0")
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.espresso.core)
+    androidTestImplementation(libs.compose.ui.test.junit4)
     debugImplementation(libs.compose.ui.tooling)
+    debugImplementation(libs.compose.ui.test.manifest)
 }

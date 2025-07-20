@@ -1,6 +1,8 @@
 [versions]
 agp = "8.3.0"
 coil-compose = "2.4.0"
+iconics-compose = "5.5.0-compose01"
+iconsax-compose = "0.0.3"
 konfetti-compose = "2.0.3"
 kotlin = "1.9.0"
 core-ktx = "1.12.0"
@@ -13,6 +15,8 @@ compose-bom = "2024.02.00"
 compose-compiler = "1.5.1"
 hilt = "2.50"
 hilt-navigation-compose = "1.1.0"
+lottie-compose = "6.1.0"
+material-icons-extended = "1.7.8"
 play-services-auth-version = "21.3.0"
 reorderable = "0.9.6"
 room = "2.6.1"
@@ -25,8 +29,11 @@ coil = "2.5.0"
 datastore = "1.0.0"
 
 [libraries]
+androidx-material-icons-extended = { module = "androidx.compose.material:material-icons-extended", version.ref = "material-icons-extended" }
 coil-compose-v240 = { module = "io.coil-kt:coil-compose", version.ref = "coil-compose" }
 core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "core-ktx" }
+iconics-compose = { module = "com.mikepenz:iconics-compose", version.ref = "iconics-compose" }
+iconsax-compose = { module = "io.github.rabehx:iconsax-compose", version.ref = "iconsax-compose" }
 konfetti-compose = { module = "nl.dionsegijn:konfetti-compose", version.ref = "konfetti-compose" }
 lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycle-runtime-ktx" }
 activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activity-compose" }
@@ -52,6 +59,7 @@ hilt-compiler = { group = "com.google.dagger", name = "hilt-android-compiler", v
 hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hilt-navigation-compose" }
 
 # Room
+lottie-compose = { module = "com.airbnb.android:lottie-compose", version.ref = "lottie-compose" }
 play-services-auth-v2130 = { module = "com.google.android.gms:play-services-auth", version.ref = "play-services-auth-version" }
 reorderable = { module = "org.burnoutcrew.composereorderable:reorderable", version.ref = "reorderable" }
 room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }

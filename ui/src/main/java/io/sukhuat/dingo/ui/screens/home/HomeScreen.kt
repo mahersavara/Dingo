@@ -119,6 +119,7 @@ import kotlin.math.abs
 fun HomeScreen(
     onSignOut: () -> Unit,
     onNavigateToSettings: () -> Unit = {},
+    onNavigateToProfile: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
@@ -294,6 +295,7 @@ fun HomeScreen(
         isAuthenticated = true, // Assuming the user is authenticated since we're on the home screen
         currentLanguage = LocalAppLanguage.current,
         onLanguageChange = handleLanguageChange,
+        onProfileClick = onNavigateToProfile,
         onSettingsClick = onNavigateToSettings,
         onLogoutClick = { viewModel.signOut(onSignOut) }
     ) { paddingValues ->
