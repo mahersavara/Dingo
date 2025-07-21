@@ -47,6 +47,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
@@ -82,6 +83,7 @@ fun BubbleComponent(
 ) {
     val density = LocalDensity.current
     val context = LocalContext.current
+    val configuration = LocalConfiguration.current
     val coroutineScope = rememberCoroutineScope()
 
     // Animation for bubble appearance
@@ -128,12 +130,35 @@ fun BubbleComponent(
     val bubbleHeight = 220.dp
     val bubbleWidthPx = with(density) { bubbleWidth.roundToPx() }
     val bubbleHeightPx = with(density) { bubbleHeight.roundToPx() }
-    val screenWidthPx = with(density) { 360.dp.roundToPx() }
-    val screenHeightPx = with(density) { 640.dp.roundToPx() }
+    val screenWidthPx = with(density) { configuration.screenWidthDp.dp.roundToPx() }
+    val screenHeightPx = with(density) { configuration.screenHeightDp.dp.roundToPx() }
 
-    // Calculate position, ensuring bubble stays within screen bounds
+    // Smart positioning: above item if space available, below otherwise
+    val itemHeight = with(density) { 80.dp.roundToPx() } // Typical grid item height
+    val margin = with(density) { 16.dp.roundToPx() }
+
+    val spaceAbove = position.second - margin
+    val spaceBelow = screenHeightPx - position.second - itemHeight - margin
+
+    val yPos = when {
+        // Prefer above if there's enough space
+        spaceAbove >= bubbleHeightPx -> position.second - bubbleHeightPx - margin
+        // Otherwise place below
+        spaceBelow >= bubbleHeightPx -> position.second + itemHeight + margin
+        // Fallback: center vertically with some offset to avoid covering item
+        else -> {
+            val centeredY = (screenHeightPx - bubbleHeightPx) / 2f
+            if (centeredY < position.second + itemHeight + margin) {
+                // If centered position would cover item, place it below
+                position.second + itemHeight + margin
+            } else {
+                centeredY
+            }
+        }
+    }.coerceIn(0f, (screenHeightPx - bubbleHeightPx).toFloat())
+
+    // Calculate horizontal position with proper bounds checking
     val xPos = position.first.coerceIn(0f, (screenWidthPx - bubbleWidthPx).toFloat())
-    val yPos = position.second.coerceIn(0f, (screenHeightPx - bubbleHeightPx).toFloat())
 
     // Track text input
     var textValue by remember { mutableStateOf(text) }
