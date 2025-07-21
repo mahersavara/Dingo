@@ -75,7 +75,7 @@ fun compressAndSaveImage(context: Context, imageUri: Uri, quality: Int = 80): Ur
             Log.e("ImageUtils", "Failed to decode bitmap from URI: $imageUri")
             return null
         }
-        
+
         // Fix image orientation based on EXIF data
         val correctedBitmap = fixImageOrientation(context, imageUri, originalBitmap)
 
@@ -157,9 +157,13 @@ private fun fixImageOrientation(context: Context, imageUri: Uri, bitmap: Bitmap)
 
             return try {
                 val correctedBitmap = Bitmap.createBitmap(
-                    bitmap, 0, 0,
-                    bitmap.width, bitmap.height,
-                    matrix, true
+                    bitmap,
+                    0,
+                    0,
+                    bitmap.width,
+                    bitmap.height,
+                    matrix,
+                    true
                 )
                 correctedBitmap
             } catch (e: OutOfMemoryError) {
@@ -170,6 +174,6 @@ private fun fixImageOrientation(context: Context, imageUri: Uri, bitmap: Bitmap)
     } catch (e: Exception) {
         Log.e("ImageUtils", "Error reading EXIF orientation data", e)
     }
-    
+
     return bitmap
 }

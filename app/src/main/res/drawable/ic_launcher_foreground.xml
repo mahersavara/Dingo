@@ -1,100 +1,12 @@
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp"
-    android:height="108dp"
-    android:viewportWidth="108"
-    android:viewportHeight="108">
-    
-    <!-- Vision Board Frame (smaller, centered) -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:fillAlpha="0.95"
-        android:pathData="M40,35 L68,35 A6,6 0 0,1 74,41 L74,67 A6,6 0 0,1 68,73 L40,73 A6,6 0 0,1 34,67 L34,41 A6,6 0 0,1 40,35 Z" />
-    
-    <!-- Adventure Activity Icons in Vision Board -->
-    <!-- Mountain climbing icon (top left) -->
-    <path
-        android:fillColor="#4CAF50"
-        android:pathData="M38,42 L42,38 L46,42 L44,44 L40,44 Z" />
-    
-    <!-- Camera/Travel icon (top right) -->
-    <path
-        android:fillColor="#2196F3"
-        android:pathData="M60,38 L68,38 L68,46 L60,46 Z M62,40 L66,40 L66,44 L62,44 Z M64,39 A1,1 0 1,1 64,39 Z" />
-    
-    <!-- Book/Learning icon (middle left) -->
-    <path
-        android:fillColor="#FF9800"
-        android:pathData="M38,50 L46,50 L46,58 L38,58 Z M39,52 L45,52 M39,54 L45,54 M39,56 L43,56" />
-    
-    <!-- Heart/Health icon (middle right) -->
-    <path
-        android:fillColor="#E91E63"
-        android:pathData="M64,50 C62,48 58,50 60,54 C62,50 66,48 64,50 Z" />
-    
-    <!-- Achievement Star (center) -->
-    <path
-        android:fillColor="#FFC107"
-        android:pathData="M54,48 L55.5,51.5 L59,51 L56.5,53.5 L57,57 L54,55 L51,57 L51.5,53.5 L49,51 L52.5,51.5 Z" />
-    
-    <!-- Compass/Adventure icon (bottom left) -->
-    <path
-        android:fillColor="#009688"
-        android:pathData="M42,62 A4,4 0 1,1 42,62 Z M40,62 L44,62 M42,60 L42,64 M41,61 L43,63" />
-    
-    <!-- Trophy/Goal icon (bottom right) -->
-    <path
-        android:fillColor="#FFB300"
-        android:pathData="M62,60 L66,60 L66,62 C66,63 65,64 64,64 C63,64 62,63 62,62 Z M63,64 L65,64 L64.5,66 L63.5,66 Z" />
-    
-    <!-- Adventure Elements Around Vision Board -->
-    <!-- Hiking boot print (top left corner) -->
-    <path
-        android:fillColor="#8D6E63"
-        android:fillAlpha="0.7"
-        android:pathData="M22,25 L26,25 L26,28 L24,30 L20,30 L20,27 Z" />
-    
-    <!-- Map marker (top right) -->
-    <path
-        android:fillColor="#F44336"
-        android:fillAlpha="0.8"
-        android:pathData="M85,20 A3,3 0 1,1 85,20 Z M85,26 L82,23 L88,23 Z" />
-    
-    <!-- Backpack (left side) -->
-    <path
-        android:fillColor="#795548"
-        android:fillAlpha="0.6"
-        android:pathData="M18,45 L22,45 L22,55 L18,55 Z M19,43 L21,43 M19,47 L21,47 M19,51 L21,51" />
-    
-    <!-- Binoculars (right side) -->
-    <path
-        android:fillColor="#607D8B"
-        android:fillAlpha="0.7"
-        android:pathData="M86,50 A2,2 0 1,1 86,50 Z M90,50 A2,2 0 1,1 90,50 Z M88,48 L88,52" />
-    
-    <!-- Adventure Trail Dots -->
-    <path
-        android:fillColor="#4CAF50"
-        android:fillAlpha="0.5"
-        android:pathData="M30,80 A1.5,1.5 0 1,1 30,80 Z" />
-    <path
-        android:fillColor="#4CAF50"
-        android:fillAlpha="0.4"
-        android:pathData="M35,85 A1.5,1.5 0 1,1 35,85 Z" />
-    <path
-        android:fillColor="#4CAF50"
-        android:fillAlpha="0.3"
-        android:pathData="M40,90 A1.5,1.5 0 1,1 40,90 Z" />
-    
-    <!-- Small adventure icons scattered -->
-    <!-- Tent (bottom left) -->
-    <path
-        android:fillColor="#FF7043"
-        android:fillAlpha="0.6"
-        android:pathData="M25,85 L29,81 L33,85 Z M27,85 L31,85" />
-    
-    <!-- Compass rose (bottom right) -->
-    <path
-        android:fillColor="#3F51B5"
-        android:fillAlpha="0.5"
-        android:pathData="M82,85 L83,87 L82,89 L81,87 Z M80,87 L84,87" />
-</vector>
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Use the draft PNG file with much smaller size to see the full icon clearly -->
+    <item
+        android:width="36dp"
+        android:height="36dp"
+        android:gravity="fill">
+        <bitmap
+            android:gravity="fill"
+            android:src="@drawable/ic_launcher_dingo_draft" />
+    </item>
+</layer-list>

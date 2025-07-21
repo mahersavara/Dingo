@@ -987,7 +987,7 @@ fun GoalCell(
                                     val imageSize = state.result.drawable.intrinsicWidth to state.result.drawable.intrinsicHeight
                                     val aspectRatio = imageSize.first.toFloat() / imageSize.second.toFloat()
                                     val isTallImage = aspectRatio < 0.75f // Height > 1.33x width (taller than 4:3)
-                                    
+
                                     AsyncImage(
                                         model = safeImageUri,
                                         contentDescription = null,

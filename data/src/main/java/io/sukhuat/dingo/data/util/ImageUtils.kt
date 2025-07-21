@@ -66,7 +66,7 @@ object ImageUtils {
                 Log.e(TAG, "Failed to decode bitmap from URI: $imageUri")
                 return null
             }
-            
+
             // Fix image orientation based on EXIF data
             val correctedBitmap = fixImageOrientation(context, imageUri, originalBitmap)
 
@@ -85,7 +85,7 @@ object ImageUtils {
                 quality -= 10
                 correctedBitmap.compress(Bitmap.CompressFormat.JPEG, quality, baos)
             }
-            
+
             // Clean up bitmaps if they're different objects
             if (correctedBitmap != originalBitmap) {
                 originalBitmap.recycle()
@@ -165,7 +165,7 @@ object ImageUtils {
             "image_$timestamp.$extension"
         }
     }
-    
+
     /**
      * Fix image orientation based on EXIF data
      * @param context Application context
@@ -203,9 +203,13 @@ object ImageUtils {
 
                 return try {
                     val correctedBitmap = Bitmap.createBitmap(
-                        bitmap, 0, 0,
-                        bitmap.width, bitmap.height,
-                        matrix, true
+                        bitmap,
+                        0,
+                        0,
+                        bitmap.width,
+                        bitmap.height,
+                        matrix,
+                        true
                     )
                     correctedBitmap
                 } catch (e: OutOfMemoryError) {
@@ -216,7 +220,7 @@ object ImageUtils {
         } catch (e: Exception) {
             Log.e(TAG, "Error reading EXIF orientation data", e)
         }
-        
+
         return bitmap
     }
 }
