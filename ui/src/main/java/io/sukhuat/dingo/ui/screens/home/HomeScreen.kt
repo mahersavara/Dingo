@@ -99,6 +99,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
 import io.sukhuat.dingo.common.R
 import io.sukhuat.dingo.common.components.BubbleComponent
 import io.sukhuat.dingo.common.components.GoalCompletionCelebration
@@ -975,15 +976,43 @@ fun GoalCell(
                         val safeImageUri = if (customImage != null) getSafeImageUri(context, customImage) else null
 
                         if (safeImageUri != null) {
-                            AsyncImage(
+                            // Smart ContentScale based on image aspect ratio
+                            SubcomposeAsyncImage(
                                 model = safeImageUri,
                                 contentDescription = null,
-                                contentScale = ContentScale.Fit,
                                 modifier = Modifier
                                     .fillMaxSize(0.8f)
                                     .padding(4.dp),
-                                onError = {
+                                success = { state ->
+                                    val imageSize = state.result.drawable.intrinsicWidth to state.result.drawable.intrinsicHeight
+                                    val aspectRatio = imageSize.first.toFloat() / imageSize.second.toFloat()
+                                    val isTallImage = aspectRatio < 0.75f // Height > 1.33x width (taller than 4:3)
+                                    
+                                    AsyncImage(
+                                        model = safeImageUri,
+                                        contentDescription = null,
+                                        contentScale = if (isTallImage) ContentScale.Crop else ContentScale.Fit,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                },
+                                loading = {
+                                    // Loading state - use default Fit
+                                    AsyncImage(
+                                        model = safeImageUri,
+                                        contentDescription = null,
+                                        contentScale = ContentScale.Fit,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                },
+                                error = {
                                     android.util.Log.e("GoalCell", "Error loading image: $safeImageUri")
+                                    // Error state - use default Fit
+                                    AsyncImage(
+                                        model = safeImageUri,
+                                        contentDescription = null,
+                                        contentScale = ContentScale.Fit,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
                                 }
                             )
 
