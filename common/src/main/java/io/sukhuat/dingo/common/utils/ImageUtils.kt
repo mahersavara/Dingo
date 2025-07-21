@@ -3,9 +3,11 @@ package io.sukhuat.dingo.common.utils
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Matrix
 import android.net.Uri
 import android.util.Log
 import androidx.core.net.toUri
+import androidx.exifinterface.media.ExifInterface
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
@@ -73,16 +75,19 @@ fun compressAndSaveImage(context: Context, imageUri: Uri, quality: Int = 80): Ur
             Log.e("ImageUtils", "Failed to decode bitmap from URI: $imageUri")
             return null
         }
+        
+        // Fix image orientation based on EXIF data
+        val correctedBitmap = fixImageOrientation(context, imageUri, originalBitmap)
 
-        // Scale down the image if it's too large
+        // Scale down the corrected image if it's too large
         val maxDimension = 1024
-        val scaledBitmap = if (originalBitmap.width > maxDimension || originalBitmap.height > maxDimension) {
-            val scale = maxDimension.toFloat() / maxOf(originalBitmap.width, originalBitmap.height)
-            val newWidth = (originalBitmap.width * scale).toInt()
-            val newHeight = (originalBitmap.height * scale).toInt()
-            Bitmap.createScaledBitmap(originalBitmap, newWidth, newHeight, true)
+        val scaledBitmap = if (correctedBitmap.width > maxDimension || correctedBitmap.height > maxDimension) {
+            val scale = maxDimension.toFloat() / maxOf(correctedBitmap.width, correctedBitmap.height)
+            val newWidth = (correctedBitmap.width * scale).toInt()
+            val newHeight = (correctedBitmap.height * scale).toInt()
+            Bitmap.createScaledBitmap(correctedBitmap, newWidth, newHeight, true)
         } else {
-            originalBitmap
+            correctedBitmap
         }
 
         // Create output file in app's private directory
@@ -99,8 +104,11 @@ fun compressAndSaveImage(context: Context, imageUri: Uri, quality: Int = 80): Ur
         outputStream.flush()
         outputStream.close()
 
-        // If we created a new scaled bitmap, recycle the original
-        if (scaledBitmap != originalBitmap) {
+        // Clean up intermediate bitmaps
+        if (scaledBitmap != correctedBitmap) {
+            correctedBitmap.recycle()
+        }
+        if (correctedBitmap != originalBitmap) {
             originalBitmap.recycle()
         }
 
@@ -110,4 +118,58 @@ fun compressAndSaveImage(context: Context, imageUri: Uri, quality: Int = 80): Ur
         Log.e("ImageUtils", "Error compressing and saving image", e)
         null
     }
+}
+
+/**
+ * Fix image orientation based on EXIF data
+ * @param context Application context
+ * @param imageUri URI of the original image
+ * @param bitmap The bitmap to correct
+ * @return Corrected bitmap with proper orientation
+ */
+private fun fixImageOrientation(context: Context, imageUri: Uri, bitmap: Bitmap): Bitmap {
+    try {
+        val inputStream = context.contentResolver.openInputStream(imageUri)
+        inputStream?.use { stream ->
+            val exif = ExifInterface(stream)
+            val orientation = exif.getAttributeInt(
+                ExifInterface.TAG_ORIENTATION,
+                ExifInterface.ORIENTATION_NORMAL
+            )
+
+            val matrix = Matrix()
+            when (orientation) {
+                ExifInterface.ORIENTATION_ROTATE_90 -> matrix.postRotate(90f)
+                ExifInterface.ORIENTATION_ROTATE_180 -> matrix.postRotate(180f)
+                ExifInterface.ORIENTATION_ROTATE_270 -> matrix.postRotate(270f)
+                ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> matrix.postScale(-1f, 1f)
+                ExifInterface.ORIENTATION_FLIP_VERTICAL -> matrix.postScale(1f, -1f)
+                ExifInterface.ORIENTATION_TRANSPOSE -> {
+                    matrix.postRotate(90f)
+                    matrix.postScale(-1f, 1f)
+                }
+                ExifInterface.ORIENTATION_TRANSVERSE -> {
+                    matrix.postRotate(270f)
+                    matrix.postScale(-1f, 1f)
+                }
+                else -> return bitmap // No transformation needed
+            }
+
+            return try {
+                val correctedBitmap = Bitmap.createBitmap(
+                    bitmap, 0, 0,
+                    bitmap.width, bitmap.height,
+                    matrix, true
+                )
+                correctedBitmap
+            } catch (e: OutOfMemoryError) {
+                Log.e("ImageUtils", "Out of memory creating rotated bitmap, returning original", e)
+                bitmap
+            }
+        }
+    } catch (e: Exception) {
+        Log.e("ImageUtils", "Error reading EXIF orientation data", e)
+    }
+    
+    return bitmap
 }

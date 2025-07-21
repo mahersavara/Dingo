@@ -53,6 +53,9 @@ dependencies {
 
     // JSON parsing
     implementation("com.google.code.gson:gson:2.10.1")
+    
+    // ExifInterface for image orientation handling
+    implementation("androidx.exifinterface:exifinterface:1.3.6")
 
     // Testing
     testImplementation(libs.junit)

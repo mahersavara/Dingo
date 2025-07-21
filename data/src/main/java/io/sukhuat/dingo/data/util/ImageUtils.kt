@@ -4,8 +4,10 @@ import android.content.ContentResolver
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Matrix
 import android.net.Uri
 import android.util.Log
+import androidx.exifinterface.media.ExifInterface
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
@@ -17,7 +19,7 @@ import java.io.InputStream
  */
 object ImageUtils {
     private const val TAG = "ImageUtils"
-    private const val MAX_IMAGE_SIZE = 1024 * 1024 // 1MB
+    private const val MAX_IMAGE_SIZE = 512 * 1024 // 500KB
     private const val COMPRESSION_QUALITY = 85
 
     /**
@@ -64,21 +66,29 @@ object ImageUtils {
                 Log.e(TAG, "Failed to decode bitmap from URI: $imageUri")
                 return null
             }
+            
+            // Fix image orientation based on EXIF data
+            val correctedBitmap = fixImageOrientation(context, imageUri, originalBitmap)
 
             // Create a temporary file to store the compressed image
             tempFile = File(context.cacheDir, "compressed_${System.currentTimeMillis()}.jpg")
             outputStream = FileOutputStream(tempFile)
 
-            // Compress the image
+            // Compress the corrected image
             val baos = ByteArrayOutputStream()
-            originalBitmap.compress(Bitmap.CompressFormat.JPEG, COMPRESSION_QUALITY, baos)
+            correctedBitmap.compress(Bitmap.CompressFormat.JPEG, COMPRESSION_QUALITY, baos)
 
             // If the image is still too large, reduce quality until it's under MAX_IMAGE_SIZE
             var quality = COMPRESSION_QUALITY
             while (baos.toByteArray().size > MAX_IMAGE_SIZE && quality > 10) {
                 baos.reset()
                 quality -= 10
-                originalBitmap.compress(Bitmap.CompressFormat.JPEG, quality, baos)
+                correctedBitmap.compress(Bitmap.CompressFormat.JPEG, quality, baos)
+            }
+            
+            // Clean up bitmaps if they're different objects
+            if (correctedBitmap != originalBitmap) {
+                originalBitmap.recycle()
             }
 
             // Write the compressed image to the file
@@ -154,5 +164,59 @@ object ImageUtils {
         } else {
             "image_$timestamp.$extension"
         }
+    }
+    
+    /**
+     * Fix image orientation based on EXIF data
+     * @param context Application context
+     * @param imageUri URI of the original image
+     * @param bitmap The bitmap to correct
+     * @return Corrected bitmap with proper orientation
+     */
+    private fun fixImageOrientation(context: Context, imageUri: Uri, bitmap: Bitmap): Bitmap {
+        try {
+            val inputStream = context.contentResolver.openInputStream(imageUri)
+            inputStream?.use { stream ->
+                val exif = ExifInterface(stream)
+                val orientation = exif.getAttributeInt(
+                    ExifInterface.TAG_ORIENTATION,
+                    ExifInterface.ORIENTATION_NORMAL
+                )
+
+                val matrix = Matrix()
+                when (orientation) {
+                    ExifInterface.ORIENTATION_ROTATE_90 -> matrix.postRotate(90f)
+                    ExifInterface.ORIENTATION_ROTATE_180 -> matrix.postRotate(180f)
+                    ExifInterface.ORIENTATION_ROTATE_270 -> matrix.postRotate(270f)
+                    ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> matrix.postScale(-1f, 1f)
+                    ExifInterface.ORIENTATION_FLIP_VERTICAL -> matrix.postScale(1f, -1f)
+                    ExifInterface.ORIENTATION_TRANSPOSE -> {
+                        matrix.postRotate(90f)
+                        matrix.postScale(-1f, 1f)
+                    }
+                    ExifInterface.ORIENTATION_TRANSVERSE -> {
+                        matrix.postRotate(270f)
+                        matrix.postScale(-1f, 1f)
+                    }
+                    else -> return bitmap // No transformation needed
+                }
+
+                return try {
+                    val correctedBitmap = Bitmap.createBitmap(
+                        bitmap, 0, 0,
+                        bitmap.width, bitmap.height,
+                        matrix, true
+                    )
+                    correctedBitmap
+                } catch (e: OutOfMemoryError) {
+                    Log.e(TAG, "Out of memory creating rotated bitmap, returning original", e)
+                    bitmap
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error reading EXIF orientation data", e)
+        }
+        
+        return bitmap
     }
 }

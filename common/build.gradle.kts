@@ -65,6 +65,9 @@ dependencies {
 
     // Firebase
     implementation("com.google.firebase:firebase-storage-ktx:20.3.0")
+    
+    // ExifInterface for image orientation handling
+    implementation("androidx.exifinterface:exifinterface:1.3.6")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.ext.junit)
