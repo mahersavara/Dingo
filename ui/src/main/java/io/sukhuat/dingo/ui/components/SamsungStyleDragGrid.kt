@@ -2,10 +2,8 @@ package io.sukhuat.dingo.ui.components
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -27,7 +25,6 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
-import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
@@ -35,13 +32,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import io.sukhuat.dingo.domain.model.Goal
+import kotlinx.coroutines.delay
 
 /**
- * Simplified Samsung/One UI launcher-style drag and drop grid
- * For now, provides basic drag functionality while maintaining visual consistency
+ * Samsung/One UI launcher-style drag and drop grid
+ * Touch behavior:
+ * - Single tap: Execute action
+ * - Long press (500ms, no movement): Show edit popup
+ * - Long press + drag: Hide popup, start drag mode with floating icon
  */
 @Composable
-fun SimpleSamsungDragGrid(
+fun SamsungStyleDragGrid(
     goals: List<Goal>,
     onGoalClick: (Goal) -> Unit,
     onGoalLongPress: (Goal, Pair<Float, Float>) -> Unit,
@@ -51,73 +52,33 @@ fun SimpleSamsungDragGrid(
 ) {
     val gridState = rememberLazyGridState()
 
-    // Basic drag state
-    var draggedGoal by remember { mutableStateOf<Goal?>(null) }
-    var dragPosition by remember { mutableStateOf(Offset.Zero) }
+    // Create a fixed 12-position grid
+    val gridPositions = Array<Goal?>(12) { null }
+
+    // Populate grid based on position field, not creation order
+    goals.forEach { goal ->
+        val position = goal.position.coerceIn(0, 11)
+        if (gridPositions[position] == null) {
+            gridPositions[position] = goal
+        } else {
+            // Handle position conflict - find next available slot
+            val nextAvailable = gridPositions.indexOfFirst { it == null }
+            if (nextAvailable != -1) {
+                gridPositions[nextAvailable] = goal
+            }
+        }
+    }
+
+    // Samsung-style drag state
+    var dragState by remember { mutableStateOf<SamsungDragState>(SamsungDragState.Idle) }
     var gridBounds by remember { mutableStateOf(Rect.Zero) }
-    var previewGridPositions by remember { mutableStateOf<Array<Goal?>>(arrayOfNulls(12)) }
 
     // Grid position calculator
-    val calculateDropPosition = rememberSimpleGridPositionCalculator(
+    val calculateDropPosition = rememberSamsungGridPositionCalculator(
         gridBounds = gridBounds,
         columns = 3,
         rows = 4
     )
-
-    // Create smart grid with reflow preview
-    val displayGridPositions = remember(goals, draggedGoal, dragPosition) {
-        val baseGrid = Array<Goal?>(12) { null }
-
-        // Populate base grid based on position field
-        goals.forEach { goal ->
-            val position = goal.position.coerceIn(0, 11)
-            if (baseGrid[position] == null) {
-                baseGrid[position] = goal
-            } else {
-                // Handle position conflict - find next available slot
-                val nextAvailable = baseGrid.indexOfFirst { it == null }
-                if (nextAvailable != -1) {
-                    baseGrid[nextAvailable] = goal
-                }
-            }
-        }
-
-        // If dragging, create preview with smart reflow
-        if (draggedGoal != null && dragPosition != Offset.Zero) {
-            val previewGrid = Array<Goal?>(12) { null }
-            val targetPosition = calculateDropPosition(dragPosition)
-
-            // Place non-dragged items with smart shifting
-            val otherGoals = goals.filter { it.id != draggedGoal!!.id }
-
-            otherGoals.forEach { goal ->
-                val originalPos = goal.position.coerceIn(0, 11)
-
-                // If target position conflicts, shift items intelligently
-                val finalPos = if (targetPosition in 0..11) {
-                    when {
-                        originalPos < targetPosition -> originalPos // Items before target stay in place
-                        originalPos >= targetPosition -> {
-                            // Shift items at or after target position to the right
-                            val shiftedPos = originalPos + 1
-                            if (shiftedPos <= 11) shiftedPos else originalPos
-                        }
-                        else -> originalPos
-                    }
-                } else {
-                    originalPos
-                }
-
-                if (finalPos in 0..11 && previewGrid[finalPos] == null) {
-                    previewGrid[finalPos] = goal
-                }
-            }
-
-            previewGrid
-        } else {
-            baseGrid
-        }
-    }
 
     Box(modifier = modifier.fillMaxWidth()) {
         LazyVerticalGrid(
@@ -138,50 +99,49 @@ fun SimpleSamsungDragGrid(
                     )
                 }
         ) {
-            itemsIndexed(displayGridPositions.toList()) { index, goal ->
+            itemsIndexed(gridPositions.toList()) { index, goal ->
                 if (goal != null) {
-                    SimpleDraggableGoalItem(
+                    SamsungStyleGoalItem(
                         goal = goal,
-                        isDraggedAway = draggedGoal?.id == goal.id,
-                        isDropTarget = draggedGoal != null && calculateDropPosition(dragPosition) == index,
+                        isDraggedAway = (dragState as? SamsungDragState.Dragging)?.goal?.id == goal.id,
+                        isDropTarget = (dragState as? SamsungDragState.Dragging)?.let { calculateDropPosition(it.currentPosition) == index } ?: false,
                         onGoalClick = onGoalClick,
                         onGoalLongPress = onGoalLongPress,
-                        onDragStart = {
-                            draggedGoal = goal
-                            dragPosition = it
+                        onDragStart = { startPos ->
+                            dragState = SamsungDragState.Dragging(goal, startPos, goal.position)
                         },
-                        onDragUpdate = {
-                            dragPosition = it
+                        onDragUpdate = { newPos ->
+                            if (dragState is SamsungDragState.Dragging) {
+                                dragState = (dragState as SamsungDragState.Dragging).copy(currentPosition = newPos)
+                            }
                         },
                         onDragEnd = { finalPos ->
-                            draggedGoal?.let { draggedGoalRef ->
+                            if (dragState is SamsungDragState.Dragging) {
                                 val dropPosition = calculateDropPosition(finalPos)
-                                if (dropPosition != draggedGoalRef.position && dropPosition in 0..11) {
-                                    // Perform smart reordering
-                                    onGoalReorder(draggedGoalRef, dropPosition)
+                                if (dropPosition != goal.position && dropPosition in 0..11) {
+                                    onGoalReorder(goal, dropPosition)
                                 }
+                                dragState = SamsungDragState.Idle
                             }
-                            draggedGoal = null
-                            dragPosition = Offset.Zero
                         },
                         modifier = Modifier.aspectRatio(1f)
                     )
                 } else {
-                    SimpleEmptyGridPosition(
+                    SamsungEmptyGridPosition(
                         position = index,
                         onTap = { onEmptyPositionClick(index) },
                         modifier = Modifier.aspectRatio(1f),
-                        isHighlighted = draggedGoal != null && calculateDropPosition(dragPosition) == index
+                        isHighlighted = (dragState as? SamsungDragState.Dragging)?.let { calculateDropPosition(it.currentPosition) == index } ?: false
                     )
                 }
             }
         }
 
         // Floating dragged item overlay
-        draggedGoal?.let { goal ->
-            SimpleFloatingDraggedItem(
-                goal = goal,
-                position = dragPosition,
+        (dragState as? SamsungDragState.Dragging)?.let { state ->
+            FloatingDraggedItem(
+                goal = state.goal,
+                position = state.currentPosition,
                 modifier = Modifier.zIndex(10f)
             )
         }
@@ -189,10 +149,22 @@ fun SimpleSamsungDragGrid(
 }
 
 /**
- * Samsung-style draggable goal item with proper touch detection
+ * Samsung-style drag states
+ */
+sealed class SamsungDragState {
+    data object Idle : SamsungDragState()
+    data class Dragging(
+        val goal: Goal,
+        val currentPosition: Offset,
+        val startGridPosition: Int
+    ) : SamsungDragState()
+}
+
+/**
+ * Samsung-style goal item with proper touch detection
  */
 @Composable
-fun SimpleDraggableGoalItem(
+fun SamsungStyleGoalItem(
     goal: Goal,
     isDraggedAway: Boolean,
     isDropTarget: Boolean,
@@ -203,14 +175,16 @@ fun SimpleDraggableGoalItem(
     onDragEnd: (Offset) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var touchState by remember { mutableStateOf<SimpleTouchState>(SimpleTouchState.Idle) }
+    var touchState by remember { mutableStateOf<TouchState>(TouchState.Idle) }
     var showEditPopup by remember { mutableStateOf(false) }
-    var itemGlobalPosition by remember { mutableStateOf(Offset.Zero) }
     val hapticFeedback = LocalHapticFeedback.current
+    val density = LocalDensity.current
 
-    // Touch state is now handled directly by gesture detectors
+    // Touch configuration
+    val longPressTimeoutMs = 500L
+    val dragThreshold = with(density) { 10.dp.toPx() }
 
-    // Smooth animations
+    // Smooth animations for Samsung-style feel
     val animationSpec = spring<Float>(
         dampingRatio = Spring.DampingRatioMediumBouncy,
         stiffness = Spring.StiffnessLow
@@ -225,64 +199,89 @@ fun SimpleDraggableGoalItem(
     val scaleAnimation by animateFloatAsState(
         targetValue = when {
             isDropTarget -> 1.1f
-            touchState is SimpleTouchState.LongPressDetected -> 0.95f
+            touchState is TouchState.PressDown || touchState is TouchState.LongPressDetected -> 0.95f
             else -> 1f
         },
         animationSpec = animationSpec,
         label = "scale_animation"
     )
 
+    // Handle long press detection with LaunchedEffect
+    LaunchedEffect(touchState) {
+        if (touchState is TouchState.PressDown) {
+            val pressState = touchState as TouchState.PressDown
+            delay(longPressTimeoutMs)
+            if (touchState is TouchState.PressDown && touchState == pressState) {
+                // Long press detected - show popup
+                showEditPopup = true
+                val newState = TouchState.LongPressDetected(pressState.startPosition)
+                touchState = newState
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                onGoalLongPress(goal, Pair(pressState.startPosition.x, pressState.startPosition.y))
+            }
+        }
+    }
+
     Box(
         modifier = modifier
             .alpha(alphaAnimation)
             .scale(scaleAnimation)
-            .onGloballyPositioned { coordinates ->
-                itemGlobalPosition = coordinates.positionInWindow()
-            }
             .pointerInput(goal.id) {
-                // Handle taps and long press
-                detectTapGestures(
-                    onTap = {
-                        // Simple tap - always works
-                        onGoalClick(goal)
-                    },
-                    onLongPress = { offset ->
-                        // Long press - show popup with absolute screen coordinates
-                        touchState = SimpleTouchState.LongPressDetected(offset)
-                        showEditPopup = true
-                        hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                        // Convert to absolute screen coordinates
-                        val absoluteX = itemGlobalPosition.x + offset.x
-                        val absoluteY = itemGlobalPosition.y + offset.y
-                        onGoalLongPress(goal, Pair(absoluteX, absoluteY))
-                    }
-                )
-            }
-            .pointerInput(goal.id) {
-                // Handle drag operations (separate pointer input for drag)
                 detectDragGestures(
                     onDragStart = { startOffset ->
-                        // Only start drag if we're in long press mode
-                        if (touchState is SimpleTouchState.LongPressDetected) {
+                        // Drag started - this means user is moving finger
+                        // Check if we're in long press mode to start drag
+                        if (touchState is TouchState.LongPressDetected) {
+                            // Long press + movement = start drag mode
                             showEditPopup = false
-                            touchState = SimpleTouchState.Dragging(startOffset)
+                            touchState = TouchState.Dragging(startOffset)
                             onDragStart(startOffset)
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                        } else {
+                            // Set press state for quick detection
+                            touchState = TouchState.PressDown(startOffset, System.currentTimeMillis())
                         }
                     },
                     onDrag = { change, _ ->
-                        if (touchState is SimpleTouchState.Dragging) {
-                            touchState = SimpleTouchState.Dragging(change.position)
-                            onDragUpdate(change.position)
+                        when (val state = touchState) {
+                            is TouchState.PressDown -> {
+                                // Check if enough time passed for long press during drag
+                                val elapsedTime = System.currentTimeMillis() - state.startTime
+                                val distance = calculateDistance(state.startPosition, change.position)
+
+                                if (distance > dragThreshold) {
+                                    if (elapsedTime >= longPressTimeoutMs) {
+                                        // Long press + drag = start drag mode
+                                        showEditPopup = false
+                                        touchState = TouchState.Dragging(change.position)
+                                        onDragStart(change.position)
+                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    } else {
+                                        // Quick movement - cancel and do nothing
+                                        touchState = TouchState.Idle
+                                    }
+                                }
+                            }
+                            is TouchState.Dragging -> {
+                                // Continue dragging
+                                touchState = TouchState.Dragging(change.position)
+                                onDragUpdate(change.position)
+                            }
+                            else -> { /* Other states */ }
                         }
                     },
                     onDragEnd = {
-                        if (touchState is SimpleTouchState.Dragging) {
-                            val dragState = touchState as SimpleTouchState.Dragging
-                            onDragEnd(dragState.currentPosition)
+                        when (val state = touchState) {
+                            is TouchState.Dragging -> {
+                                // Complete drag operation
+                                onDragEnd(state.currentPosition)
+                            }
+                            else -> {
+                                // Handle as tap if not dragging
+                                onGoalClick(goal)
+                            }
                         }
-                        // Reset state
-                        touchState = SimpleTouchState.Idle
+                        touchState = TouchState.Idle
                         showEditPopup = false
                     }
                 )
@@ -294,27 +293,55 @@ fun SimpleDraggableGoalItem(
             isDragged = isDraggedAway,
             modifier = Modifier.fillMaxSize()
         )
-
-        // Show edit popup overlay if needed
-        if (showEditPopup && touchState is SimpleTouchState.LongPressDetected) {
-            // Add a simple visual indicator for edit mode
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                        RoundedCornerShape(16.dp)
-                    )
-            )
-        }
     }
 }
 
 /**
- * Simplified empty grid position
+ * Touch states for Samsung-style interaction
+ */
+sealed class TouchState {
+    data object Idle : TouchState()
+    data class PressDown(val startPosition: Offset, val startTime: Long) : TouchState()
+    data class LongPressDetected(val position: Offset) : TouchState()
+    data class Dragging(val currentPosition: Offset) : TouchState()
+}
+
+/**
+ * Floating dragged item that follows finger
  */
 @Composable
-fun SimpleEmptyGridPosition(
+fun FloatingDraggedItem(
+    goal: Goal,
+    position: Offset,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .offset(
+                x = with(LocalDensity.current) { (position.x - 40.dp.toPx()).toDp() },
+                y = with(LocalDensity.current) { (position.y - 40.dp.toPx()).toDp() }
+            )
+            .size(80.dp)
+            .graphicsLayer {
+                scaleX = 1.2f
+                scaleY = 1.2f
+                shadowElevation = 16.dp.toPx()
+                alpha = 0.9f
+            }
+    ) {
+        GoalCell(
+            goal = goal,
+            isDragged = true,
+            modifier = Modifier.fillMaxSize()
+        )
+    }
+}
+
+/**
+ * Empty grid position component for Samsung style
+ */
+@Composable
+fun SamsungEmptyGridPosition(
     position: Int,
     onTap: () -> Unit,
     modifier: Modifier = Modifier,
@@ -387,50 +414,19 @@ fun SimpleEmptyGridPosition(
 }
 
 /**
- * Simplified floating dragged item
+ * Calculate distance between two points
  */
-@Composable
-fun SimpleFloatingDraggedItem(
-    goal: Goal,
-    position: Offset,
-    modifier: Modifier = Modifier
-) {
-    Box(
-        modifier = modifier
-            .offset(
-                x = with(LocalDensity.current) { (position.x - 40.dp.toPx()).toDp() },
-                y = with(LocalDensity.current) { (position.y - 40.dp.toPx()).toDp() }
-            )
-            .size(80.dp)
-            .graphicsLayer {
-                scaleX = 1.2f
-                scaleY = 1.2f
-                shadowElevation = 16.dp.toPx()
-                alpha = 0.9f
-            }
-    ) {
-        GoalCell(
-            goal = goal,
-            isDragged = true,
-            modifier = Modifier.fillMaxSize()
-        )
-    }
+private fun calculateDistance(start: Offset, end: Offset): Float {
+    val dx = end.x - start.x
+    val dy = end.y - start.y
+    return kotlin.math.sqrt(dx * dx + dy * dy)
 }
 
 /**
- * Touch states for Samsung-style interaction
- */
-sealed class SimpleTouchState {
-    data object Idle : SimpleTouchState()
-    data class LongPressDetected(val position: Offset) : SimpleTouchState()
-    data class Dragging(val currentPosition: Offset) : SimpleTouchState()
-}
-
-/**
- * Simplified grid position calculator
+ * Grid position calculator
  */
 @Composable
-fun rememberSimpleGridPositionCalculator(
+fun rememberSamsungGridPositionCalculator(
     gridBounds: Rect = Rect.Zero,
     columns: Int = 3,
     rows: Int = 4

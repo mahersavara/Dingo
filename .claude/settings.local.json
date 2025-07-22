@@ -16,7 +16,9 @@
       "Bash(git push:*)",
       "Bash(.gradlew.bat clean build)",
       "Bash(gradlew.bat clean:*)",
-      "Bash(cp:*)"
+      "Bash(cp:*)",
+      "mcp__ide__getDiagnostics",
+      "Bash(rg:*)"
     ],
     "deny": []
   }

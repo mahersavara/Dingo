@@ -11,6 +11,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -147,6 +148,74 @@ class GoalRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             Log.e(TAG, "Error reordering goals", e)
             return false
+        }
+    }
+
+    override suspend fun moveGoalToPosition(goalId: String, newPosition: Int): Result<Unit> {
+        return try {
+            require(newPosition in 0..11) { "Grid position must be between 0 and 11" }
+
+            // Get current goals to check for conflicts
+            val currentGoals = getAllGoals().first()
+            val goalToMove = currentGoals.find { it.id == goalId }
+                ?: return Result.failure(Exception("Goal not found"))
+
+            // Check if target position is occupied
+            val goalAtTargetPosition = currentGoals.find { it.position == newPosition }
+
+            if (goalAtTargetPosition != null && goalAtTargetPosition.id != goalId) {
+                // Swap positions
+                val updatedGoalToMove = goalToMove.copy(position = newPosition)
+                val updatedGoalAtTarget = goalAtTargetPosition.copy(position = goalToMove.position)
+
+                firebaseGoalService.updateGoal(updatedGoalToMove)
+                firebaseGoalService.updateGoal(updatedGoalAtTarget)
+            } else {
+                // Just move to empty position
+                val updatedGoal = goalToMove.copy(position = newPosition)
+                firebaseGoalService.updateGoal(updatedGoal)
+            }
+
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error moving goal to position", e)
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun swapGoalPositions(goalId1: String, goalId2: String): Result<Unit> {
+        return try {
+            val currentGoals = getAllGoals().first()
+            val goal1 = currentGoals.find { it.id == goalId1 }
+                ?: return Result.failure(Exception("Goal 1 not found"))
+            val goal2 = currentGoals.find { it.id == goalId2 }
+                ?: return Result.failure(Exception("Goal 2 not found"))
+
+            // Swap positions
+            val updatedGoal1 = goal1.copy(position = goal2.position)
+            val updatedGoal2 = goal2.copy(position = goal1.position)
+
+            firebaseGoalService.updateGoal(updatedGoal1)
+            firebaseGoalService.updateGoal(updatedGoal2)
+
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error swapping goal positions", e)
+            Result.failure(e)
+        }
+    }
+
+    override fun getGoalsByGridPosition(): Flow<List<Goal>> {
+        return firebaseGoalService.getAllGoals().catch { error ->
+            Log.e(TAG, "Error getting goals by grid position", error)
+            emit(emptyList())
+        }.map { goals ->
+            // Sort by grid position (0-11), putting goals with invalid positions at the end
+            goals.sortedWith(
+                compareBy<Goal> {
+                    if (it.position in 0..11) it.position else Int.MAX_VALUE
+                }.thenBy { it.createdAt }
+            )
         }
     }
 

@@ -59,9 +59,25 @@ interface GoalRepository {
     suspend fun deleteGoal(goalId: String): Boolean
 
     /**
-     * Reorder goals
+     * Reorder goals (legacy method)
      */
     suspend fun reorderGoals(goalIds: List<String>): Boolean
+
+    /**
+     * Move a goal to a specific grid position
+     * If target position is occupied, swap with existing goal
+     */
+    suspend fun moveGoalToPosition(goalId: String, newPosition: Int): Result<Unit>
+
+    /**
+     * Swap positions of two goals
+     */
+    suspend fun swapGoalPositions(goalId1: String, goalId2: String): Result<Unit>
+
+    /**
+     * Get goals ordered by grid position (0-11)
+     */
+    fun getGoalsByGridPosition(): Flow<List<Goal>>
 
     /**
      * Clear all goals from the local database

@@ -416,4 +416,34 @@ class HomeViewModel @Inject constructor(
     fun isCurrentWeekReadOnly(): Boolean {
         return _currentWeekOffset.value < 0
     }
+
+    /**
+     * Create a goal at a specific grid position
+     */
+    fun createGoalAtPosition(text: String, position: Int, imageResId: Int? = null, customImage: String? = null) {
+        viewModelScope.launch {
+            try {
+                // Create goal with specific position
+                createGoalUseCase(text, imageResId, customImage, position)
+            } catch (e: Exception) {
+                _uiState.value = HomeUiState.Error("Failed to create goal at position: ${e.message}")
+            }
+        }
+    }
+
+    /**
+     * Reorder goal to a new position
+     */
+    fun reorderGoal(goal: io.sukhuat.dingo.domain.model.Goal, newPosition: Int) {
+        viewModelScope.launch {
+            try {
+                reorderGoalsUseCase.moveGoalToPosition(goal.id, newPosition)
+                    .onFailure { error ->
+                        _uiState.value = HomeUiState.Error("Failed to reorder goal: ${error.message}")
+                    }
+            } catch (e: Exception) {
+                _uiState.value = HomeUiState.Error("Failed to reorder goal: ${e.message}")
+            }
+        }
+    }
 }

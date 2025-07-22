@@ -134,28 +134,35 @@ fun BubbleComponent(
     val screenHeightPx = with(density) { configuration.screenHeightDp.dp.roundToPx() }
 
     // Smart positioning: above item if space available, below otherwise
-    val itemHeight = with(density) { 80.dp.roundToPx() } // Typical grid item height
-    val margin = with(density) { 16.dp.roundToPx() }
+    val estimatedItemHeight = with(density) { 100.dp.roundToPx() } // More accurate grid item height estimate
+    val margin = with(density) { 12.dp.roundToPx() }
+    val statusBarHeight = with(density) { 24.dp.roundToPx() } // Account for status bar
 
-    val spaceAbove = position.second - margin
-    val spaceBelow = screenHeightPx - position.second - itemHeight - margin
+    val spaceAbove = position.second - statusBarHeight - margin
+    val spaceBelow = screenHeightPx - position.second - estimatedItemHeight - margin
 
     val yPos = when {
         // Prefer above if there's enough space
-        spaceAbove >= bubbleHeightPx -> position.second - bubbleHeightPx - margin
+        spaceAbove >= bubbleHeightPx -> {
+            (position.second - bubbleHeightPx - margin).coerceAtLeast(statusBarHeight.toFloat())
+        }
         // Otherwise place below
-        spaceBelow >= bubbleHeightPx -> position.second + itemHeight + margin
-        // Fallback: center vertically with some offset to avoid covering item
+        spaceBelow >= bubbleHeightPx -> {
+            position.second + estimatedItemHeight + margin
+        }
+        // Fallback: find best position to avoid covering item
         else -> {
-            val centeredY = (screenHeightPx - bubbleHeightPx) / 2f
-            if (centeredY < position.second + itemHeight + margin) {
-                // If centered position would cover item, place it below
-                position.second + itemHeight + margin
+            val abovePosition = (position.second - bubbleHeightPx - margin).coerceAtLeast(statusBarHeight.toFloat())
+            val belowPosition = position.second + estimatedItemHeight + margin
+
+            // Choose position that fits better on screen
+            if (belowPosition + bubbleHeightPx <= screenHeightPx) {
+                belowPosition
             } else {
-                centeredY
+                abovePosition
             }
         }
-    }.coerceIn(0f, (screenHeightPx - bubbleHeightPx).toFloat())
+    }.coerceIn(statusBarHeight.toFloat(), (screenHeightPx - bubbleHeightPx).toFloat())
 
     // Calculate horizontal position with proper bounds checking
     val xPos = position.first.coerceIn(0f, (screenWidthPx - bubbleWidthPx).toFloat())

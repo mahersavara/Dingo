@@ -13,13 +13,15 @@ class CreateGoalUseCase @Inject constructor(
     suspend operator fun invoke(
         text: String,
         imageResId: Int? = null,
-        customImage: String? = null
+        customImage: String? = null,
+        position: Int = -1
     ): Result<String> {
         return try {
             val goal = Goal.create(
                 text = text,
                 imageResId = imageResId,
-                customImage = customImage
+                customImage = customImage,
+                position = position
             )
 
             val goalId = goalRepository.createGoal(goal)
