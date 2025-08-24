@@ -7,8 +7,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import io.sukhuat.dingo.data.cache.ProfileCacheManagerImpl
-import io.sukhuat.dingo.data.network.NetworkConnectivityCheckerImpl
-import io.sukhuat.dingo.domain.model.NetworkConnectivityChecker
+import io.sukhuat.dingo.data.network.NetworkConnectivityChecker
 import io.sukhuat.dingo.domain.model.ProfileCacheManager
 import javax.inject.Singleton
 
@@ -22,8 +21,8 @@ abstract class ErrorHandlingDataModule {
     @Binds
     @Singleton
     abstract fun bindNetworkConnectivityChecker(
-        networkConnectivityCheckerImpl: NetworkConnectivityCheckerImpl
-    ): NetworkConnectivityChecker
+        networkConnectivityChecker: NetworkConnectivityChecker
+    ): io.sukhuat.dingo.domain.model.NetworkConnectivityChecker
 
     @Binds
     @Singleton

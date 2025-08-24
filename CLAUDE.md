@@ -160,6 +160,14 @@ Requires `google-services.json` in app module and Google Web Client ID configura
 6. Make every task and code change you do as simple as possible. We want to avoid making any massive or complex changes. Every change should impact as little code as possible. Everything is about simplicity.
 7. Finally, add a review section to the tasks/<task_name>.md file with a summary of the changes you made and any other relevant information.
 
+## Task template (Android)
+- Confirm requirements + constraints (module, package, nav args, state).
+- Plan files to change/create (paths cụ thể).
+- Implement step-by-step, *only touching planned files*.
+
+- Run: ./gradlew :app:compileDebugKotlin
+- Self-review: liệt kê diff, cảnh báo, TODO (nếu có).
+
 ## Known Issues
 
 - Need to implement swipe feature for profile
