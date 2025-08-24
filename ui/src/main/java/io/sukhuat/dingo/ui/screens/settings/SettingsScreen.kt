@@ -8,11 +8,15 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Cloud
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -39,7 +43,7 @@ import io.sukhuat.dingo.common.R
 import io.sukhuat.dingo.common.components.GeneralItem
 import io.sukhuat.dingo.common.components.LoadingIndicator
 import io.sukhuat.dingo.common.components.TrailingContent
-import io.sukhuat.dingo.common.icons.MedievalIcons
+// import io.sukhuat.dingo.common.icons.MedievalIcons // REMOVED: Medieval theme deleted
 import io.sukhuat.dingo.common.localization.LocalAppLanguage
 import io.sukhuat.dingo.common.localization.SupportedLanguages
 import io.sukhuat.dingo.common.theme.MountainSunriseTheme
@@ -459,7 +463,7 @@ private fun getAudioFeedbackSettings(
     SettingItem(
         title = soundEffectsTitle,
         description = soundEffectsDescription,
-        icon = MedievalIcons.Lute,
+        icon = Icons.Default.MusicNote,
         trailingContent = TrailingContent.Switch(
             checked = preferences.soundEnabled,
             onCheckedChange = onSoundToggle
@@ -468,7 +472,7 @@ private fun getAudioFeedbackSettings(
     SettingItem(
         title = vibrationTitle,
         description = vibrationDescription,
-        icon = MedievalIcons.Bell,
+        icon = Icons.Default.Notifications,
         trailingContent = TrailingContent.Switch(
             checked = preferences.vibrationEnabled,
             onCheckedChange = onVibrationToggle
@@ -500,7 +504,7 @@ private fun getNotificationSettings(
     SettingItem(
         title = weeklyRemindersTitle,
         description = weeklyRemindersDescription,
-        icon = MedievalIcons.Bell,
+        icon = Icons.Default.Notifications,
         trailingContent = TrailingContent.Switch(
             checked = preferences.weeklyRemindersEnabled,
             onCheckedChange = onWeeklyRemindersToggle
@@ -509,7 +513,7 @@ private fun getNotificationSettings(
     SettingItem(
         title = goalCompletionTitle,
         description = goalCompletionDescription,
-        icon = MedievalIcons.Bell,
+        icon = Icons.Default.Notifications,
         trailingContent = TrailingContent.Switch(
             checked = preferences.goalCompletionNotifications,
             onCheckedChange = onGoalCompletionNotificationsToggle
@@ -530,7 +534,7 @@ private fun getAppearanceSettings(
     SettingItem(
         title = darkModeTitle,
         description = darkModeDescription,
-        icon = MedievalIcons.Sun,
+        icon = Icons.Default.WbSunny,
         trailingContent = TrailingContent.Switch(
             checked = preferences.darkModeEnabled,
             onCheckedChange = onDarkModeToggle
@@ -539,7 +543,7 @@ private fun getAppearanceSettings(
     SettingItem(
         title = languageTitle,
         description = currentLanguageLabel,
-        icon = MedievalIcons.Scroll,
+        icon = Icons.Default.Description,
         trailingContent = TrailingContent.Arrow,
         onClick = onLanguageClick
     )
@@ -557,7 +561,7 @@ private fun getPrivacyDataSettings(
     SettingItem(
         title = autoBackupTitle,
         description = autoBackupDescription,
-        icon = MedievalIcons.CloudWind,
+        icon = Icons.Default.Cloud,
         trailingContent = TrailingContent.Switch(
             checked = preferences.autoBackupEnabled,
             onCheckedChange = onAutoBackupToggle
