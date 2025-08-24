@@ -58,6 +58,7 @@ fun DingoAppScaffold(
     currentLanguage: AppLanguage? = null,
     showUserMenu: Boolean = false,
     onProfileClick: () -> Unit = {},
+    onYearPlannerClick: () -> Unit = {},
     onLanguageChange: (String) -> Unit = {},
     onSettingsClick: () -> Unit = {},
     onLogoutClick: () -> Unit = {},
@@ -95,6 +96,7 @@ fun DingoAppScaffold(
         currentLanguage = currentLanguage ?: LocalAppLanguage.current,
         showUserMenu = showUserMenu,
         onProfileClick = onProfileClick,
+        onYearPlannerClick = onYearPlannerClick,
         onLanguageChange = onLanguageChange,
         onSettingsClick = onSettingsClick,
         onLogoutClick = onLogoutClick

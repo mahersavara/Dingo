@@ -123,6 +123,7 @@ fun HomeScreen(
     onSignOut: () -> Unit,
     onNavigateToSettings: () -> Unit = {},
     onNavigateToProfile: () -> Unit = {},
+    onNavigateToYearPlanner: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
@@ -304,6 +305,7 @@ fun HomeScreen(
         currentLanguage = LocalAppLanguage.current,
         onLanguageChange = handleLanguageChange,
         onProfileClick = onNavigateToProfile,
+        onYearPlannerClick = onNavigateToYearPlanner,
         onSettingsClick = onNavigateToSettings,
         onLogoutClick = { viewModel.signOut(onSignOut) }
     ) { paddingValues ->

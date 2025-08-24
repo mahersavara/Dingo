@@ -79,6 +79,7 @@ fun DingoScaffold(
     currentLanguage: AppLanguage = SupportedLanguages[0],
     showUserMenu: Boolean = false,
     onProfileClick: () -> Unit = {},
+    onYearPlannerClick: () -> Unit = {},
     onLanguageChange: (String) -> Unit = {},
     onSettingsClick: () -> Unit = {},
     onLogoutClick: () -> Unit = {},
@@ -196,6 +197,7 @@ fun DingoScaffold(
                                         userProfileImageUrl = userProfileImageUrl,
                                         currentLanguage = currentLanguage,
                                         onProfileClick = onProfileClick,
+                                        onYearPlannerClick = onYearPlannerClick,
                                         onLanguageChange = onLanguageChange,
                                         onSettingsClick = onSettingsClick,
                                         onLogoutClick = onLogoutClick

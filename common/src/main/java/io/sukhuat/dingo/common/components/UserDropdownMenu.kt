@@ -62,6 +62,7 @@ fun UserDropdownMenu(
     userProfileImageUrl: String? = null,
     currentLanguage: AppLanguage = LocalAppLanguage.current,
     onProfileClick: () -> Unit = {},
+    onYearPlannerClick: () -> Unit = {},
     onLanguageChange: (String) -> Unit = {},
     onSettingsClick: () -> Unit = {},
     onLogoutClick: () -> Unit = {}
@@ -173,6 +174,23 @@ fun UserDropdownMenu(
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Default.AccountCircle,
+                            contentDescription = null
+                        )
+                    }
+                )
+            }
+
+            // Year Planner option
+            if (isAuthenticated) {
+                DropdownMenuItem(
+                    text = { Text("Year Planner") },
+                    onClick = {
+                        expanded = false
+                        onYearPlannerClick()
+                    },
+                    leadingIcon = {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_calendar_year),
                             contentDescription = null
                         )
                     }

@@ -29,6 +29,7 @@ import io.sukhuat.dingo.ui.screens.home.HomeScreen
 import io.sukhuat.dingo.ui.screens.profile.ProfileScreen
 import io.sukhuat.dingo.ui.screens.settings.SettingsScreen
 import io.sukhuat.dingo.ui.screens.splash.SplashScreen
+import io.sukhuat.dingo.ui.screens.yearplanner.YearPlannerScreen
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 
@@ -151,6 +152,9 @@ fun DingoApp() {
                     },
                     onNavigateToProfile = {
                         navController.navigate(Screen.Profile.route)
+                    },
+                    onNavigateToYearPlanner = {
+                        navController.navigate(Screen.YearPlannerCurrent.route)
                     }
                 )
             }
@@ -226,6 +230,23 @@ fun DingoApp() {
                     },
                     onNavigateToSettings = {
                         navController.navigate(Screen.Settings.route)
+                    }
+                )
+            }
+            composable(Screen.YearPlannerCurrent.route) {
+                YearPlannerScreen(
+                    onNavigateBack = {
+                        navController.popBackStack()
+                    }
+                )
+            }
+            composable(Screen.YearPlanner.route) { backStackEntry ->
+                val year = backStackEntry.arguments?.getString("year")?.toIntOrNull() 
+                    ?: java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
+                YearPlannerScreen(
+                    year = year,
+                    onNavigateBack = {
+                        navController.popBackStack()
                     }
                 )
             }

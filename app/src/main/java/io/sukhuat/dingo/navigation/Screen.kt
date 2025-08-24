@@ -13,4 +13,10 @@ sealed class Screen(val route: String) {
     data object Detail : Screen("detail/{id}") {
         fun createRoute(id: Int) = "detail/$id"
     }
+
+    // Year Planner routes
+    data object YearPlannerCurrent : Screen("year_planner")
+    data object YearPlanner : Screen("year_planner/{year}") {
+        fun createRoute(year: Int) = "year_planner/$year"
+    }
 }
