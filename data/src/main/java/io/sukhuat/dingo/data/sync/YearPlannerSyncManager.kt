@@ -13,7 +13,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -33,9 +32,9 @@ class YearPlannerSyncManager @Inject constructor(
     private val cacheManager: YearPlannerCacheManager,
     private val context: Context
 ) {
-    
+
     private val syncScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-    
+
     /**
      * Get year plan with offline support
      * Returns cached data if offline, Firebase data if online
@@ -49,7 +48,7 @@ class YearPlannerSyncManager @Inject constructor(
             flowOf(null) // Will be handled by repository to return cached data
         }
     }
-    
+
     /**
      * Save year plan with sync management
      * Caches locally if offline, syncs when online
@@ -73,7 +72,7 @@ class YearPlannerSyncManager @Inject constructor(
             true // Return success for offline save
         }
     }
-    
+
     /**
      * Update month content with sync management
      */
@@ -93,7 +92,7 @@ class YearPlannerSyncManager @Inject constructor(
             true
         }
     }
-    
+
     /**
      * Force sync of all pending data
      */
@@ -102,11 +101,11 @@ class YearPlannerSyncManager @Inject constructor(
             Log.w(TAG, "Cannot force sync: No network connection")
             return false
         }
-        
+
         return try {
             val cachedYears = cacheManager.getCachedYears()
             var allSynced = true
-            
+
             for (year in cachedYears) {
                 val cachedYearPlan = cacheManager.getCachedYearPlan(year)
                 if (cachedYearPlan != null && cachedYearPlan.syncStatus != SyncStatus.SYNCED) {
@@ -117,14 +116,14 @@ class YearPlannerSyncManager @Inject constructor(
                     }
                 }
             }
-            
+
             allSynced
         } catch (e: Exception) {
             Log.e(TAG, "Error during force sync", e)
             false
         }
     }
-    
+
     /**
      * Sync a single year plan to Firebase
      */
@@ -142,18 +141,18 @@ class YearPlannerSyncManager @Inject constructor(
             } catch (e: Exception) {
                 Log.e(TAG, "Sync attempt ${attempts + 1} failed for year ${yearPlan.year}", e)
             }
-            
+
             attempts++
             if (attempts < MAX_RETRY_ATTEMPTS) {
                 delay(SYNC_RETRY_DELAY * attempts) // Exponential backoff
             }
         }
-        
+
         // Mark as sync error after all attempts failed
         cacheManager.cacheYearPlan(yearPlan.markSyncError())
         return false
     }
-    
+
     /**
      * Schedule sync when network becomes available
      */
@@ -163,12 +162,12 @@ class YearPlannerSyncManager @Inject constructor(
             while (!isNetworkAvailable()) {
                 delay(SYNC_RETRY_DELAY)
             }
-            
+
             Log.d(TAG, "Network available, starting sync of pending data")
             forceSyncPendingData()
         }
     }
-    
+
     /**
      * Check if network is available
      */
@@ -177,14 +176,14 @@ class YearPlannerSyncManager @Inject constructor(
             val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
             val network = connectivityManager.activeNetwork
             val networkCapabilities = connectivityManager.getNetworkCapabilities(network)
-            
+
             networkCapabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
         } catch (e: Exception) {
             Log.e(TAG, "Error checking network availability", e)
             false
         }
     }
-    
+
     /**
      * Get sync status for a year
      */

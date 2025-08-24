@@ -35,15 +35,15 @@ class YearPlannerViewModel @Inject constructor(
     private val saveMonthContentUseCase: SaveMonthContentUseCase,
     private val getAllYearsUseCase: GetAllYearsUseCase
 ) : ViewModel() {
-    
+
     // UI State
     private val _uiState = MutableStateFlow<YearPlannerUiState>(YearPlannerUiState.Loading)
     val uiState: StateFlow<YearPlannerUiState> = _uiState.asStateFlow()
-    
+
     // Current year
     private val _currentYear = MutableStateFlow(Calendar.getInstance().get(Calendar.YEAR))
     val currentYear: StateFlow<Int> = _currentYear.asStateFlow()
-    
+
     // Available years
     val availableYears: StateFlow<List<Int>> = getAllYearsUseCase()
         .catch { error ->
@@ -55,7 +55,7 @@ class YearPlannerViewModel @Inject constructor(
             started = SharingStarted.Lazily,
             initialValue = emptyList()
         )
-    
+
     // Current year plan data
     val currentYearPlan: StateFlow<YearPlan?> = _currentYear
         .flatMapLatest { year ->
@@ -73,15 +73,15 @@ class YearPlannerViewModel @Inject constructor(
             started = SharingStarted.Lazily,
             initialValue = null
         )
-    
+
     // Auto-save jobs for different months
     private val autoSaveJobs = mutableMapOf<Int, Job>()
-    
+
     init {
         // Observe year plan changes and update UI state
         viewModelScope.launch {
             currentYearPlan.collect { yearPlan ->
-                yearPlan?.let { 
+                yearPlan?.let {
                     _uiState.value = YearPlannerUiState.Success(it)
                 }
                 // If yearPlan is null and we're in loading state, keep loading
@@ -89,7 +89,7 @@ class YearPlannerViewModel @Inject constructor(
             }
         }
     }
-    
+
     /**
      * Load a specific year
      */
@@ -100,7 +100,7 @@ class YearPlannerViewModel @Inject constructor(
             Log.d(TAG, "Loading year plan for year $year")
         }
     }
-    
+
     /**
      * Navigate to previous year
      */
@@ -109,7 +109,7 @@ class YearPlannerViewModel @Inject constructor(
         loadYear(previousYear)
         Log.d(TAG, "Navigated to previous year: $previousYear")
     }
-    
+
     /**
      * Navigate to next year
      */
@@ -118,7 +118,7 @@ class YearPlannerViewModel @Inject constructor(
         loadYear(nextYear)
         Log.d(TAG, "Navigated to next year: $nextYear")
     }
-    
+
     /**
      * Update month content with auto-save debouncing
      * PRD requirement: 800ms debounce before saving
@@ -126,25 +126,25 @@ class YearPlannerViewModel @Inject constructor(
     fun updateMonthContent(monthIndex: Int, content: String) {
         // Cancel existing auto-save job for this month
         autoSaveJobs[monthIndex]?.cancel()
-        
+
         // Update UI state immediately for responsive feeling
         val currentState = _uiState.value
         if (currentState is YearPlannerUiState.Success) {
             val updatedYearPlan = currentState.yearPlan.updateMonth(monthIndex, content)
             _uiState.value = YearPlannerUiState.Success(updatedYearPlan)
         }
-        
+
         // Schedule auto-save with debouncing
         autoSaveJobs[monthIndex] = viewModelScope.launch {
             delay(AUTO_SAVE_DELAY)
-            
+
             try {
                 val result = saveMonthContentUseCase(
                     year = _currentYear.value,
                     monthIndex = monthIndex,
                     content = content
                 )
-                
+
                 result.fold(
                     onSuccess = {
                         Log.d(TAG, "Successfully saved month $monthIndex content for year ${_currentYear.value}")
@@ -161,10 +161,10 @@ class YearPlannerViewModel @Inject constructor(
                 autoSaveJobs.remove(monthIndex)
             }
         }
-        
+
         Log.d(TAG, "Scheduled auto-save for month $monthIndex in ${AUTO_SAVE_DELAY}ms")
     }
-    
+
     /**
      * Force save all pending changes
      */
@@ -177,7 +177,7 @@ class YearPlannerViewModel @Inject constructor(
             Log.d(TAG, "All pending saves completed")
         }
     }
-    
+
     /**
      * Refresh current year plan
      */
@@ -187,7 +187,7 @@ class YearPlannerViewModel @Inject constructor(
         loadYear(currentYear)
         Log.d(TAG, "Refreshing year plan for year $currentYear")
     }
-    
+
     override fun onCleared() {
         super.onCleared()
         // Cancel all pending auto-save jobs
@@ -206,12 +206,12 @@ sealed class YearPlannerUiState {
      * Loading state - fetching data
      */
     object Loading : YearPlannerUiState()
-    
+
     /**
      * Success state - data loaded successfully
      */
     data class Success(val yearPlan: YearPlan) : YearPlannerUiState()
-    
+
     /**
      * Error state - failed to load data
      */

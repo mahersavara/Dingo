@@ -37,27 +37,27 @@ class YearPlannerRepositoryImpl @Inject constructor(
     private val firebaseService: FirebaseYearPlannerService,
     private val context: Context
 ) : YearPlannerRepository {
-    
+
     // Coroutine scope for background operations
     private val repositoryScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-    
+
     // DataStore keys
     private val LAST_ACCESSED_YEAR_KEY = intPreferencesKey("last_accessed_year")
-    
+
     override fun getYearPlan(year: Int): Flow<YearPlan?> {
         return firebaseService.getYearPlan(year).catch { error ->
             Log.e(TAG, "Error getting year plan for year $year", error)
             emit(null)
         }
     }
-    
+
     override fun getAllYears(): Flow<List<Int>> {
         return firebaseService.getAllYears().catch { error ->
             Log.e(TAG, "Error getting all years", error)
             emit(emptyList())
         }
     }
-    
+
     override suspend fun saveYearPlan(yearPlan: YearPlan): Boolean {
         return try {
             val success = firebaseService.saveYearPlan(yearPlan)
@@ -71,7 +71,7 @@ class YearPlannerRepositoryImpl @Inject constructor(
             false
         }
     }
-    
+
     override suspend fun updateMonthContent(year: Int, monthIndex: Int, content: String): Boolean {
         return try {
             // Ensure year plan exists (create empty if needed)
@@ -80,7 +80,7 @@ class YearPlannerRepositoryImpl @Inject constructor(
                 Log.d(TAG, "Creating empty year plan for year $year")
                 firebaseService.createEmptyYearPlanIfNotExists(year)
             }
-            
+
             // Update month content
             val success = firebaseService.updateMonthContent(year, monthIndex, content)
             if (success) {
@@ -93,7 +93,7 @@ class YearPlannerRepositoryImpl @Inject constructor(
             false
         }
     }
-    
+
     override suspend fun deleteYearPlan(year: Int): Boolean {
         return try {
             firebaseService.deleteYearPlan(year)
@@ -102,7 +102,7 @@ class YearPlannerRepositoryImpl @Inject constructor(
             false
         }
     }
-    
+
     override suspend fun yearPlanExists(year: Int): Boolean {
         return try {
             firebaseService.yearPlanExists(year)
@@ -111,7 +111,7 @@ class YearPlannerRepositoryImpl @Inject constructor(
             false
         }
     }
-    
+
     override suspend fun getLastAccessedYear(): Int? {
         return try {
             context.yearPlannerDataStore.data
@@ -124,7 +124,7 @@ class YearPlannerRepositoryImpl @Inject constructor(
             null
         }
     }
-    
+
     override suspend fun updateLastAccessedYear(year: Int) {
         try {
             context.yearPlannerDataStore.edit { preferences ->

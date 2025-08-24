@@ -40,12 +40,12 @@ fun YearPlannerScreen(
     // Collect UI state
     val uiState by viewModel.uiState.collectAsState()
     val currentYear by viewModel.currentYear.collectAsState()
-    
+
     // Update year when parameter changes
     LaunchedEffect(year) {
         viewModel.loadYear(year)
     }
-    
+
     DingoAppScaffold(
         title = currentYear.toString(),
         navigationIcon = {
@@ -60,7 +60,7 @@ fun YearPlannerScreen(
         useGradientBackground = true,
         isLoading = uiState is YearPlannerUiState.Loading
     ) { paddingValues ->
-        
+
         when (uiState) {
             is YearPlannerUiState.Loading -> {
                 Box(
@@ -74,7 +74,7 @@ fun YearPlannerScreen(
                     )
                 }
             }
-            
+
             is YearPlannerUiState.Error -> {
                 val errorState = uiState as YearPlannerUiState.Error
                 Box(
@@ -99,7 +99,7 @@ fun YearPlannerScreen(
                     }
                 }
             }
-            
+
             is YearPlannerUiState.Success -> {
                 val successState = uiState as YearPlannerUiState.Success
                 YearPlannerContent(
@@ -137,7 +137,7 @@ private fun YearPlannerContent(
                 modifier = Modifier.padding(vertical = 16.dp)
             )
         }
-        
+
         // Month cards - always show all 12 months
         items(yearPlan.months) { month ->
             MonthCard(
@@ -149,7 +149,7 @@ private fun YearPlannerContent(
                 modifier = Modifier.padding(vertical = 4.dp)
             )
         }
-        
+
         // Bottom padding for better scrolling
         item {
             Box(modifier = Modifier.padding(bottom = 32.dp))
@@ -177,14 +177,14 @@ private fun YearHeader(
             ),
             color = MaterialTheme.colorScheme.primary
         )
-        
+
         Text(
             text = "${statistics.monthsWithContent} of 12 months planned",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
             modifier = Modifier.padding(top = 4.dp)
         )
-        
+
         if (statistics.totalWords > 0) {
             Text(
                 text = "${statistics.totalWords} words total",

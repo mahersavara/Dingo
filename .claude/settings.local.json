@@ -41,7 +41,8 @@
       "Bash(dir:*)",
       "Bash(del \"F:\\Work\\ericodyssey\\Dingo\\ui\\src\\main\\java\\io\\sukhuat\\dingo\\ui\\screens\\yearplanner\\components\\PlaceholderBulletItem.kt\")",
       "Bash(del \"F:\\Work\\ericodyssey\\Dingo\\nul\")",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(handle \"F:\\Work\\ericodyssey\\Dingo\\common\\build\\intermediates\\compile_library_classes_jar\\debug\\bundleLibCompileToJarDebug\\classes.jar\")"
     ],
     "deny": []
   }

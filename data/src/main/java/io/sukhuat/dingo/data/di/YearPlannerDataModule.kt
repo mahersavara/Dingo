@@ -20,7 +20,7 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object YearPlannerDataModule {
-    
+
     /**
      * Provides the Firebase Year Planner Service
      */
@@ -32,7 +32,7 @@ object YearPlannerDataModule {
     ): FirebaseYearPlannerService {
         return FirebaseYearPlannerService(firestore, auth)
     }
-    
+
     /**
      * Provides the Year Planner Repository implementation
      */

@@ -8,12 +8,9 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import io.sukhuat.dingo.domain.model.yearplanner.SyncStatus
-import io.sukhuat.dingo.domain.model.yearplanner.YearPlan
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
 import com.google.gson.Gson
+import io.sukhuat.dingo.domain.model.yearplanner.YearPlan
+import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -33,13 +30,13 @@ private val Context.yearPlannerCacheDataStore: DataStore<Preferences> by prefere
 class YearPlannerCacheManager @Inject constructor(
     private val context: Context
 ) {
-    
+
     private val gson = Gson()
-    
+
     // DataStore keys for caching
     private fun yearPlanKey(year: Int) = stringPreferencesKey("year_plan_$year")
     private fun yearPlanTimestampKey(year: Int) = longPreferencesKey("year_plan_timestamp_$year")
-    
+
     /**
      * Cache year plan data locally
      */
@@ -56,7 +53,7 @@ class YearPlannerCacheManager @Inject constructor(
             Log.e(TAG, "Error caching year plan for year ${yearPlan.year}", e)
         }
     }
-    
+
     /**
      * Get cached year plan if available
      */
@@ -75,7 +72,7 @@ class YearPlannerCacheManager @Inject constructor(
             null
         }
     }
-    
+
     /**
      * Check if cached data is fresh (within last hour)
      */
@@ -85,7 +82,7 @@ class YearPlannerCacheManager @Inject constructor(
                 val timestamp = preferences[yearPlanTimestampKey(year)] ?: 0L
                 val currentTime = System.currentTimeMillis()
                 val oneHourInMillis = 60 * 60 * 1000 // 1 hour
-                
+
                 (currentTime - timestamp) < oneHourInMillis
             }
         } catch (e: Exception) {
@@ -93,7 +90,7 @@ class YearPlannerCacheManager @Inject constructor(
             false
         }
     }
-    
+
     /**
      * Clear cached data for a specific year
      */
@@ -108,7 +105,7 @@ class YearPlannerCacheManager @Inject constructor(
             Log.e(TAG, "Error clearing cache for year $year", e)
         }
     }
-    
+
     /**
      * Clear all cached year planner data
      */
@@ -122,7 +119,7 @@ class YearPlannerCacheManager @Inject constructor(
             Log.e(TAG, "Error clearing all cache", e)
         }
     }
-    
+
     /**
      * Get all cached years
      */

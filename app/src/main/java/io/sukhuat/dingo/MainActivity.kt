@@ -241,8 +241,7 @@ fun DingoApp() {
                 )
             }
             composable(Screen.YearPlanner.route) { backStackEntry ->
-                val year = backStackEntry.arguments?.getString("year")?.toIntOrNull() 
-                    ?: java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
+                val year = backStackEntry.arguments?.getString("year")?.toIntOrNull() ?: java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
                 YearPlannerScreen(
                     year = year,
                     onNavigateBack = {

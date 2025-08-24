@@ -27,21 +27,21 @@ class FirebaseYearPlannerService @Inject constructor(
     private val firestore: FirebaseFirestore,
     private val auth: FirebaseAuth
 ) {
-    
+
     /**
      * Get the current user ID or throw an exception if not logged in
      */
     private fun getCurrentUserId(): String {
         return auth.currentUser?.uid ?: throw IllegalStateException("User is not authenticated")
     }
-    
+
     /**
      * Get a reference to the user's year planners collection
      */
     private fun getUserYearPlannersCollection() = firestore.collection("users")
         .document(getCurrentUserId())
         .collection(COLLECTION_YEAR_PLANNERS)
-    
+
     /**
      * Get year plan for specific year as a Flow
      */
@@ -54,14 +54,14 @@ class FirebaseYearPlannerService @Inject constructor(
                     close(error)
                     return@addSnapshotListener
                 }
-                
+
                 val yearPlan = snapshot?.toObject(FirebaseYearPlan::class.java)?.toDomain()
                 trySend(yearPlan)
             }
-        
+
         awaitClose { listenerRegistration.remove() }
     }
-    
+
     /**
      * Get all available years that have year plans
      */
@@ -73,17 +73,17 @@ class FirebaseYearPlannerService @Inject constructor(
                     close(error)
                     return@addSnapshotListener
                 }
-                
+
                 val years = snapshot?.documents?.mapNotNull { doc ->
                     doc.id.toIntOrNull()
                 } ?: emptyList()
-                
+
                 trySend(years.sorted())
             }
-        
+
         awaitClose { listenerRegistration.remove() }
     }
-    
+
     /**
      * Save complete year plan to Firebase
      */
@@ -94,7 +94,7 @@ class FirebaseYearPlannerService @Inject constructor(
                 .document(yearPlan.year.toString())
                 .set(firebaseYearPlan)
                 .await()
-            
+
             Log.d(TAG, "Year plan saved successfully for year ${yearPlan.year}")
             true
         } catch (e: Exception) {
@@ -102,7 +102,7 @@ class FirebaseYearPlannerService @Inject constructor(
             false
         }
     }
-    
+
     /**
      * Update content for a specific month
      */
@@ -110,15 +110,17 @@ class FirebaseYearPlannerService @Inject constructor(
         return try {
             val docRef = getUserYearPlannersCollection().document(year.toString())
             val currentTime = System.currentTimeMillis()
-            
+
             // Calculate word count
-            val wordCount = if (content.isBlank()) 0 else {
+            val wordCount = if (content.isBlank()) {
+                0
+            } else {
                 content.trim()
                     .split("\\s+".toRegex())
                     .filter { it.isNotBlank() }
                     .size
             }
-            
+
             // Update specific month fields
             val updates = mapOf(
                 "months.$monthIndex.content" to content,
@@ -126,7 +128,7 @@ class FirebaseYearPlannerService @Inject constructor(
                 "months.$monthIndex.wordCount" to wordCount,
                 "updatedAt" to currentTime
             )
-            
+
             docRef.update(updates).await()
             Log.d(TAG, "Month $monthIndex content updated for year $year")
             true
@@ -135,7 +137,7 @@ class FirebaseYearPlannerService @Inject constructor(
             false
         }
     }
-    
+
     /**
      * Delete year plan completely
      */
@@ -145,7 +147,7 @@ class FirebaseYearPlannerService @Inject constructor(
                 .document(year.toString())
                 .delete()
                 .await()
-            
+
             Log.d(TAG, "Year plan deleted successfully for year $year")
             true
         } catch (e: Exception) {
@@ -153,7 +155,7 @@ class FirebaseYearPlannerService @Inject constructor(
             false
         }
     }
-    
+
     /**
      * Check if year plan exists
      */
@@ -163,14 +165,14 @@ class FirebaseYearPlannerService @Inject constructor(
                 .document(year.toString())
                 .get()
                 .await()
-            
+
             snapshot.exists()
         } catch (e: Exception) {
             Log.e(TAG, "Error checking if year plan exists for year $year", e)
             false
         }
     }
-    
+
     /**
      * Create empty year plan if it doesn't exist
      */
@@ -178,18 +180,18 @@ class FirebaseYearPlannerService @Inject constructor(
         return try {
             val userId = getCurrentUserId()
             val docRef = getUserYearPlannersCollection().document(year.toString())
-            
+
             // Check if document exists
             val snapshot = docRef.get().await()
             if (snapshot.exists()) {
                 Log.d(TAG, "Year plan already exists for year $year")
                 return true
             }
-            
+
             // Create empty year plan
             val emptyYearPlan = YearPlannerMapper.createEmptyFirebaseYearPlan(year, userId)
             docRef.set(emptyYearPlan).await()
-            
+
             Log.d(TAG, "Empty year plan created for year $year")
             true
         } catch (e: Exception) {
