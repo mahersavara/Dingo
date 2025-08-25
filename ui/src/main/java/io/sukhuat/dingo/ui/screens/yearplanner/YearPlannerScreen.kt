@@ -1,13 +1,32 @@
 package io.sukhuat.dingo.ui.screens.yearplanner
 
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
+import kotlin.math.abs
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -107,6 +126,8 @@ fun YearPlannerScreen(
                     onMonthContentChanged = { monthIndex, content ->
                         viewModel.updateMonthContent(monthIndex, content)
                     },
+                    onSwipeLeft = { viewModel.navigateToNextYear() },
+                    onSwipeRight = { viewModel.navigateToPreviousYear() },
                     modifier = Modifier.padding(paddingValues)
                 )
             }
@@ -122,37 +143,128 @@ fun YearPlannerScreen(
 private fun YearPlannerContent(
     yearPlan: io.sukhuat.dingo.domain.model.yearplanner.YearPlan,
     onMonthContentChanged: (Int, String) -> Unit,
+    onSwipeLeft: () -> Unit = {},
+    onSwipeRight: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    LazyColumn(
+    // Swipe gesture state - same as HomeScreen
+    var offsetX by remember { mutableStateOf(0f) }
+    val density = LocalDensity.current
+    val swipeThreshold = with(density) { 100.dp.toPx() }
+    
+    Box(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp)
+            .pointerInput(yearPlan.year) {
+                detectDragGestures(
+                    onDragEnd = {
+                        when {
+                            offsetX > swipeThreshold -> {
+                                // Swipe right - go to previous year
+                                onSwipeRight()
+                            }
+                            offsetX < -swipeThreshold -> {
+                                // Swipe left - go to next year
+                                onSwipeLeft()
+                            }
+                        }
+                        offsetX = 0f
+                    }
+                ) { _, dragAmount ->
+                    offsetX += dragAmount.x
+                    // Limit offset to prevent excessive dragging - same as HomeScreen
+                    offsetX = offsetX.coerceIn(-swipeThreshold * 2, swipeThreshold * 2)
+                }
+            }
     ) {
-        // Year header with statistics
-        item {
-            YearHeader(
-                year = yearPlan.year,
-                statistics = yearPlan.getStatistics(),
-                modifier = Modifier.padding(vertical = 16.dp)
-            )
-        }
+        // Main content with swipe offset animation - same as HomeScreen
+        Box(
+            modifier = Modifier
+                .offset { IntOffset(offsetX.toInt(), 0) }
+                .graphicsLayer {
+                    // Add visual feedback for swipe - same as HomeScreen
+                    alpha = 1f - (kotlin.math.abs(offsetX) / (swipeThreshold * 2)).coerceIn(0f, 0.3f)
+                }
+        ) {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp)
+            ) {
+                // Year header with statistics
+                item {
+                    YearHeader(
+                        year = yearPlan.year,
+                        statistics = yearPlan.getStatistics(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 16.dp)
+                    )
+                }
 
-        // Month cards - always show all 12 months
-        items(yearPlan.months) { month ->
-            MonthCard(
-                month = month,
-                year = yearPlan.year,
-                onContentChange = { content ->
-                    onMonthContentChanged(month.index, content)
-                },
-                modifier = Modifier.padding(vertical = 4.dp)
-            )
-        }
+                // Month cards - always show all 12 months
+                items(yearPlan.months) { month ->
+                    MonthCard(
+                        month = month,
+                        year = yearPlan.year,
+                        onContentChange = { content ->
+                            onMonthContentChanged(month.index, content)
+                        },
+                        modifier = Modifier.padding(vertical = 4.dp)
+                    )
+                }
 
-        // Bottom padding for better scrolling
-        item {
-            Box(modifier = Modifier.padding(bottom = 32.dp))
+                // Bottom padding for better scrolling
+                item {
+                    Box(modifier = Modifier.padding(bottom = 32.dp))
+                }
+            }
+        }
+        
+        // Left swipe indicator (previous year) - same as HomeScreen
+        if (offsetX > 0) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .padding(16.dp)
+                    .size(40.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.primary.copy(
+                            alpha = (offsetX / swipeThreshold).coerceIn(0f, 0.8f)
+                        ),
+                        shape = CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.KeyboardArrowLeft,
+                    contentDescription = "Previous year",
+                    tint = MaterialTheme.colorScheme.onPrimary
+                )
+            }
+        }
+        
+        // Right swipe indicator (next year) - same as HomeScreen
+        if (offsetX < 0) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .padding(16.dp)
+                    .size(40.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.primary.copy(
+                            alpha = (kotlin.math.abs(offsetX) / swipeThreshold).coerceIn(0f, 0.8f)
+                        ),
+                        shape = CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.KeyboardArrowRight,
+                    contentDescription = "Next year",
+                    tint = MaterialTheme.colorScheme.onPrimary
+                )
+            }
         }
     }
 }
@@ -168,20 +280,23 @@ private fun YearHeader(
 ) {
     Column(
         modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
         Text(
             text = year.toString(),
             style = MaterialTheme.typography.headlineLarge.copy(
                 fontWeight = FontWeight.Bold
             ),
-            color = MaterialTheme.colorScheme.primary
+            color = MaterialTheme.colorScheme.primary,
+            textAlign = TextAlign.Center
         )
 
         Text(
             text = "${statistics.monthsWithContent} of 12 months planned",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+            textAlign = TextAlign.Center,
             modifier = Modifier.padding(top = 4.dp)
         )
 
@@ -190,6 +305,7 @@ private fun YearHeader(
                 text = "${statistics.totalWords} words total",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                textAlign = TextAlign.Center,
                 modifier = Modifier.padding(top = 2.dp)
             )
         }
