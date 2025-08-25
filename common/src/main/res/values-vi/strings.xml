@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Hành Trình Du Khách</string>
-    <string name="app_name_line1">HÀNH TRÌNH</string>
-    <string name="app_name_line2">DU KHÁCH</string>
+    <string name="app_name">DINGO</string>
+    <string name="app_name_line1">TRAVELER\'S</string>
+    <string name="app_name_line2">JOURNEY</string>
     
     <!-- Menu Items -->
     <string name="profile">Hồ Sơ</string>

@@ -1,50 +1,45 @@
 package io.sukhuat.dingo.ui.screens.yearplanner
 
-import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.IntOffset
-import kotlin.math.abs
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import io.sukhuat.dingo.ui.components.DingoAppScaffold
 import io.sukhuat.dingo.ui.screens.yearplanner.components.MonthCard
 import java.util.Calendar
+import kotlin.math.abs
 
 /**
  * Year Planner Screen - Main screen for year planning with 12 month cards
@@ -65,27 +60,16 @@ fun YearPlannerScreen(
         viewModel.loadYear(year)
     }
 
-    DingoAppScaffold(
-        title = currentYear.toString(),
-        navigationIcon = {
-            IconButton(onClick = onNavigateBack) {
-                Icon(
-                    imageVector = Icons.Default.ArrowBack,
-                    contentDescription = "Back",
-                    tint = MaterialTheme.colorScheme.onSurface
-                )
-            }
-        },
-        useGradientBackground = true,
-        isLoading = uiState is YearPlannerUiState.Loading
-    ) { paddingValues ->
-
+    // Remove scaffold and use custom header like HomeScreen
+    Box(
+        modifier = Modifier.fillMaxSize()
+    ) {
         when (uiState) {
             is YearPlannerUiState.Loading -> {
                 Box(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues),
+                        .fillMaxSize(),
+//                        .padding(paddingValues),
                     contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator(
@@ -98,8 +82,8 @@ fun YearPlannerScreen(
                 val errorState = uiState as YearPlannerUiState.Error
                 Box(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues),
+                        .fillMaxSize(),
+//                        .padding(paddingValues),
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -127,8 +111,8 @@ fun YearPlannerScreen(
                         viewModel.updateMonthContent(monthIndex, content)
                     },
                     onSwipeLeft = { viewModel.navigateToNextYear() },
-                    onSwipeRight = { viewModel.navigateToPreviousYear() },
-                    modifier = Modifier.padding(paddingValues)
+                    onSwipeRight = { viewModel.navigateToPreviousYear() }
+//                    modifier = Modifier.padding(paddingValues)
                 )
             }
         }
@@ -151,7 +135,7 @@ private fun YearPlannerContent(
     var offsetX by remember { mutableStateOf(0f) }
     val density = LocalDensity.current
     val swipeThreshold = with(density) { 100.dp.toPx() }
-    
+
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -220,7 +204,7 @@ private fun YearPlannerContent(
                 }
             }
         }
-        
+
         // Left swipe indicator (previous year) - same as HomeScreen
         if (offsetX > 0) {
             Box(
@@ -243,7 +227,7 @@ private fun YearPlannerContent(
                 )
             }
         }
-        
+
         // Right swipe indicator (next year) - same as HomeScreen
         if (offsetX < 0) {
             Box(
