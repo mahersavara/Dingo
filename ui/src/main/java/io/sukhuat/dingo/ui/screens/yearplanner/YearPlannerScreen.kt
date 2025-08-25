@@ -29,6 +29,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
@@ -37,6 +38,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import io.sukhuat.dingo.common.theme.MountainSunriseTheme
 import io.sukhuat.dingo.ui.screens.yearplanner.components.MonthCard
 import java.util.Calendar
 import kotlin.math.abs
@@ -60,9 +62,21 @@ fun YearPlannerScreen(
         viewModel.loadYear(year)
     }
 
-    // Remove scaffold and use custom header like HomeScreen
+    // Create gradient background
+    val extendedColors = MountainSunriseTheme.extendedColors
+    val backgroundBrush = Brush.verticalGradient(
+        colors = listOf(
+            extendedColors.surfaceGradientStart,
+            extendedColors.surfaceGradientMiddle,
+            extendedColors.surfaceGradientEnd
+        )
+    )
+
+    // Apply gradient background
     Box(
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier
+            .fillMaxSize()
+            .background(brush = backgroundBrush)
     ) {
         when (uiState) {
             is YearPlannerUiState.Loading -> {
