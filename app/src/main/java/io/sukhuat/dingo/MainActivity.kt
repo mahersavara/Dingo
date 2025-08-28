@@ -15,9 +15,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
 import dagger.hilt.android.AndroidEntryPoint
 import io.sukhuat.dingo.common.localization.LocalAppLanguage
@@ -25,6 +27,9 @@ import io.sukhuat.dingo.common.localization.LocalLanguageUpdateState
 import io.sukhuat.dingo.common.theme.DingoTheme
 import io.sukhuat.dingo.navigation.Screen
 import io.sukhuat.dingo.ui.screens.auth.AuthScreen
+import io.sukhuat.dingo.ui.screens.auth.EmailVerificationScreen
+import io.sukhuat.dingo.ui.screens.auth.EnhancedRegistrationScreen
+import io.sukhuat.dingo.ui.screens.auth.ForgotPasswordScreen
 import io.sukhuat.dingo.ui.screens.home.HomeScreen
 import io.sukhuat.dingo.ui.screens.profile.ProfileScreen
 import io.sukhuat.dingo.ui.screens.settings.SettingsScreen
@@ -73,6 +78,45 @@ class MainActivity : ComponentActivity() {
                         DingoApp()
                     }
                 }
+            }
+        }
+    }
+
+    override fun onNewIntent(intent: android.content.Intent?) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleDeepLink(intent)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Handle deep link from initial launch or new intent
+        handleDeepLink(intent)
+    }
+
+    private fun handleDeepLink(intent: android.content.Intent?) {
+        val deepLinkDestination = io.sukhuat.dingo.util.DeepLinkHandler.parseDeepLink(intent)
+
+        when (deepLinkDestination) {
+            is io.sukhuat.dingo.util.DeepLinkHandler.DeepLinkDestination.PasswordResetSuccess -> {
+                // Navigate to login screen with success message
+                // This will be handled by the navigation system
+            }
+            is io.sukhuat.dingo.util.DeepLinkHandler.DeepLinkDestination.EmailVerificationSuccess -> {
+                // Navigate to login screen or main app if already authenticated
+                // This will be handled by the navigation system
+            }
+            is io.sukhuat.dingo.util.DeepLinkHandler.DeepLinkDestination.AuthError -> {
+                // Show error message to user
+                val errorMessage = io.sukhuat.dingo.util.DeepLinkHandler.getAuthErrorMessage(deepLinkDestination.error)
+                io.sukhuat.dingo.common.utils.ToastHelper.showLong(this, errorMessage)
+            }
+            is io.sukhuat.dingo.util.DeepLinkHandler.DeepLinkDestination.ProfileSection -> {
+                // Navigate to specific profile section
+                // This will be handled by the navigation system
+            }
+            is io.sukhuat.dingo.util.DeepLinkHandler.DeepLinkDestination.Unknown -> {
+                // Do nothing for unknown deep links
             }
         }
     }
@@ -136,6 +180,63 @@ fun DingoApp() {
                         navController.navigate(Screen.Home.route) {
                             popUpTo(Screen.Auth.route) { inclusive = true }
                         }
+                    },
+                    onNavigateToForgotPassword = {
+                        navController.navigate(Screen.ForgotPassword.route)
+                    },
+                    onNavigateToRegistration = {
+                        navController.navigate(Screen.Registration.route)
+                    }
+                )
+            }
+            composable(Screen.Registration.route) {
+                EnhancedRegistrationScreen(
+                    onRegistrationSuccess = { email ->
+                        navController.navigate(Screen.EmailVerification.createRoute(email)) {
+                            popUpTo(Screen.Registration.route) { inclusive = true }
+                        }
+                    },
+                    onNavigateToLogin = {
+                        navController.navigate(Screen.Auth.route) {
+                            popUpTo(Screen.Registration.route) { inclusive = true }
+                        }
+                    }
+                )
+            }
+            composable(
+                route = "auth/email-verification?email={email}",
+                arguments = listOf(navArgument("email") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val email = backStackEntry.arguments?.getString("email") ?: ""
+                EmailVerificationScreen(
+                    userEmail = email,
+                    onVerificationComplete = {
+                        navController.navigate(Screen.Home.route) {
+                            popUpTo(Screen.EmailVerification.route) { inclusive = true }
+                        }
+                    },
+                    onChangeEmail = {
+                        navController.navigate(Screen.Registration.route) {
+                            popUpTo(Screen.EmailVerification.route) { inclusive = true }
+                        }
+                    },
+                    onSkipForNow = {
+                        navController.navigate(Screen.Home.route) {
+                            popUpTo(Screen.EmailVerification.route) { inclusive = true }
+                        }
+                    }
+                )
+            }
+            composable(Screen.ForgotPassword.route) {
+                ForgotPasswordScreen(
+                    onBackToLogin = {
+                        navController.navigate(Screen.Auth.route) {
+                            popUpTo(Screen.ForgotPassword.route) { inclusive = true }
+                        }
+                    },
+                    onResetEmailSent = { email ->
+                        // Stay on forgot password screen but show success state
+                        // Navigation is handled within the screen
                     }
                 )
             }

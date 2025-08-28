@@ -18,7 +18,6 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.sukhuat.dingo.common.theme.ButtonCornerRadius
-import io.sukhuat.dingo.common.theme.DeepIndigo
 import io.sukhuat.dingo.common.theme.DustyRose
 import io.sukhuat.dingo.common.theme.InputFieldHeight
 import io.sukhuat.dingo.common.theme.MountainShadow
@@ -92,11 +91,13 @@ fun DingoTextField(
                 unfocusedIndicatorColor = MountainShadow,
                 errorIndicatorColor = DustyRose,
                 cursorColor = RusticGold,
-                focusedTextColor = DeepIndigo,
-                unfocusedTextColor = DeepIndigo,
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
                 focusedLabelColor = RusticGold,
-                unfocusedLabelColor = MountainShadow,
-                errorLabelColor = DustyRose
+                unfocusedLabelColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                errorLabelColor = DustyRose,
+                focusedPlaceholderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
             )
         )
 

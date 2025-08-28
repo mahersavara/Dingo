@@ -3,6 +3,11 @@ package io.sukhuat.dingo.navigation
 sealed class Screen(val route: String) {
     data object Splash : Screen("splash")
     data object Auth : Screen("auth")
+    data object Registration : Screen("auth/registration")
+    data object EmailVerification : Screen("auth/email-verification") {
+        fun createRoute(email: String) = "auth/email-verification?email=$email"
+    }
+    data object ForgotPassword : Screen("auth/forgot-password")
     data object Home : Screen("home")
     data object Settings : Screen("settings")
     data object Profile : Screen("profile")

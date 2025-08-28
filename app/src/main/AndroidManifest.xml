@@ -40,6 +40,26 @@
                 <data android:scheme="dingo"
                       android:host="profile" />
             </intent-filter>
+            
+            <!-- Deep link support for password reset callbacks -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https"
+                      android:host="dingo-app.com"
+                      android:pathPrefix="/auth/reset" />
+            </intent-filter>
+            
+            <!-- Deep link support for email verification -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https"
+                      android:host="dingo-app.com"
+                      android:pathPrefix="/verify-email" />
+            </intent-filter>
         </activity>
 
         <!-- Broadcast receiver for weekly reminder notifications -->

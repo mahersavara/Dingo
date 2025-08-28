@@ -108,94 +108,137 @@ fun DingoCard(
         Modifier
     }
 
-    Card(
-        modifier = cardModifier.then(borderModifier),
-        shape = shape,
-        colors = CardDefaults.cardColors(
-            containerColor = backgroundColor,
-            contentColor = actualContentColor
-        ),
-        border = border,
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = elevation
-        ),
-        onClick = onClick ?: {}
-    ) {
-        // Background gradient if enabled
-        val contentModifier = if (useGradientBackground) {
-            Modifier.background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        extendedColors.surfaceGradientStart,
-                        extendedColors.surfaceGradientMiddle,
-                        extendedColors.surfaceGradientEnd
-                    )
+    // Use clickable Card only if onClick is provided, otherwise use non-clickable Card
+    if (onClick != null) {
+        Card(
+            modifier = cardModifier.then(borderModifier),
+            shape = shape,
+            colors = CardDefaults.cardColors(
+                containerColor = backgroundColor,
+                contentColor = actualContentColor
+            ),
+            border = border,
+            elevation = CardDefaults.cardElevation(
+                defaultElevation = elevation
+            ),
+            onClick = onClick
+        ) {
+            CardContent(
+                title = title,
+                useGradientBackground = useGradientBackground,
+                isLoading = isLoading,
+                contentColor = actualContentColor,
+                content = content
+            )
+        }
+    } else {
+        Card(
+            modifier = cardModifier.then(borderModifier),
+            shape = shape,
+            colors = CardDefaults.cardColors(
+                containerColor = backgroundColor,
+                contentColor = actualContentColor
+            ),
+            border = border,
+            elevation = CardDefaults.cardElevation(
+                defaultElevation = elevation
+            )
+        ) {
+            CardContent(
+                title = title,
+                useGradientBackground = useGradientBackground,
+                isLoading = isLoading,
+                contentColor = actualContentColor,
+                content = content
+            )
+        }
+    }
+}
+
+@Composable
+private fun CardContent(
+    title: String?,
+    useGradientBackground: Boolean,
+    isLoading: Boolean,
+    contentColor: Color,
+    content: @Composable () -> Unit
+) {
+    val extendedColors = MountainSunriseTheme.extendedColors
+
+    // Background gradient if enabled
+    val contentModifier = if (useGradientBackground) {
+        Modifier.background(
+            brush = Brush.verticalGradient(
+                colors = listOf(
+                    extendedColors.surfaceGradientStart,
+                    extendedColors.surfaceGradientMiddle,
+                    extendedColors.surfaceGradientEnd
                 )
             )
-        } else {
-            Modifier
-        }
+        )
+    } else {
+        Modifier
+    }
 
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .then(contentModifier)
-                .padding(SpaceMedium)
-        ) {
-            // Title
-            if (title != null) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = SpaceMedium)
-                ) {
-                    // Apply a gradient to uppercase titles
-                    if (title.uppercase() == title) {
-                        // Create a gradient background behind the title
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(
-                                    brush = Brush.horizontalGradient(
-                                        colors = listOf(
-                                            DeepPurple.copy(alpha = 0.2f),
-                                            Color.Transparent,
-                                            Color.Transparent
-                                        )
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(contentModifier)
+            .padding(SpaceMedium)
+    ) {
+        // Title
+        if (title != null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = SpaceMedium)
+            ) {
+                // Apply a gradient to uppercase titles
+                if (title.uppercase() == title) {
+                    // Create a gradient background behind the title
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(
+                                brush = Brush.horizontalGradient(
+                                    colors = listOf(
+                                        DeepPurple.copy(alpha = 0.2f),
+                                        Color.Transparent,
+                                        Color.Transparent
                                     )
                                 )
-                                .padding(vertical = 4.dp, horizontal = 8.dp)
-                        ) {
-                            Text(
-                                text = title,
-                                style = MaterialTheme.typography.headlineSmall,
-                                color = RusticGold
                             )
-                        }
-                    } else {
-                        // Regular title
+                            .padding(vertical = 4.dp, horizontal = 8.dp)
+                    ) {
                         Text(
                             text = title,
                             style = MaterialTheme.typography.headlineSmall,
-                            color = actualContentColor
+                            color = RusticGold
                         )
                     }
+                } else {
+                    // Regular title
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = contentColor
+                    )
                 }
             }
+        }
 
-            // Content
-            Box(modifier = Modifier.fillMaxWidth()) {
-                content()
+        // Content
+        Box(modifier = Modifier.fillMaxWidth()) {
+            content()
 
-                // Loading indicator
-                if (isLoading) {
-                    Box(
-                        modifier = Modifier.fillMaxWidth(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        LoadingIndicator()
-                    }
+            // Loading indicator
+            if (isLoading) {
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    LoadingIndicator()
                 }
             }
         }

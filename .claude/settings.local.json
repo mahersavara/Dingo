@@ -44,6 +44,9 @@
       "Bash(git reset:*)",
       "Bash(handle \"F:\\Work\\ericodyssey\\Dingo\\common\\build\\intermediates\\compile_library_classes_jar\\debug\\bundleLibCompileToJarDebug\\classes.jar\")"
     ],
-    "deny": []
+    "deny": [],
+    "additionalDirectories": [
+      "F:\\F\\Work\\ericodyssey"
+    ]
   }
 }

@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -65,7 +67,7 @@ private fun EmailPasswordFields(
         errorText = errorText
     )
 
-    Spacer(modifier = Modifier.height(16.dp))
+    Spacer(modifier = Modifier.height(12.dp))
 
     DingoTextField(
         value = password,
@@ -79,21 +81,20 @@ private fun EmailPasswordFields(
 
 @Composable
 private fun AuthButtons(
-    isSignUp: Boolean,
     onSignInClick: () -> Unit,
-    onToggleAuthMode: () -> Unit
+    onNavigateToRegistration: () -> Unit
 ) {
     DingoButton(
-        text = if (isSignUp) stringResource(R.string.sign_up) else stringResource(R.string.sign_in),
+        text = stringResource(R.string.sign_in),
         onClick = onSignInClick,
         modifier = Modifier.fillMaxWidth()
     )
 
-    Spacer(modifier = Modifier.height(8.dp))
+    Spacer(modifier = Modifier.height(4.dp))
 
     DingoButton(
-        text = if (isSignUp) stringResource(R.string.already_have_account) else stringResource(R.string.need_account),
-        onClick = onToggleAuthMode,
+        text = stringResource(R.string.need_account),
+        onClick = onNavigateToRegistration,
         type = ButtonType.TEXT,
         modifier = Modifier.fillMaxWidth()
     )
@@ -125,6 +126,8 @@ private fun GoogleSignInButton(
 @Composable
 fun AuthScreen(
     onAuthSuccess: () -> Unit,
+    onNavigateToForgotPassword: () -> Unit = {},
+    onNavigateToRegistration: () -> Unit = {},
     viewModel: AuthViewModel = hiltViewModel()
 ) {
     val authState by viewModel.authState.collectAsState()
@@ -188,7 +191,6 @@ fun AuthScreen(
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var isSignUp by remember { mutableStateOf(false) }
 
     LaunchedEffect(authState) {
         if (authState is AuthUiState.Success) {
@@ -223,10 +225,13 @@ fun AuthScreen(
                 // No settings on auth screen
             }
         ) { paddingValues ->
+            val scrollState = rememberScrollState()
+
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
+                    .verticalScroll(scrollState)
             ) {
                 DingoCard(
                     modifier = Modifier
@@ -241,15 +246,15 @@ fun AuthScreen(
                             .fillMaxWidth()
                             .padding(16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text(
-                            text = if (isSignUp) stringResource(R.string.create_account) else stringResource(R.string.welcome_back),
+                            text = stringResource(R.string.welcome_back),
                             style = MaterialTheme.typography.headlineSmall,
                             textAlign = TextAlign.Center
                         )
 
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(4.dp))
 
                         // Check if there's an error to display
                         val isError = authState is AuthUiState.Error
@@ -264,19 +269,22 @@ fun AuthScreen(
                             errorText = errorText
                         )
 
-                        AuthButtons(
-                            isSignUp = isSignUp,
-                            onSignInClick = {
-                                if (isSignUp) {
-                                    viewModel.signUp(email, password, password)
-                                } else {
-                                    viewModel.signIn(email, password)
-                                }
-                            },
-                            onToggleAuthMode = { isSignUp = !isSignUp }
+                        // Forgot Password button
+                        DingoButton(
+                            text = stringResource(R.string.forgot_password),
+                            onClick = onNavigateToForgotPassword,
+                            type = ButtonType.TEXT,
+                            modifier = Modifier.fillMaxWidth()
                         )
 
-                        Spacer(modifier = Modifier.height(8.dp))
+                        AuthButtons(
+                            onSignInClick = {
+                                viewModel.signIn(email, password)
+                            },
+                            onNavigateToRegistration = onNavigateToRegistration
+                        )
+
+                        Spacer(modifier = Modifier.height(4.dp))
 
                         Text(
                             text = stringResource(R.string.or),
@@ -285,7 +293,7 @@ fun AuthScreen(
                             color = RusticGold
                         )
 
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(4.dp))
 
                         GoogleSignInButton(
                             onGoogleSignInClick = { viewModel.initiateGoogleSignIn(launcher) }

@@ -32,7 +32,6 @@ import io.sukhuat.dingo.common.localization.AppLanguage
 import io.sukhuat.dingo.common.localization.LocalLanguageUpdateState
 import io.sukhuat.dingo.common.localization.SupportedLanguages
 import io.sukhuat.dingo.common.theme.CloudGray
-import io.sukhuat.dingo.common.theme.DeepIndigo
 import io.sukhuat.dingo.common.theme.MountainSunriseTheme
 import io.sukhuat.dingo.common.theme.RusticGold
 import io.sukhuat.dingo.common.theme.ScreenPaddingHorizontal
@@ -127,12 +126,12 @@ fun DingoScaffold(
         extendedColors.backgroundVariant
     }
 
-    // Create a gradient for the top app bar
+    // Create a theme-aware gradient for the top app bar
     val topAppBarGradient = Brush.horizontalGradient(
         colors = listOf(
-            DeepIndigo.copy(alpha = 0.95f),
-            DeepIndigo,
-            DeepIndigo.copy(alpha = 0.9f)
+            MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+            MaterialTheme.colorScheme.surface,
+            MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
         )
     )
 
@@ -170,7 +169,7 @@ fun DingoScaffold(
                                 style = MaterialTheme.typography.headlineMedium.copy(
                                     fontWeight = FontWeight.Bold
                                 ),
-                                color = if (it.uppercase() == it) RusticGold else CloudGray,
+                                color = if (it.uppercase() == it) RusticGold else MaterialTheme.colorScheme.onSurface,
                                 textAlign = TextAlign.Center
                             )
                         }

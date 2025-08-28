@@ -29,6 +29,72 @@
     <string name="creating_account">Creating account...</string>
     <string name="loading">Loading...</string>
     
+    <!-- Enhanced Authentication Features -->
+    <string name="email_verification">Email Verification</string>
+    <string name="forgot_password">Forgot Password</string>
+    <string name="confirm_password">Confirm Password</string>
+    <string name="password_strength">Password Strength</string>
+    <string name="verify_email">Verify Email</string>
+    <string name="send_reset_email">Send Reset Email</string>
+    <string name="resend_verification">Resend Verification</string>
+    <string name="back_to_login">Back to Login</string>
+    <string name="change_email">Change Email</string>
+    <string name="skip_for_now">Skip for Now</string>
+    
+    <!-- Email Verification Screen -->
+    <string name="email_verification_title">Verify Your Email</string>
+    <string name="email_verification_message">We\'ve sent a verification email to:</string>
+    <string name="verification_email_sent">Verification email sent!</string>
+    <string name="check_email_instructions">Please check your email and click the verification link to continue.</string>
+    <string name="didnt_receive_email">Didn\'t receive the email?</string>
+    <string name="resend_in_seconds">Resend in %d seconds</string>
+    <string name="email_verified_success">Email verified successfully!</string>
+    <string name="verification_failed">Verification failed</string>
+    
+    <!-- Forgot Password Screen -->
+    <string name="forgot_password_title">Reset Password</string>
+    <string name="forgot_password_message">Enter your email address and we\'ll send you a link to reset your password.</string>
+    <string name="reset_email_sent">Reset email sent!</string>
+    <string name="reset_email_sent_message">Check your email for password reset instructions.</string>
+    <string name="enter_email_address">Enter your email address</string>
+    
+    <!-- Password Strength Indicator -->
+    <string name="password_strength_weak">Weak</string>
+    <string name="password_strength_fair">Fair</string>
+    <string name="password_strength_good">Good</string>
+    <string name="password_strength_strong">Strong</string>
+    <string name="password_strength_very_strong">Very Strong</string>
+    
+    <!-- Password Requirements -->
+    <string name="password_req_length">8+ characters</string>
+    <string name="password_req_uppercase">Uppercase letter (A-Z)</string>
+    <string name="password_req_lowercase">Lowercase letter (a-z)</string>
+    <string name="password_req_number">Number (0-9)</string>
+    <string name="password_req_special">Special character (!@#$%^&amp;*)</string>
+    <string name="password_req_not_common">Not common password</string>
+    
+    <!-- Registration Screen -->
+    <string name="registration_title">Create Your Account</string>
+    <string name="passwords_dont_match">Passwords don\'t match</string>
+    <string name="password_too_weak">Password is too weak</string>
+    <string name="invalid_email_format">Invalid email format</string>
+    
+    <!-- Authentication Errors -->
+    <string name="auth_error_user_not_found">No account found with this email</string>
+    <string name="auth_error_wrong_password">Incorrect password</string>
+    <string name="auth_error_email_already_in_use">Email is already registered</string>
+    <string name="auth_error_weak_password">Password is too weak</string>
+    <string name="auth_error_invalid_email">Invalid email address</string>
+    <string name="auth_error_network_error">Network error. Check your connection.</string>
+    <string name="auth_error_too_many_requests">Too many attempts. Please try again later.</string>
+    <string name="auth_error_user_disabled">Account has been disabled</string>
+    <string name="auth_error_operation_not_allowed">This sign-in method is not allowed</string>
+    <string name="auth_error_unknown">An unknown error occurred</string>
+    
+    <!-- Rate Limiting Messages -->
+    <string name="rate_limit_email_verification">Please wait before requesting another verification email</string>
+    <string name="rate_limit_password_reset">Too many password reset attempts. Try again in an hour.</string>
+    
     <!-- Home Screen -->
     <string name="welcome_message">Good morning, Adventurer</string>
     <string name="today_sunrise">Today\'s sunrise: 6:24 AM</string>

@@ -28,6 +28,72 @@
     <string name="creating_account">Đang tạo tài khoản...</string>
     <string name="loading">Đang tải...</string>
     
+    <!-- Enhanced Authentication Features -->
+    <string name="email_verification">Xác Thực Email</string>
+    <string name="forgot_password">Quên Mật Khẩu</string>
+    <string name="confirm_password">Xác Nhận Mật Khẩu</string>
+    <string name="password_strength">Độ Mạnh Mật Khẩu</string>
+    <string name="verify_email">Xác Thực Email</string>
+    <string name="send_reset_email">Gửi Email Đặt Lại</string>
+    <string name="resend_verification">Gửi Lại Xác Thực</string>
+    <string name="back_to_login">Quay Lại Đăng Nhập</string>
+    <string name="change_email">Thay Đổi Email</string>
+    <string name="skip_for_now">Bỏ Qua</string>
+    
+    <!-- Email Verification Screen -->
+    <string name="email_verification_title">Xác Thực Email Của Bạn</string>
+    <string name="email_verification_message">Chúng tôi đã gửi email xác thực đến:</string>
+    <string name="verification_email_sent">Email xác thực đã được gửi!</string>
+    <string name="check_email_instructions">Vui lòng kiểm tra email và nhấn vào liên kết xác thực để tiếp tục.</string>
+    <string name="didnt_receive_email">Không nhận được email?</string>
+    <string name="resend_in_seconds">Gửi lại trong %d giây</string>
+    <string name="email_verified_success">Email đã được xác thực thành công!</string>
+    <string name="verification_failed">Xác thực thất bại</string>
+    
+    <!-- Forgot Password Screen -->
+    <string name="forgot_password_title">Đặt Lại Mật Khẩu</string>
+    <string name="forgot_password_message">Nhập địa chỉ email và chúng tôi sẽ gửi liên kết đặt lại mật khẩu cho bạn.</string>
+    <string name="reset_email_sent">Email đặt lại đã được gửi!</string>
+    <string name="reset_email_sent_message">Kiểm tra email để xem hướng dẫn đặt lại mật khẩu.</string>
+    <string name="enter_email_address">Nhập địa chỉ email của bạn</string>
+    
+    <!-- Password Strength Indicator -->
+    <string name="password_strength_weak">Yếu</string>
+    <string name="password_strength_fair">Trung Bình</string>
+    <string name="password_strength_good">Tốt</string>
+    <string name="password_strength_strong">Mạnh</string>
+    <string name="password_strength_very_strong">Rất Mạnh</string>
+    
+    <!-- Password Requirements -->
+    <string name="password_req_length">8+ ký tự</string>
+    <string name="password_req_uppercase">Chữ hoa (A-Z)</string>
+    <string name="password_req_lowercase">Chữ thường (a-z)</string>
+    <string name="password_req_number">Số (0-9)</string>
+    <string name="password_req_special">Ký tự đặc biệt (!@#$%^&amp;*)</string>
+    <string name="password_req_not_common">Không phải mật khẩu phổ biến</string>
+    
+    <!-- Registration Screen -->
+    <string name="registration_title">Tạo Tài Khoản</string>
+    <string name="passwords_dont_match">Mật khẩu không khớp</string>
+    <string name="password_too_weak">Mật khẩu quá yếu</string>
+    <string name="invalid_email_format">Định dạng email không hợp lệ</string>
+    
+    <!-- Authentication Errors -->
+    <string name="auth_error_user_not_found">Không tìm thấy tài khoản với email này</string>
+    <string name="auth_error_wrong_password">Mật khẩu không đúng</string>
+    <string name="auth_error_email_already_in_use">Email đã được đăng ký</string>
+    <string name="auth_error_weak_password">Mật khẩu quá yếu</string>
+    <string name="auth_error_invalid_email">Địa chỉ email không hợp lệ</string>
+    <string name="auth_error_network_error">Lỗi mạng. Kiểm tra kết nối của bạn.</string>
+    <string name="auth_error_too_many_requests">Quá nhiều lần thử. Vui lòng thử lại sau.</string>
+    <string name="auth_error_user_disabled">Tài khoản đã bị vô hiệu hóa</string>
+    <string name="auth_error_operation_not_allowed">Phương thức đăng nhập này không được phép</string>
+    <string name="auth_error_unknown">Đã xảy ra lỗi không xác định</string>
+    
+    <!-- Rate Limiting Messages -->
+    <string name="rate_limit_email_verification">Vui lòng đợi trước khi yêu cầu email xác thực khác</string>
+    <string name="rate_limit_password_reset">Quá nhiều lần đặt lại mật khẩu. Thử lại sau một giờ.</string>
+    
     <!-- Home Screen -->
     <string name="welcome_message">Chào buổi sáng, Nhà Thám Hiểm</string>
     <string name="today_sunrise">Bình minh hôm nay: 6:24 sáng</string>
