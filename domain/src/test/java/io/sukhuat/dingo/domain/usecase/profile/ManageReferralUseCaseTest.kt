@@ -12,7 +12,6 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.Before
 import org.junit.Test
-import java.time.LocalDateTime
 import kotlin.test.assertEquals
 
 class ManageReferralUseCaseTest {
@@ -26,10 +25,10 @@ class ManageReferralUseCaseTest {
         displayName = "Test User",
         email = "test@example.com",
         profileImageUrl = "https://example.com/image.jpg",
-        joinDate = LocalDateTime.of(2024, 1, 1, 0, 0),
+        joinDate = 1704067200000L, // Jan 1, 2024 00:00
         isEmailVerified = true,
         authProvider = AuthProvider.EMAIL_PASSWORD,
-        lastLoginDate = LocalDateTime.of(2024, 7, 18, 10, 0)
+        lastLoginDate = 1721293200000L // July 18, 2024 10:00 AM
     )
 
     private val testReferralData = ReferralData(

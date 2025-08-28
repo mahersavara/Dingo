@@ -113,6 +113,10 @@
     <string name="language_english">Tiếng Anh</string>
     <string name="language_vietnamese">Tiếng Việt</string>
     
+    <!-- Navigation -->
+    <string name="back">Quay Lại</string>
+    <string name="refresh">Làm Mới</string>
+    
     <!-- Week Navigation -->
     <string name="current_week">Tuần Hiện Tại</string>
     <string name="last_week">Tuần Trước</string>

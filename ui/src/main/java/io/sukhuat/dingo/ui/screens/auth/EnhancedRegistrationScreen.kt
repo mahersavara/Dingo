@@ -4,10 +4,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -116,7 +114,7 @@ fun EnhancedRegistrationScreen(
                             .fillMaxWidth()
                             .padding(24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         // Title
                         Text(
@@ -132,8 +130,6 @@ fun EnhancedRegistrationScreen(
                             textAlign = TextAlign.Center,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-
-                        Spacer(modifier = Modifier.height(8.dp))
 
                         // Email field
                         OutlinedTextField(
@@ -237,8 +233,6 @@ fun EnhancedRegistrationScreen(
                             }
                         )
 
-                        Spacer(modifier = Modifier.height(8.dp))
-
                         // Terms and conditions
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -255,8 +249,6 @@ fun EnhancedRegistrationScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-
-                        Spacer(modifier = Modifier.height(8.dp))
 
                         // Create Account button
                         val canCreateAccount = email.isNotBlank() && password.isNotBlank() && confirmPassword.isNotBlank() &&
@@ -292,8 +284,6 @@ fun EnhancedRegistrationScreen(
                                 modifier = Modifier.fillMaxWidth()
                             )
                         }
-
-                        Spacer(modifier = Modifier.height(8.dp))
 
                         // Navigate to login
                         Row(

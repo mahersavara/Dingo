@@ -6,7 +6,6 @@ import io.sukhuat.dingo.domain.repository.SharingRepository
 import kotlinx.coroutines.test.runTest
 import org.junit.Before
 import org.junit.Test
-import java.time.LocalDateTime
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
@@ -20,7 +19,7 @@ class ShareAchievementUseCaseTest {
         title = "First Goal",
         description = "Created your first goal",
         iconResId = 1,
-        unlockedDate = LocalDateTime.of(2024, 1, 15, 10, 0),
+        unlockedDate = 1705320000000L, // Jan 15, 2024 10:00 AM
         isUnlocked = true
     )
 
