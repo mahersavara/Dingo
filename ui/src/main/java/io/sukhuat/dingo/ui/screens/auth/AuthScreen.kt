@@ -7,15 +7,29 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -26,9 +40,13 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -37,11 +55,8 @@ import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.tasks.Task
 import io.sukhuat.dingo.common.R
-import io.sukhuat.dingo.common.components.ButtonType
-import io.sukhuat.dingo.common.components.DingoButton
 import io.sukhuat.dingo.common.components.DingoCard
 import io.sukhuat.dingo.common.components.DingoScaffold
-import io.sukhuat.dingo.common.components.DingoTextField
 import io.sukhuat.dingo.common.components.FloatingLoadingDialog
 import io.sukhuat.dingo.common.localization.LocalAppLanguage
 import io.sukhuat.dingo.common.theme.RusticGold
@@ -49,79 +64,6 @@ import io.sukhuat.dingo.common.utils.ToastHelper
 
 private const val TAG = "AuthScreen"
 
-@Composable
-private fun EmailPasswordFields(
-    email: String,
-    onEmailChange: (String) -> Unit,
-    password: String,
-    onPasswordChange: (String) -> Unit,
-    isError: Boolean = false,
-    errorText: String? = null
-) {
-    DingoTextField(
-        value = email,
-        onValueChange = onEmailChange,
-        label = stringResource(R.string.email),
-        modifier = Modifier.fillMaxWidth(),
-        isError = isError,
-        errorText = errorText
-    )
-
-    Spacer(modifier = Modifier.height(12.dp))
-
-    DingoTextField(
-        value = password,
-        onValueChange = onPasswordChange,
-        label = stringResource(R.string.password),
-        visualTransformation = PasswordVisualTransformation(),
-        modifier = Modifier.fillMaxWidth(),
-        isError = isError
-    )
-}
-
-@Composable
-private fun AuthButtons(
-    onSignInClick: () -> Unit,
-    onNavigateToRegistration: () -> Unit
-) {
-    DingoButton(
-        text = stringResource(R.string.sign_in),
-        onClick = onSignInClick,
-        modifier = Modifier.fillMaxWidth()
-    )
-
-    Spacer(modifier = Modifier.height(4.dp))
-
-    DingoButton(
-        text = stringResource(R.string.need_account),
-        onClick = onNavigateToRegistration,
-        type = ButtonType.TEXT,
-        modifier = Modifier.fillMaxWidth()
-    )
-}
-
-@Composable
-private fun GoogleSignInButton(
-    onGoogleSignInClick: () -> Unit
-) {
-    // Create a custom button with high contrast colors specifically for Google Sign-In
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp)
-    ) {
-        // Add a custom wrapper with padding to make the button more prominent
-        DingoButton(
-            text = stringResource(R.string.sign_in_with_google),
-            onClick = onGoogleSignInClick,
-            type = ButtonType.OUTLINED,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            borderColor = RusticGold.copy(alpha = 0.7f)
-        )
-    }
-}
 
 @Composable
 fun AuthScreen(
@@ -191,6 +133,7 @@ fun AuthScreen(
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var passwordVisible by remember { mutableStateOf(false) }
 
     LaunchedEffect(authState) {
         if (authState is AuthUiState.Success) {
@@ -210,20 +153,16 @@ fun AuthScreen(
     Box(modifier = Modifier.fillMaxSize()) {
         // First layer - main content
         DingoScaffold(
-            title = stringResource(R.string.app_name),
+            title = "Welcome to Dingo",
             showTopBar = true,
             useGradientBackground = true,
-            // Add language selection menu
-            showUserMenu = true,
-            isAuthenticated = false, // Not authenticated on auth screen
+            showUserMenu = false,
+            isAuthenticated = false,
             currentLanguage = currentLanguage,
             onLanguageChange = { languageCode ->
-                // Use the ViewModel to change the language
                 viewModel.changeLanguage(languageCode)
             },
-            onSettingsClick = {
-                // No settings on auth screen
-            }
+            onSettingsClick = { }
         ) { paddingValues ->
             val scrollState = rememberScrollState()
 
@@ -231,7 +170,7 @@ fun AuthScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
-                    .verticalScroll(scrollState)
+                    .verticalScroll(rememberScrollState())
             ) {
                 DingoCard(
                     modifier = Modifier
@@ -244,60 +183,167 @@ fun AuthScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp),
+                            .padding(24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
+                        // Title
                         Text(
-                            text = stringResource(R.string.welcome_back),
+                            text = "Welcome Back",
                             style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
                             textAlign = TextAlign.Center
                         )
 
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Sign in to continue your goal journey",
+                            style = MaterialTheme.typography.bodyMedium,
+                            textAlign = TextAlign.Center,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
 
-                        // Check if there's an error to display
-                        val isError = authState is AuthUiState.Error
-                        val errorText = if (isError) (authState as AuthUiState.Error).message else null
+                        // Email field
+                        OutlinedTextField(
+                            value = email,
+                            onValueChange = { email = it },
+                            label = { Text("Email Address") },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.Email,
+                                    contentDescription = null
+                                )
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Email
+                            ),
+                            isError = run {
+                                val currentAuthState = authState
+                                currentAuthState is AuthUiState.Error && currentAuthState.message.contains("email", ignoreCase = true)
+                            },
+                            supportingText = {
+                                val currentAuthState = authState
+                                if (currentAuthState is AuthUiState.Error && currentAuthState.message.contains("email", ignoreCase = true)) {
+                                    Text(currentAuthState.message, color = MaterialTheme.colorScheme.error)
+                                }
+                            }
+                        )
 
-                        EmailPasswordFields(
-                            email = email,
-                            onEmailChange = { email = it },
-                            password = password,
-                            onPasswordChange = { password = it },
-                            isError = isError,
-                            errorText = errorText
+                        // Password field
+                        OutlinedTextField(
+                            value = password,
+                            onValueChange = { password = it },
+                            label = { Text("Password") },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.Lock,
+                                    contentDescription = null
+                                )
+                            },
+                            trailingIcon = {
+                                IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                                    Icon(
+                                        imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                        contentDescription = if (passwordVisible) "Hide password" else "Show password"
+                                    )
+                                }
+                            },
+                            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Password
+                            ),
+                            isError = run {
+                                val currentAuthState = authState
+                                currentAuthState is AuthUiState.Error && currentAuthState.message.contains("password", ignoreCase = true)
+                            },
+                            supportingText = {
+                                val currentAuthState = authState
+                                if (currentAuthState is AuthUiState.Error && currentAuthState.message.contains("password", ignoreCase = true)) {
+                                    Text(currentAuthState.message, color = MaterialTheme.colorScheme.error)
+                                }
+                            }
                         )
 
                         // Forgot Password button
-                        DingoButton(
-                            text = stringResource(R.string.forgot_password),
-                            onClick = onNavigateToForgotPassword,
-                            type = ButtonType.TEXT,
-                            modifier = Modifier.fillMaxWidth()
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            TextButton(
+                                onClick = onNavigateToForgotPassword
+                            ) {
+                                Text(
+                                    text = "Forgot Password?",
+                                    color = RusticGold,
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                        }
 
-                        AuthButtons(
-                            onSignInClick = {
+                        // Sign In button
+                        val canSignIn = email.isNotBlank() && password.isNotBlank()
+
+                        Button(
+                            onClick = {
                                 viewModel.signIn(email, password)
                             },
-                            onNavigateToRegistration = onNavigateToRegistration
-                        )
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = canSignIn,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = RusticGold,
+                                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant
+                            )
+                        ) {
+                            Text(
+                                text = "Sign In",
+                                color = if (canSignIn) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
 
-                        Spacer(modifier = Modifier.height(4.dp))
+                        // Create Account button
+                        OutlinedButton(
+                            onClick = onNavigateToRegistration,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = RusticGold
+                            )
+                        ) {
+                            Text("Create Account")
+                        }
 
                         Text(
-                            text = stringResource(R.string.or),
+                            text = "OR",
                             style = MaterialTheme.typography.bodyMedium,
                             textAlign = TextAlign.Center,
-                            color = RusticGold
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
 
-                        Spacer(modifier = Modifier.height(4.dp))
+                        // Google Sign-In button
+                        OutlinedButton(
+                            onClick = { viewModel.initiateGoogleSignIn(launcher) },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = MaterialTheme.colorScheme.onSurface
+                            )
+                        ) {
+                            Text("Continue with Google")
+                        }
 
-                        GoogleSignInButton(
-                            onGoogleSignInClick = { viewModel.initiateGoogleSignIn(launcher) }
-                        )
+                        // Error display
+                        val currentAuthState = authState
+                        if (currentAuthState is AuthUiState.Error && !currentAuthState.message.contains("email", ignoreCase = true) &&
+                            !currentAuthState.message.contains("password", ignoreCase = true)) {
+                            Text(
+                                text = currentAuthState.message,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
                     }
                 }
             }

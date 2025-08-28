@@ -58,11 +58,11 @@ class FirebaseAuthRepositoryImpl @Inject constructor(
             emit(AuthResult.Loading)
             val authResult = firebaseAuth.signInWithEmailAndPassword(email, password).await()
             val user = authResult.user
-            
+
             if (user != null) {
                 // Reload user to get the latest email verification status
                 user.reload().await()
-                
+
                 if (user.isEmailVerified) {
                     emit(AuthResult.Success(true))
                 } else {
@@ -84,11 +84,11 @@ class FirebaseAuthRepositoryImpl @Inject constructor(
             val credential = GoogleAuthProvider.getCredential(idToken, null)
             val authResult = firebaseAuth.signInWithCredential(credential).await()
             val user = authResult.user
-            
+
             if (user != null) {
                 // Reload user to get the latest email verification status
                 user.reload().await()
-                
+
                 // Google accounts are typically verified by default, but let's check anyway
                 if (user.isEmailVerified) {
                     emit(AuthResult.Success(true))
