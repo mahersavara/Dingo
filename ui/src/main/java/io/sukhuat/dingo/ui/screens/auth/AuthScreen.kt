@@ -8,10 +8,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -63,7 +62,6 @@ import io.sukhuat.dingo.common.theme.RusticGold
 import io.sukhuat.dingo.common.utils.ToastHelper
 
 private const val TAG = "AuthScreen"
-
 
 @Composable
 fun AuthScreen(
@@ -267,13 +265,15 @@ fun AuthScreen(
                             }
                         )
 
-                        // Forgot Password button
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.End
+                        // Forgot Password button (reduced spacing)
+                        Box(
+                            modifier = Modifier.fillMaxWidth()
                         ) {
                             TextButton(
-                                onClick = onNavigateToForgotPassword
+                                onClick = onNavigateToForgotPassword,
+                                modifier = Modifier
+                                    .align(Alignment.CenterEnd)
+                                    .offset(y = (-4).dp)
                             ) {
                                 Text(
                                     text = "Forgot Password?",
@@ -335,7 +335,8 @@ fun AuthScreen(
                         // Error display
                         val currentAuthState = authState
                         if (currentAuthState is AuthUiState.Error && !currentAuthState.message.contains("email", ignoreCase = true) &&
-                            !currentAuthState.message.contains("password", ignoreCase = true)) {
+                            !currentAuthState.message.contains("password", ignoreCase = true)
+                        ) {
                             Text(
                                 text = currentAuthState.message,
                                 color = MaterialTheme.colorScheme.error,
