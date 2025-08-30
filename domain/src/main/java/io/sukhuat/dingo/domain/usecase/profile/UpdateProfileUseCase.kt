@@ -50,7 +50,7 @@ class UpdateProfileUseCase @Inject constructor(
                 println("UpdateProfileUseCase: Validation failed - display name too long (${displayName.length} > 50)")
                 throw ProfileError.ValidationError("displayName", "Display name cannot exceed 50 characters")
             }
-            !displayName.matches(Regex("^[a-zA-Z0-9\\s._-]+$")) -> {
+            !displayName.matches(Regex("^[\\p{L}\\p{N}\\s._-]+$")) -> {
                 println("UpdateProfileUseCase: Validation failed - display name contains invalid characters")
                 throw ProfileError.ValidationError("displayName", "Display name contains invalid characters")
             }

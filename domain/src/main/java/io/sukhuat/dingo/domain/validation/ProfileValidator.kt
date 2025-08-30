@@ -30,7 +30,7 @@ class ProfileValidator @Inject constructor() {
                 ")+"
         )
 
-        private val DISPLAY_NAME_PATTERN = Pattern.compile("^[a-zA-Z0-9\\s\\-\\_\\.]+$")
+        private val DISPLAY_NAME_PATTERN = Pattern.compile("^[\\p{L}\\p{N}\\s\\-\\_\\.]+$")
 
         private val SUPPORTED_IMAGE_TYPES = setOf(
             "image/jpeg",
