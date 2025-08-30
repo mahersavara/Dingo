@@ -147,7 +147,8 @@ fun ProfileScreen(
             }
         },
         snackbarHostState = snackbarHostState,
-        contentPadding = PaddingValues(0.dp)
+        contentPadding = PaddingValues(0.dp),
+        userProfile = (uiState as? ProfileUiState.Success)?.profile
     ) { paddingValues ->
         Box(
             modifier = Modifier
@@ -180,7 +181,7 @@ fun ProfileScreen(
                         onCancelEditing = viewModel::cancelEditing,
                         onConfirmEdit = viewModel::confirmEdit,
                         onUpdateTempDisplayName = viewModel::updateTempDisplayName,
-                        onUploadProfileImage = viewModel::uploadProfileImage,
+                        onUploadProfileImage = { uri -> viewModel.uploadProfileImage(uri) },
                         onDeleteProfileImage = viewModel::deleteProfileImage,
                         onShareAchievement = viewModel::shareAchievement,
                         onRefreshStats = viewModel::refreshStatistics,

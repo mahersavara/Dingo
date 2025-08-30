@@ -42,11 +42,22 @@
       "Bash(del \"F:\\Work\\ericodyssey\\Dingo\\ui\\src\\main\\java\\io\\sukhuat\\dingo\\ui\\screens\\yearplanner\\components\\PlaceholderBulletItem.kt\")",
       "Bash(del \"F:\\Work\\ericodyssey\\Dingo\\nul\")",
       "Bash(git reset:*)",
-      "Bash(handle \"F:\\Work\\ericodyssey\\Dingo\\common\\build\\intermediates\\compile_library_classes_jar\\debug\\bundleLibCompileToJarDebug\\classes.jar\")"
+      "Bash(handle \"F:\\Work\\ericodyssey\\Dingo\\common\\build\\intermediates\\compile_library_classes_jar\\debug\\bundleLibCompileToJarDebug\\classes.jar\")",
+      "Bash(\"./gradlew.bat\" :data:ktlintFormat --no-daemon)",
+      "Bash(\"./gradlew.bat\" build --no-daemon)",
+      "Bash(\"./gradlew.bat\" compileDebugKotlin --no-daemon)",
+      "Bash(\"./gradlew.bat\" assemble --no-daemon)",
+      "Bash(\"./gradlew.bat\" :ui:compileDebugKotlin --no-daemon)",
+      "Bash(\"./gradlew.bat\" :data:compileDebugKotlin --no-daemon)",
+      "Bash(\"./gradlew.bat\" ktlintFormat --no-daemon)",
+      "Bash(\"./gradlew.bat\" :app:assembleDebug --no-daemon)",
+      "Bash(\"./gradlew.bat\" clean :data:compileDebugKotlin --no-daemon)",
+      "Bash(del \"nul\")"
     ],
     "deny": [],
     "additionalDirectories": [
       "F:\\F\\Work\\ericodyssey"
     ]
-  }
+  },
+  "outputStyle": "default"
 }

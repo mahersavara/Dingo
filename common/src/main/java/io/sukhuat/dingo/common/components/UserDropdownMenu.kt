@@ -2,7 +2,6 @@ package io.sukhuat.dingo.common.components
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
@@ -38,7 +38,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalDensity
@@ -52,17 +51,21 @@ import io.sukhuat.dingo.common.localization.AppLanguage
 import io.sukhuat.dingo.common.localization.LocalAppLanguage
 import io.sukhuat.dingo.common.localization.SupportedLanguages
 import io.sukhuat.dingo.common.theme.MountainSunriseTheme
+import io.sukhuat.dingo.common.theme.RusticGold
+import io.sukhuat.dingo.domain.model.UserProfile
 
 /**
  * User dropdown menu with profile, language, settings, and logout options
+ * Enhanced to support Google Sign-In users with image priority logic
  */
 @Composable
 fun UserDropdownMenu(
     isAuthenticated: Boolean = false,
-    userProfileImageUrl: String? = null,
+    userProfile: UserProfile? = null,
     currentLanguage: AppLanguage = LocalAppLanguage.current,
     onProfileClick: () -> Unit = {},
     onYearPlannerClick: () -> Unit = {},
+    onChangePasswordClick: () -> Unit = {},
     onLanguageChange: (String) -> Unit = {},
     onSettingsClick: () -> Unit = {},
     onLogoutClick: () -> Unit = {}
@@ -79,24 +82,21 @@ fun UserDropdownMenu(
     )
 
     Box {
-        // User icon button
+        // User icon button with enhanced profile icon
         IconButton(
             onClick = { expanded = true },
             modifier = Modifier.scale(scale)
         ) {
-            if (isAuthenticated && userProfileImageUrl != null) {
-                // User profile image
-                AsyncImage(
-                    model = userProfileImageUrl,
-                    contentDescription = "Profile",
-                    modifier = Modifier
-                        .size(32.dp)
-                        .clip(CircleShape)
-                        .border(1.dp, MaterialTheme.colorScheme.primary, CircleShape),
-                    contentScale = ContentScale.Crop
+            if (isAuthenticated && userProfile != null) {
+                // Use the UserProfileIcon component for proper priority logic
+                UserProfileIcon(
+                    userProfile = userProfile,
+                    size = 32.dp,
+                    borderWidth = 1.dp,
+                    borderColor = RusticGold
                 )
             } else {
-                // Default user icon
+                // Default user icon for guests or when profile is not available
                 Icon(
                     imageVector = Icons.Default.AccountCircle,
                     contentDescription = "User",
@@ -117,46 +117,35 @@ fun UserDropdownMenu(
                 .width(200.dp)
                 .background(MaterialTheme.colorScheme.surface)
         ) {
-            // User info section
-            if (isAuthenticated) {
+            // User info display if authenticated
+            if (isAuthenticated && userProfile != null) {
+                // User info section
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // User avatar
-                    if (userProfileImageUrl != null) {
-                        AsyncImage(
-                            model = userProfileImageUrl,
-                            contentDescription = "Profile",
-                            modifier = Modifier
-                                .size(64.dp)
-                                .clip(CircleShape)
-                                .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape),
-                            contentScale = ContentScale.Crop
-                        )
-                    } else {
-                        Icon(
-                            imageVector = Icons.Default.AccountCircle,
-                            contentDescription = "User",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(64.dp)
-                        )
-                    }
+                    UserProfileIcon(
+                        userProfile = userProfile,
+                        size = 48.dp,
+                        borderWidth = 2.dp,
+                        borderColor = RusticGold
+                    )
 
                     Spacer(modifier = Modifier.height(8.dp))
 
                     Text(
-                        text = "User Name", // Replace with actual user name
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                        text = userProfile.displayName.ifEmpty { "User" },
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
 
                     Text(
-                        text = "user@example.com", // Replace with actual user email
+                        text = userProfile.email,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
 
@@ -191,6 +180,23 @@ fun UserDropdownMenu(
                     leadingIcon = {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_calendar_year),
+                            contentDescription = null
+                        )
+                    }
+                )
+            }
+
+            // Change Password option - only show if user can change password
+            if (isAuthenticated && userProfile?.authCapabilities?.canChangePassword == true) {
+                DropdownMenuItem(
+                    text = { Text("Change Password") },
+                    onClick = {
+                        expanded = false
+                        onChangePasswordClick()
+                    },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Lock,
                             contentDescription = null
                         )
                     }
@@ -264,7 +270,7 @@ fun UserDropdownMenu(
                 .background(MaterialTheme.colorScheme.surface),
             offset = androidx.compose.ui.unit.DpOffset(
                 x = (-200).dp, // Position to the left of main dropdown
-                y = if (isAuthenticated) 180.dp else 48.dp // Align with language option
+                y = if (isAuthenticated) 220.dp else 48.dp // Adjust for new user info section
             )
         ) {
             Text(
@@ -288,6 +294,50 @@ fun UserDropdownMenu(
             }
         }
     }
+}
+
+/**
+ * Backward compatibility overload that accepts userProfileImageUrl string
+ * This maintains compatibility with existing code while migration is in progress
+ */
+@Composable
+fun UserDropdownMenu(
+    isAuthenticated: Boolean = false,
+    userProfileImageUrl: String? = null,
+    currentLanguage: AppLanguage = LocalAppLanguage.current,
+    onProfileClick: () -> Unit = {},
+    onYearPlannerClick: () -> Unit = {},
+    onChangePasswordClick: () -> Unit = {},
+    onLanguageChange: (String) -> Unit = {},
+    onSettingsClick: () -> Unit = {},
+    onLogoutClick: () -> Unit = {}
+) {
+    // Create a simple UserProfile for backward compatibility
+    val userProfile = if (isAuthenticated && userProfileImageUrl != null) {
+        io.sukhuat.dingo.domain.model.UserProfile(
+            userId = "unknown",
+            displayName = "User",
+            email = "user@example.com",
+            profileImageUrl = userProfileImageUrl,
+            hasCustomImage = true, // Assume it's custom since we only have one URL
+            joinDate = System.currentTimeMillis(),
+            authProvider = io.sukhuat.dingo.domain.model.AuthProvider.EMAIL_PASSWORD
+        )
+    } else {
+        null
+    }
+
+    UserDropdownMenu(
+        isAuthenticated = isAuthenticated,
+        userProfile = userProfile,
+        currentLanguage = currentLanguage,
+        onProfileClick = onProfileClick,
+        onYearPlannerClick = onYearPlannerClick,
+        onChangePasswordClick = onChangePasswordClick,
+        onLanguageChange = onLanguageChange,
+        onSettingsClick = onSettingsClick,
+        onLogoutClick = onLogoutClick
+    )
 }
 
 @Composable
@@ -339,6 +389,7 @@ fun UserDropdownMenuPreview() {
         Surface {
             UserDropdownMenu(
                 isAuthenticated = true,
+                userProfileImageUrl = null,
                 currentLanguage = SupportedLanguages[0]
             )
         }
@@ -352,6 +403,7 @@ fun UserDropdownMenuGuestPreview() {
         Surface {
             UserDropdownMenu(
                 isAuthenticated = false,
+                userProfileImageUrl = null,
                 currentLanguage = SupportedLanguages[0]
             )
         }

@@ -100,12 +100,11 @@ fun AccountSecurity(
             )
 
             // Password Management Section
-            if (userProfile.authProvider == AuthProvider.EMAIL_PASSWORD) {
-                PasswordManagementSection(
-                    passwordState = uiState.passwordChangeState,
-                    actions = actions
-                )
-            }
+            PasswordManagementSection(
+                userProfile = userProfile,
+                passwordState = uiState.passwordChangeState,
+                actions = actions
+            )
 
             // Connected Accounts Section
             ConnectedAccountsSection(
@@ -127,9 +126,16 @@ fun AccountSecurity(
 
         // Password Change Dialog
         if (uiState.passwordChangeState.showPasswordChangeDialog) {
-            PasswordChangeDialog(
-                passwordState = uiState.passwordChangeState,
-                actions = actions
+            io.sukhuat.dingo.ui.screens.profile.components.PasswordChangeDialog(
+                onDismiss = actions.onHidePasswordChangeDialog,
+                onPasswordChange = { currentPassword, newPassword ->
+                    actions.onCurrentPasswordChange(currentPassword)
+                    actions.onNewPasswordChange(newPassword)
+                    actions.onChangePassword()
+                },
+                isLoading = uiState.passwordChangeState.isChangingPassword,
+                errorMessage = uiState.passwordChangeState.currentPasswordError ?: uiState.passwordChangeState.newPasswordError
+                    ?: uiState.passwordChangeState.confirmPasswordError
             )
         }
 
@@ -189,9 +195,22 @@ private fun SecurityOverviewCard(
                 value = when (userProfile.authProvider) {
                     AuthProvider.EMAIL_PASSWORD -> "Email & Password"
                     AuthProvider.GOOGLE -> "Google Account"
+                    AuthProvider.MULTIPLE -> "Google + Email/Password"
                     AuthProvider.ANONYMOUS -> "Anonymous"
                 }
             )
+
+            // Authentication Methods
+            if (userProfile.authCapabilities.hasGoogleAuth || userProfile.authCapabilities.hasPasswordAuth) {
+                val methods = mutableListOf<String>()
+                if (userProfile.authCapabilities.hasGoogleAuth) methods.add("Google")
+                if (userProfile.authCapabilities.hasPasswordAuth) methods.add("Password")
+
+                SecurityInfoRow(
+                    label = "Auth Methods",
+                    value = methods.joinToString(", ")
+                )
+            }
 
             // Email Verification Status
             SecurityInfoRow(
@@ -268,6 +287,7 @@ private fun SecurityInfoRow(
 
 @Composable
 private fun PasswordManagementSection(
+    userProfile: UserProfile,
     passwordState: PasswordChangeState,
     actions: AccountSecurityActions
 ) {
@@ -279,12 +299,86 @@ private fun PasswordManagementSection(
             modifier = Modifier.padding(bottom = 8.dp)
         )
 
-        NavigableGeneralItem(
-            title = "Change Password",
-            description = "Update your account password",
-            leadingIcon = Icons.Default.Lock,
-            onClick = actions.onShowPasswordChangeDialog
-        )
+        if (userProfile.authCapabilities.canChangePassword) {
+            // User can change password (has email/password auth)
+            NavigableGeneralItem(
+                title = "Change Password",
+                description = "Update your account password",
+                leadingIcon = Icons.Default.Lock,
+                onClick = actions.onShowPasswordChangeDialog
+            )
+        } else if (userProfile.authCapabilities.hasGoogleAuth && !userProfile.authCapabilities.hasPasswordAuth) {
+            // Google-only user - show info card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Lock,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(32.dp)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Password Change Unavailable",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "You signed in with Google. To change your password, please visit your Google Account settings.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(
+                        onClick = { // TODO: Open Google Account settings
+                            // This would typically open a web intent
+                        }
+                    ) {
+                        Text("Manage Google Account")
+                    }
+                }
+            }
+        } else {
+            // No password auth available
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.1f)
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Warning,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Password management not available for this account type",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -324,6 +418,17 @@ private fun ConnectedAccountsSection(
                         } else {
                             MaterialTheme.colorScheme.error
                         }
+                    )
+                )
+            }
+            AuthProvider.MULTIPLE -> {
+                GeneralItem(
+                    title = "Multiple Authentication",
+                    description = "Google + Email/Password",
+                    leadingIcon = Icons.Default.Security,
+                    trailingContent = TrailingContent.Text(
+                        text = "Connected",
+                        color = MaterialTheme.colorScheme.primary
                     )
                 )
             }

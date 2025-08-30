@@ -147,6 +147,9 @@ fun HomeScreen(
     val currentWeekOffset by viewModel.currentWeekOffset.collectAsState()
     val currentWeekGoals by viewModel.currentWeekGoals.collectAsState()
 
+    // User profile state for avatar display
+    val userProfile by viewModel.userProfile.collectAsState()
+
     // Track if settings dialog is shown
     var showSettingsDialog by remember { mutableStateOf(false) }
 
@@ -302,10 +305,12 @@ fun HomeScreen(
         },
         showUserMenu = true,
         isAuthenticated = true, // Assuming the user is authenticated since we're on the home screen
+        userProfile = userProfile,
         currentLanguage = LocalAppLanguage.current,
         onLanguageChange = handleLanguageChange,
         onProfileClick = onNavigateToProfile,
         onYearPlannerClick = onNavigateToYearPlanner,
+        onChangePasswordClick = { /* TODO: Navigate to change password screen */ },
         onSettingsClick = onNavigateToSettings,
         onLogoutClick = { viewModel.signOut(onSignOut) }
     ) { paddingValues ->

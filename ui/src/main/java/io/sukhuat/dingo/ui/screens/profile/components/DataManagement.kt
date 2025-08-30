@@ -453,6 +453,7 @@ private fun SignOutSection(
                     text = "Account type: ${when (userProfile.authProvider) {
                         AuthProvider.EMAIL_PASSWORD -> "Email & Password"
                         AuthProvider.GOOGLE -> "Google Account"
+                        AuthProvider.MULTIPLE -> "Multiple (Google + Email)"
                         AuthProvider.ANONYMOUS -> "Anonymous"
                     }}",
                     style = MaterialTheme.typography.bodySmall,

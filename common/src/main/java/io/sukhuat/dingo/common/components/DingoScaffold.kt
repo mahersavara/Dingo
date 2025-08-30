@@ -36,6 +36,7 @@ import io.sukhuat.dingo.common.theme.MountainSunriseTheme
 import io.sukhuat.dingo.common.theme.RusticGold
 import io.sukhuat.dingo.common.theme.ScreenPaddingHorizontal
 import io.sukhuat.dingo.common.theme.ScreenPaddingVertical
+import io.sukhuat.dingo.domain.model.UserProfile
 
 /**
  * A reusable scaffold component with Mountain Sunrise design system
@@ -79,6 +80,7 @@ fun DingoScaffold(
     showUserMenu: Boolean = false,
     onProfileClick: () -> Unit = {},
     onYearPlannerClick: () -> Unit = {},
+    onChangePasswordClick: () -> Unit = {},
     onLanguageChange: (String) -> Unit = {},
     onSettingsClick: () -> Unit = {},
     onLogoutClick: () -> Unit = {},
@@ -197,6 +199,204 @@ fun DingoScaffold(
                                         currentLanguage = currentLanguage,
                                         onProfileClick = onProfileClick,
                                         onYearPlannerClick = onYearPlannerClick,
+                                        onChangePasswordClick = onChangePasswordClick,
+                                        onLanguageChange = onLanguageChange,
+                                        onSettingsClick = onSettingsClick,
+                                        onLogoutClick = onLogoutClick
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        floatingActionButton = floatingActionButton,
+        containerColor = backgroundColor,
+        contentColor = MaterialTheme.colorScheme.onBackground
+    ) { innerPadding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .then(
+                    if (useGradientBackground) {
+                        Modifier.background(brush = backgroundBrush!!)
+                    } else {
+                        Modifier
+                    }
+                )
+        ) {
+            // Use responsive content padding if none was provided
+            content(
+                if (contentPadding == PaddingValues(
+                        horizontal = ScreenPaddingHorizontal,
+                        vertical = ScreenPaddingVertical
+                    )
+                ) {
+                    responsiveContentPadding
+                } else {
+                    contentPadding
+                }
+            )
+
+            // Show loading indicator if needed
+            if (isLoading) {
+                LoadingIndicator(
+                    isFullScreen = true,
+                    backgroundColor = Color.Black,
+                    contentAlpha = 0.3f
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Enhanced DingoScaffold that accepts a UserProfile object
+ * This enables full Google Sign-In support with image priority logic
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DingoScaffold(
+    title: String? = null,
+    showTopBar: Boolean = true,
+    topBarActions: @Composable RowScope.() -> Unit = {},
+    navigationIcon: @Composable () -> Unit = {},
+    useGradientBackground: Boolean = false,
+    isLoading: Boolean = false,
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
+    floatingActionButton: @Composable () -> Unit = {},
+    contentPadding: PaddingValues = PaddingValues(
+        horizontal = ScreenPaddingHorizontal,
+        vertical = ScreenPaddingVertical
+    ),
+    isAuthenticated: Boolean = false,
+    userProfile: UserProfile? = null,
+    currentLanguage: AppLanguage = SupportedLanguages[0],
+    showUserMenu: Boolean = false,
+    onProfileClick: () -> Unit = {},
+    onYearPlannerClick: () -> Unit = {},
+    onChangePasswordClick: () -> Unit = {},
+    onLanguageChange: (String) -> Unit = {},
+    onSettingsClick: () -> Unit = {},
+    onLogoutClick: () -> Unit = {},
+    content: @Composable (PaddingValues) -> Unit
+) {
+    // Force recomposition when language changes
+    LocalLanguageUpdateState.current
+
+    // Get screen size for responsive layout
+    val configuration = LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp.dp
+
+    // Adjust padding based on screen size
+    val horizontalPadding = when {
+        screenWidth < 600.dp -> 16.dp
+        screenWidth < 840.dp -> 24.dp
+        else -> 32.dp
+    }
+
+    val responsiveContentPadding = PaddingValues(
+        horizontal = horizontalPadding,
+        vertical = ScreenPaddingVertical
+    )
+
+    val extendedColors = MountainSunriseTheme.extendedColors
+
+    // Create gradient background if enabled
+    val backgroundBrush = if (useGradientBackground) {
+        Brush.verticalGradient(
+            colors = listOf(
+                extendedColors.surfaceGradientStart,
+                extendedColors.surfaceGradientMiddle,
+                extendedColors.surfaceGradientEnd
+            )
+        )
+    } else {
+        null
+    }
+
+    // Use either solid background or transparent for gradient
+    val backgroundColor = if (useGradientBackground) {
+        Color.Transparent
+    } else {
+        extendedColors.backgroundVariant
+    }
+
+    // Create a theme-aware gradient for the top app bar
+    val topAppBarGradient = Brush.horizontalGradient(
+        colors = listOf(
+            MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+            MaterialTheme.colorScheme.surface,
+            MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
+        )
+    )
+
+    Scaffold(
+        topBar = {
+            if (showTopBar) {
+                // Custom top app bar with gradient
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(64.dp)
+                        .background(brush = topAppBarGradient)
+                        .shadow(4.dp)
+                ) {
+                    // Navigation icon
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.CenterStart)
+                            .padding(start = 16.dp)
+                    ) {
+                        navigationIcon()
+                    }
+
+                    // Title
+                    title?.let {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .align(Alignment.Center)
+                                .padding(horizontal = 64.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = it,
+                                style = MaterialTheme.typography.headlineMedium.copy(
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                color = if (it.uppercase() == it) RusticGold else MaterialTheme.colorScheme.onSurface,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+
+                    // Actions
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.CenterEnd)
+                            .padding(end = 16.dp)
+                    ) {
+                        Surface(
+                            color = Color.Transparent,
+                            contentColor = CloudGray
+                        ) {
+                            Row {
+                                // Standard actions
+                                topBarActions()
+
+                                // User menu (if enabled) with enhanced UserProfile support
+                                if (showUserMenu) {
+                                    UserDropdownMenu(
+                                        isAuthenticated = isAuthenticated,
+                                        userProfile = userProfile,
+                                        currentLanguage = currentLanguage,
+                                        onProfileClick = onProfileClick,
+                                        onYearPlannerClick = onYearPlannerClick,
+                                        onChangePasswordClick = onChangePasswordClick,
                                         onLanguageChange = onLanguageChange,
                                         onSettingsClick = onSettingsClick,
                                         onLogoutClick = onLogoutClick
@@ -251,11 +451,13 @@ fun DingoScaffold(
 }
 
 @Preview(showBackground = true)
+@Preview(showBackground = true)
 @Composable
 fun DingoScaffoldPreview() {
     MountainSunriseTheme {
         DingoScaffold(
-            title = "TRAVELER'S JOURNEY"
+            title = "TRAVELER'S JOURNEY",
+            userProfileImageUrl = null
         ) { padding ->
             Box(
                 modifier = Modifier
@@ -278,7 +480,8 @@ fun DingoScaffoldGradientPreview() {
     MountainSunriseTheme {
         DingoScaffold(
             title = "TRAVELER'S JOURNEY",
-            useGradientBackground = true
+            useGradientBackground = true,
+            userProfileImageUrl = null
         ) { padding ->
             Box(
                 modifier = Modifier
@@ -303,6 +506,7 @@ fun DingoScaffoldWithUserMenuPreview() {
             title = "TRAVELER'S JOURNEY",
             showUserMenu = true,
             isAuthenticated = true,
+            userProfileImageUrl = null,
             currentLanguage = SupportedLanguages[0]
         ) { padding ->
             Box(
@@ -326,7 +530,8 @@ fun DingoScaffoldLoadingPreview() {
     MountainSunriseTheme {
         DingoScaffold(
             title = "JOURNEY DETAILS",
-            isLoading = true
+            isLoading = true,
+            userProfileImageUrl = null
         ) { padding ->
             Box(
                 modifier = Modifier

@@ -11,24 +11,41 @@ data class FirebaseUserProfile(
     @DocumentId
     val userId: String = "",
 
-    @PropertyName("display_name")
     val displayName: String = "",
 
     @PropertyName("email")
     val email: String = "",
 
-    @PropertyName("profile_image_url")
+    @PropertyName("profileImageUrl")
     val profileImageUrl: String? = null,
 
-    @PropertyName("join_date")
+    @PropertyName("google_photo_url")
+    val googlePhotoUrl: String? = null,
+
+    @PropertyName("has_custom_image")
+    val hasCustomImage: Boolean = false,
+
+    @PropertyName("last_image_update")
+    val lastImageUpdate: Timestamp? = null,
+
+    @PropertyName("joinDate")
     val joinDate: Timestamp = Timestamp.now(),
 
-    @PropertyName("is_email_verified")
+    @PropertyName("emailVerified")
     val isEmailVerified: Boolean = false,
 
-    @PropertyName("auth_provider")
+    @PropertyName("authProvider")
     val authProvider: String = "EMAIL_PASSWORD",
 
-    @PropertyName("last_login_date")
-    val lastLoginDate: Timestamp? = null
+    @PropertyName("lastLoginDate")
+    val lastLoginDate: Timestamp? = null,
+
+    @PropertyName("has_google_auth")
+    val hasGoogleAuth: Boolean = false,
+
+    @PropertyName("has_password_auth")
+    val hasPasswordAuth: Boolean = false,
+
+    @PropertyName("can_change_password")
+    val canChangePassword: Boolean = false
 )

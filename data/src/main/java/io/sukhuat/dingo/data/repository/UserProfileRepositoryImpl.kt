@@ -8,6 +8,9 @@ import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.storage.FirebaseStorage
 import io.sukhuat.dingo.data.mapper.ProfileMapper
 import io.sukhuat.dingo.data.model.FirebaseUserProfile
+import io.sukhuat.dingo.data.storage.ProfileImageStorageService
+import io.sukhuat.dingo.data.storage.ProfileImageUploadResult
+import io.sukhuat.dingo.domain.model.AuthCapabilities
 import io.sukhuat.dingo.domain.model.ProfileError
 import io.sukhuat.dingo.domain.model.UserProfile
 import io.sukhuat.dingo.domain.repository.LoginRecord
@@ -17,7 +20,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 import org.json.JSONObject
-import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -28,7 +30,8 @@ import javax.inject.Singleton
 class UserProfileRepositoryImpl @Inject constructor(
     private val firebaseAuth: FirebaseAuth,
     private val firestore: FirebaseFirestore,
-    private val storage: FirebaseStorage
+    private val storage: FirebaseStorage,
+    private val profileImageStorageService: ProfileImageStorageService
 ) : UserProfileRepository {
 
     companion object {
@@ -38,8 +41,11 @@ class UserProfileRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getUserProfile(): Flow<UserProfile> = callbackFlow {
+        println("UserProfileRepositoryImpl: getUserProfile called")
         val userId = getCurrentUserId()
             ?: throw ProfileError.AuthenticationExpired
+
+        println("UserProfileRepositoryImpl: getUserProfile - userId: $userId")
 
         // First, check if profile exists and create if it doesn't
         try {
@@ -50,9 +56,13 @@ class UserProfileRepositoryImpl @Inject constructor(
                 .await()
 
             if (!profileSnapshot.exists()) {
+                println("UserProfileRepositoryImpl: getUserProfile - profile doesn't exist, creating initial profile")
                 createInitialProfile(userId)
+            } else {
+                println("UserProfileRepositoryImpl: getUserProfile - profile exists")
             }
         } catch (e: Exception) {
+            println("UserProfileRepositoryImpl: getUserProfile - error checking profile existence: ${e.message}")
             val profileError = mapFirebaseException(e)
             close(profileError)
             return@callbackFlow
@@ -62,8 +72,11 @@ class UserProfileRepositoryImpl @Inject constructor(
             .collection(USERS_COLLECTION)
             .document(userId)
 
+        println("UserProfileRepositoryImpl: getUserProfile - setting up Firestore listener")
+
         val listener: ListenerRegistration = profileRef.addSnapshotListener { snapshot, error ->
             if (error != null) {
+                println("UserProfileRepositoryImpl: getUserProfile - listener error: ${error.message}")
                 val profileError = mapFirebaseException(error)
                 close(profileError)
                 return@addSnapshotListener
@@ -71,29 +84,43 @@ class UserProfileRepositoryImpl @Inject constructor(
 
             if (snapshot != null && snapshot.exists()) {
                 try {
+                    println("UserProfileRepositoryImpl: getUserProfile - snapshot received, data: ${snapshot.data}")
                     val firebaseProfile = snapshot.toObject(FirebaseUserProfile::class.java)
                     if (firebaseProfile != null) {
+                        println("UserProfileRepositoryImpl: getUserProfile - parsed FirebaseUserProfile: userId=${firebaseProfile.userId}, displayName='${firebaseProfile.displayName}', email=${firebaseProfile.email}")
                         val domainProfile = ProfileMapper.toDomain(firebaseProfile)
+                        println("UserProfileRepositoryImpl: getUserProfile - mapped to domain UserProfile: userId=${domainProfile.userId}, displayName='${domainProfile.displayName}', email=${domainProfile.email}")
                         trySend(domainProfile)
                     } else {
+                        println("UserProfileRepositoryImpl: getUserProfile - failed to parse FirebaseUserProfile from snapshot")
                         close(ProfileError.DataCorruption("profile_data"))
                     }
                 } catch (e: Exception) {
+                    println("UserProfileRepositoryImpl: getUserProfile - exception parsing snapshot: ${e.message}")
+                    e.printStackTrace()
                     close(ProfileError.DataCorruption("profile_parsing"))
                 }
             } else {
+                println("UserProfileRepositoryImpl: getUserProfile - snapshot is null or doesn't exist")
                 // This shouldn't happen since we created the profile above
                 close(ProfileError.DataCorruption("profile_missing"))
             }
         }
 
-        awaitClose { listener.remove() }
+        awaitClose {
+            println("UserProfileRepositoryImpl: getUserProfile - removing Firestore listener")
+            listener.remove()
+        }
     }
 
     override suspend fun updateDisplayName(name: String) {
         try {
+            println("UserProfileRepositoryImpl: updateDisplayName called with: '$name'")
+
             val userId = getCurrentUserId()
                 ?: throw ProfileError.AuthenticationExpired
+
+            println("UserProfileRepositoryImpl: Current userId: $userId")
 
             if (name.isBlank()) {
                 throw ProfileError.ValidationError("displayName", "Display name cannot be empty")
@@ -103,16 +130,36 @@ class UserProfileRepositoryImpl @Inject constructor(
                 .collection(USERS_COLLECTION)
                 .document(userId)
 
-            profileRef.update("display_name", name).await()
+            println("UserProfileRepositoryImpl: Updating Firestore document")
+
+            // Update with camelCase field name matching our model
+            val updates = hashMapOf<String, Any?>(
+                "displayName" to name,
+                "display_name" to com.google.firebase.firestore.FieldValue.delete() // Remove the old snake_case field that's causing conflicts
+            )
+
+            profileRef.update(updates).await()
+
+            println("UserProfileRepositoryImpl: Firestore update successful")
 
             // Also update Firebase Auth profile
-            val profileUpdates = com.google.firebase.auth.UserProfileChangeRequest.Builder()
-                .setDisplayName(name)
-                .build()
-            firebaseAuth.currentUser?.updateProfile(profileUpdates)?.await()
+            val currentUser = firebaseAuth.currentUser
+            if (currentUser != null) {
+                println("UserProfileRepositoryImpl: Updating Firebase Auth profile")
+                val profileUpdates = com.google.firebase.auth.UserProfileChangeRequest.Builder()
+                    .setDisplayName(name)
+                    .build()
+                currentUser.updateProfile(profileUpdates).await()
+                println("UserProfileRepositoryImpl: Firebase Auth profile update successful")
+            } else {
+                println("UserProfileRepositoryImpl: Warning - No current Firebase Auth user, skipping Auth profile update")
+            }
         } catch (e: ProfileError) {
+            println("UserProfileRepositoryImpl: ProfileError: ${e.message}")
             throw e
         } catch (e: Exception) {
+            println("UserProfileRepositoryImpl: Exception: ${e.message}")
+            e.printStackTrace()
             throw mapFirebaseException(e)
         }
     }
@@ -122,58 +169,47 @@ class UserProfileRepositoryImpl @Inject constructor(
             val userId = getCurrentUserId()
                 ?: throw ProfileError.AuthenticationExpired
 
-            // Upload image to Firebase Storage with error handling
-            val imageRef = storage.reference
-                .child(PROFILE_IMAGES_PATH)
-                .child(userId)
-                .child("${UUID.randomUUID()}.jpg")
+            // Use the new image storage service for multi-size upload and processing
+            val uploadResult = profileImageStorageService.uploadProfileImage(userId, imageUri)
 
-            val uploadTask = try {
-                imageRef.putFile(imageUri).await()
-            } catch (e: Exception) {
-                throw when {
-                    e.message?.contains("quota") == true -> ProfileError.QuotaExceeded("storage")
-                    e.message?.contains("permission") == true -> ProfileError.PermissionDenied("storage")
-                    e.message?.contains("network") == true -> ProfileError.NetworkUnavailable
-                    else -> ProfileError.StorageError("upload", e)
+            when (uploadResult) {
+                is ProfileImageUploadResult.Success -> {
+                    // Update profile with new image URLs and metadata
+                    val profileRef = firestore
+                        .collection(USERS_COLLECTION)
+                        .document(userId)
+
+                    val updateMap = mapOf(
+                        "profile_image_url" to uploadResult.originalImageUrl,
+                        "has_custom_image" to true,
+                        "last_image_update" to com.google.firebase.Timestamp.now()
+                    )
+
+                    try {
+                        profileRef.update(updateMap).await()
+                    } catch (e: Exception) {
+                        // If profile update fails, clean up uploaded images
+                        profileImageStorageService.deleteProfileImages(userId)
+                        throw mapFirebaseException(e)
+                    }
+
+                    // Update Firebase Auth profile (non-critical)
+                    try {
+                        val profileUpdates = com.google.firebase.auth.UserProfileChangeRequest.Builder()
+                            .setPhotoUri(Uri.parse(uploadResult.originalImageUrl))
+                            .build()
+                        firebaseAuth.currentUser?.updateProfile(profileUpdates)?.await()
+                    } catch (e: Exception) {
+                        // Auth profile update is non-critical, just log the error
+                        println("Failed to update auth profile image: ${e.message}")
+                    }
+
+                    return uploadResult.originalImageUrl
+                }
+                is ProfileImageUploadResult.Error -> {
+                    throw ProfileError.StorageError("image_upload", Exception(uploadResult.message))
                 }
             }
-
-            val downloadUrl = try {
-                uploadTask.storage.downloadUrl.await().toString()
-            } catch (e: Exception) {
-                throw ProfileError.StorageError("get_download_url", e)
-            }
-
-            // Update profile with new image URL
-            val profileRef = firestore
-                .collection(USERS_COLLECTION)
-                .document(userId)
-
-            try {
-                profileRef.update("profile_image_url", downloadUrl).await()
-            } catch (e: Exception) {
-                // If profile update fails, try to clean up the uploaded image
-                try {
-                    imageRef.delete().await()
-                } catch (cleanupException: Exception) {
-                    // Log cleanup failure but don't throw
-                }
-                throw mapFirebaseException(e)
-            }
-
-            // Also update Firebase Auth profile (non-critical, don't fail if this fails)
-            try {
-                val profileUpdates = com.google.firebase.auth.UserProfileChangeRequest.Builder()
-                    .setPhotoUri(Uri.parse(downloadUrl))
-                    .build()
-                firebaseAuth.currentUser?.updateProfile(profileUpdates)?.await()
-            } catch (e: Exception) {
-                // Auth profile update is non-critical, just log the error
-                println("Failed to update auth profile image: ${e.message}")
-            }
-
-            return downloadUrl
         } catch (e: ProfileError) {
             throw e
         } catch (e: Exception) {
@@ -186,31 +222,38 @@ class UserProfileRepositoryImpl @Inject constructor(
             val userId = getCurrentUserId()
                 ?: throw ProfileError.AuthenticationExpired
 
-            // Get current profile to find image URL
+            // Delete all image variants using the storage service
+            val deletionSuccess = profileImageStorageService.deleteProfileImages(userId)
+
+            if (!deletionSuccess) {
+                println("Warning: Some profile images may not have been deleted from storage")
+            }
+
+            // Update profile to remove custom image flags and URLs
             val profileRef = firestore
                 .collection(USERS_COLLECTION)
                 .document(userId)
 
-            val snapshot = profileRef.get().await()
-            val currentImageUrl = snapshot.getString("profile_image_url")
+            val updateMap = mapOf(
+                "profile_image_url" to null,
+                "has_custom_image" to false,
+                "last_image_update" to com.google.firebase.Timestamp.now()
+            )
 
-            // Delete from Storage if exists
-            currentImageUrl?.let { url ->
-                try {
-                    storage.getReferenceFromUrl(url).delete().await()
-                } catch (e: Exception) {
-                    // Image might not exist in storage, continue with profile update
-                }
+            profileRef.update(updateMap).await()
+
+            // Update Firebase Auth profile (keep Google photo if available)
+            try {
+                val user = firebaseAuth.currentUser
+                val googlePhotoUrl = getGooglePhotoUrlFromUser(user)
+
+                val profileUpdates = com.google.firebase.auth.UserProfileChangeRequest.Builder()
+                    .setPhotoUri(googlePhotoUrl?.let { Uri.parse(it) })
+                    .build()
+                user?.updateProfile(profileUpdates)?.await()
+            } catch (e: Exception) {
+                println("Failed to update auth profile: ${e.message}")
             }
-
-            // Update profile to remove image URL
-            profileRef.update("profile_image_url", null).await()
-
-            // Also update Firebase Auth profile
-            val profileUpdates = com.google.firebase.auth.UserProfileChangeRequest.Builder()
-                .setPhotoUri(null)
-                .build()
-            firebaseAuth.currentUser?.updateProfile(profileUpdates)?.await()
         } catch (e: ProfileError) {
             throw e
         } catch (e: Exception) {
@@ -370,10 +413,73 @@ class UserProfileRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun updateGooglePhotoUrl(photoUrl: String?) {
+        try {
+            val userId = getCurrentUserId()
+                ?: throw ProfileError.AuthenticationExpired
+
+            // Update profile with Google photo URL
+            val profileRef = firestore
+                .collection(USERS_COLLECTION)
+                .document(userId)
+
+            profileRef.update("google_photo_url", photoUrl).await()
+
+            // Also update Firebase Auth profile if setting a new photo
+            photoUrl?.let { url ->
+                try {
+                    val profileUpdates = com.google.firebase.auth.UserProfileChangeRequest.Builder()
+                        .setPhotoUri(Uri.parse(url))
+                        .build()
+                    firebaseAuth.currentUser?.updateProfile(profileUpdates)?.await()
+                } catch (e: Exception) {
+                    println("Failed to update auth profile with Google photo: ${e.message}")
+                }
+            }
+        } catch (e: ProfileError) {
+            throw e
+        } catch (e: Exception) {
+            throw mapFirebaseException(e)
+        }
+    }
+
+    override suspend fun getAuthCapabilities(): AuthCapabilities {
+        try {
+            val user = firebaseAuth.currentUser
+                ?: throw ProfileError.AuthenticationExpired
+
+            val providerIds = user.providerData.map { it.providerId }
+            val hasGoogleAuth = providerIds.contains("google.com")
+            val hasPasswordAuth = providerIds.contains("password") || providerIds.contains("firebase")
+
+            // Can change password only if user has password authentication
+            val canChangePassword = hasPasswordAuth && !user.email.isNullOrEmpty()
+
+            return AuthCapabilities(
+                hasGoogleAuth = hasGoogleAuth,
+                hasPasswordAuth = hasPasswordAuth,
+                canChangePassword = canChangePassword
+            )
+        } catch (e: ProfileError) {
+            throw e
+        } catch (e: Exception) {
+            throw mapFirebaseException(e)
+        }
+    }
+
     override suspend fun changePassword(currentPassword: String, newPassword: String) {
         try {
             val user = firebaseAuth.currentUser
                 ?: throw ProfileError.AuthenticationExpired
+
+            // Check if user can change password
+            val authCapabilities = getAuthCapabilities()
+            if (!authCapabilities.canChangePassword) {
+                throw ProfileError.ValidationError(
+                    "password",
+                    "Password change not available for this account type"
+                )
+            }
 
             if (currentPassword.isBlank() || newPassword.isBlank()) {
                 throw ProfileError.ValidationError("password", "Password cannot be empty")
@@ -400,7 +506,18 @@ class UserProfileRepositoryImpl @Inject constructor(
         } catch (e: ProfileError) {
             throw e
         } catch (e: Exception) {
-            throw ProfileError.UnknownError(e)
+            when {
+                e.message?.contains("wrong-password") == true -> {
+                    throw ProfileError.ValidationError("currentPassword", "Current password is incorrect")
+                }
+                e.message?.contains("weak-password") == true -> {
+                    throw ProfileError.ValidationError("newPassword", "Password is too weak")
+                }
+                e.message?.contains("requires-recent-login") == true -> {
+                    throw ProfileError.ValidationError("auth", "Please sign out and sign in again to change your password")
+                }
+                else -> throw ProfileError.UnknownError(e)
+            }
         }
     }
 
@@ -419,17 +536,35 @@ class UserProfileRepositoryImpl @Inject constructor(
         try {
             val user = firebaseAuth.currentUser ?: return
 
+            // Determine auth provider and capabilities
+            val providerIds = user.providerData.map { it.providerId }
+            val hasGoogleAuth = providerIds.contains("google.com")
+            val hasPasswordAuth = providerIds.contains("password") || providerIds.contains("firebase")
+
+            val authProvider = when {
+                hasGoogleAuth && hasPasswordAuth -> "MULTIPLE"
+                hasGoogleAuth -> "GOOGLE"
+                hasPasswordAuth -> "EMAIL_PASSWORD"
+                else -> "EMAIL_PASSWORD" // Fallback
+            }
+
+            // Extract Google photo URL if available
+            val googlePhotoUrl = getGooglePhotoUrlFromUser(user)
+
             val initialProfile = FirebaseUserProfile(
                 userId = userId,
                 displayName = user.displayName ?: "",
                 email = user.email ?: "",
-                profileImageUrl = user.photoUrl?.toString(),
+                profileImageUrl = null, // Start with no custom image
+                googlePhotoUrl = googlePhotoUrl,
+                hasCustomImage = false,
+                lastImageUpdate = null,
                 joinDate = com.google.firebase.Timestamp.now(),
                 isEmailVerified = user.isEmailVerified,
-                authProvider = when {
-                    user.providerData.any { it.providerId == "google.com" } -> "GOOGLE"
-                    else -> "EMAIL_PASSWORD"
-                },
+                authProvider = authProvider,
+                hasGoogleAuth = hasGoogleAuth,
+                hasPasswordAuth = hasPasswordAuth,
+                canChangePassword = hasPasswordAuth && !user.email.isNullOrEmpty(),
                 lastLoginDate = com.google.firebase.Timestamp.now()
             )
 
@@ -440,8 +575,26 @@ class UserProfileRepositoryImpl @Inject constructor(
                 .await()
         } catch (e: Exception) {
             // Log error but don't throw to avoid breaking the flow
-            // In a real app, you might want to use a proper logging framework
             println("Failed to create initial profile: ${e.message}")
+        }
+    }
+
+    /**
+     * Extract Google photo URL from Firebase User if available
+     */
+    private fun getGooglePhotoUrlFromUser(user: com.google.firebase.auth.FirebaseUser?): String? {
+        user ?: return null
+
+        // First check if user has Google provider data with photo URL
+        val googleProviderData = user.providerData.find { it.providerId == "google.com" }
+        googleProviderData?.photoUrl?.let { return it.toString() }
+
+        // Fallback to general photo URL if it looks like a Google URL
+        val photoUrl = user.photoUrl?.toString()
+        return if (photoUrl?.contains("googleusercontent.com") == true || photoUrl?.contains("googleapis.com") == true) {
+            photoUrl
+        } else {
+            null
         }
     }
 

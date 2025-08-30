@@ -155,6 +155,7 @@ fun AuthScreen(
             useGradientBackground = true,
             showUserMenu = false,
             isAuthenticated = false,
+            userProfileImageUrl = null,
             currentLanguage = currentLanguage,
             onLanguageChange = { languageCode ->
                 viewModel.changeLanguage(languageCode)

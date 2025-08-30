@@ -73,35 +73,44 @@ class ProfileViewModel @Inject constructor(
     val userPreferences = getUserPreferencesUseCase()
 
     init {
+        println("ProfileViewModel: ViewModel initialized, calling loadProfileData")
         loadProfileData()
     }
 
-    /**
-     * Load profile data by combining user profile and statistics with retry logic
-     */
     private fun loadProfileData() {
+        println("ProfileViewModel: loadProfileData called")
         viewModelScope.launch {
             try {
+                println("ProfileViewModel: loadProfileData - getting user profile")
                 val profile = getUserProfileUseCase().first()
-                val statistics = getProfileStatisticsUseCase().first()
+                println("ProfileViewModel: loadProfileData - got profile: userId=${profile.userId}, displayName='${profile.displayName}', email=${profile.email}")
 
-                _uiState.value = ProfileUiState.Success(
+                println("ProfileViewModel: loadProfileData - getting statistics")
+                val statistics = getProfileStatisticsUseCase().first()
+                println("ProfileViewModel: loadProfileData - got statistics")
+
+                val successState = ProfileUiState.Success(
                     profile = profile,
                     statistics = statistics,
                     isRefreshing = false
                 )
+
+                println("ProfileViewModel: loadProfileData - setting UI state to Success")
+                _uiState.value = successState
+                println("ProfileViewModel: loadProfileData - UI state updated successfully")
             } catch (error: Exception) {
+                println("ProfileViewModel: loadProfileData - error occurred: ${error.message}")
+                error.printStackTrace()
                 handleErrorWithRecovery(error)
             }
         }
     }
 
-    /**
-     * Update user's display name with comprehensive validation
-     */
     fun updateDisplayName(newDisplayName: String) {
         viewModelScope.launch {
             try {
+                println("ProfileViewModel: updateDisplayName called with: '$newDisplayName'")
+
                 _editState.value = _editState.value.copy(
                     isValidating = true,
                     validationError = null
@@ -110,6 +119,7 @@ class ProfileViewModel @Inject constructor(
                 // Validate input first
                 val validationResult = profileValidator.validateDisplayName(newDisplayName)
                 if (validationResult is ProfileValidator.ValidationResult.Invalid) {
+                    println("ProfileViewModel: Validation failed: ${validationResult.error.message}")
                     _editState.value = _editState.value.copy(
                         isValidating = false,
                         validationError = validationResult.error.message
@@ -119,6 +129,7 @@ class ProfileViewModel @Inject constructor(
 
                 // Check network connectivity
                 if (!networkConnectivityChecker.isConnected()) {
+                    println("ProfileViewModel: No network connection")
                     _editState.value = _editState.value.copy(
                         isValidating = false,
                         validationError = "No internet connection. Please try again when online."
@@ -126,12 +137,19 @@ class ProfileViewModel @Inject constructor(
                     return@launch
                 }
 
+                println("ProfileViewModel: Calling updateProfileUseCase.updateDisplayName")
+
                 // Execute with retry logic
                 errorRecoveryManager.executeWithRetry(
-                    operation = { updateProfileUseCase.updateDisplayName(newDisplayName) },
+                    operation = {
+                        println("ProfileViewModel: Inside retry operation, calling updateDisplayName")
+                        updateProfileUseCase.updateDisplayName(newDisplayName)
+                    },
                     maxRetries = 3,
                     baseDelayMs = 1000
                 )
+
+                println("ProfileViewModel: Update successful, resetting edit state")
 
                 _editState.value = _editState.value.copy(
                     isEditing = false,
@@ -139,12 +157,18 @@ class ProfileViewModel @Inject constructor(
                     editingField = null,
                     tempDisplayName = ""
                 )
+
+                // Reload profile data to see the changes
+                loadProfileData()
             } catch (error: ProfileError.ValidationError) {
+                println("ProfileViewModel: ProfileError.ValidationError: ${error.message}")
                 _editState.value = _editState.value.copy(
                     isValidating = false,
                     validationError = error.message
                 )
             } catch (error: Exception) {
+                println("ProfileViewModel: Exception: ${error.message}")
+                error.printStackTrace()
                 _editState.value = _editState.value.copy(
                     isValidating = false,
                     validationError = profileErrorHandler.getErrorMessage(errorRecoveryManager.mapToProfileError(error))
@@ -333,13 +357,15 @@ class ProfileViewModel @Inject constructor(
         _tabState.value = _tabState.value.copy(selectedTab = tab)
     }
 
-    /**
-     * Start editing a profile field
-     */
     fun startEditing(field: ProfileField) {
+        println("ProfileViewModel: startEditing called with field: $field")
         val currentState = _uiState.value
+        println("ProfileViewModel: startEditing - current UI state type: ${currentState.javaClass.simpleName}")
+
         if (currentState is ProfileUiState.Success) {
-            _editState.value = ProfileEditState(
+            println("ProfileViewModel: startEditing - current profile displayName: '${currentState.profile.displayName}'")
+
+            val newEditState = ProfileEditState(
                 isEditing = true,
                 editingField = field,
                 tempDisplayName = if (field == ProfileField.DISPLAY_NAME) {
@@ -349,39 +375,45 @@ class ProfileViewModel @Inject constructor(
                 },
                 validationError = null
             )
+
+            println("ProfileViewModel: startEditing - setting edit state: isEditing=${newEditState.isEditing}, editingField=${newEditState.editingField}, tempDisplayName='${newEditState.tempDisplayName}'")
+
+            _editState.value = newEditState
+        } else {
+            println("ProfileViewModel: startEditing - ERROR: UI state is not Success, cannot start editing")
         }
     }
 
-    /**
-     * Cancel editing
-     */
     fun cancelEditing() {
+        println("ProfileViewModel: cancelEditing called")
         _editState.value = ProfileEditState()
+        println("ProfileViewModel: cancelEditing - edit state reset")
     }
 
-    /**
-     * Update temporary display name during editing
-     */
     fun updateTempDisplayName(name: String) {
+        println("ProfileViewModel: updateTempDisplayName called with: '$name'")
         _editState.value = _editState.value.copy(
             tempDisplayName = name,
             validationError = null
         )
+        println("ProfileViewModel: updateTempDisplayName - updated tempDisplayName to: '${_editState.value.tempDisplayName}'")
     }
 
-    /**
-     * Confirm editing changes
-     */
     fun confirmEdit() {
         val editState = _editState.value
+        println("ProfileViewModel: confirmEdit called - editingField=${editState.editingField}, tempDisplayName='${editState.tempDisplayName}'")
+
         when (editState.editingField) {
             ProfileField.DISPLAY_NAME -> {
+                println("ProfileViewModel: confirmEdit - calling updateDisplayName with: '${editState.tempDisplayName}'")
                 updateDisplayName(editState.tempDisplayName)
             }
             ProfileField.PROFILE_IMAGE -> {
+                println("ProfileViewModel: confirmEdit - PROFILE_IMAGE editing not implemented in confirmEdit")
                 // Image editing is handled separately through uploadProfileImage
             }
             null -> {
+                println("ProfileViewModel: confirmEdit - ERROR: no field being edited")
                 // No field being edited
             }
         }
@@ -466,12 +498,14 @@ class ProfileViewModel @Inject constructor(
     }
 
     /**
-     * Get current user ID (placeholder - would be implemented based on auth system)
+     * Get current user ID from current profile data
      */
     private fun getCurrentUserId(): String? {
-        // This would typically come from your authentication system
-        // For now, returning null as placeholder
-        return null
+        val currentState = _uiState.value
+        return when (currentState) {
+            is ProfileUiState.Success -> currentState.profile.userId
+            else -> null
+        }
     }
 
     /**

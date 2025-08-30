@@ -1,6 +1,7 @@
 package io.sukhuat.dingo.domain.repository
 
 import android.net.Uri
+import io.sukhuat.dingo.domain.model.AuthCapabilities
 import io.sukhuat.dingo.domain.model.UserProfile
 import kotlinx.coroutines.flow.Flow
 
@@ -29,6 +30,18 @@ interface UserProfileRepository {
      * Delete user's profile image
      */
     suspend fun deleteProfileImage()
+
+    /**
+     * Update profile with Google photo URL
+     * @param photoUrl Google photo URL to set, or null to remove
+     */
+    suspend fun updateGooglePhotoUrl(photoUrl: String?)
+
+    /**
+     * Get auth capabilities for current user
+     * @return AuthCapabilities indicating available authentication methods
+     */
+    suspend fun getAuthCapabilities(): AuthCapabilities
 
     /**
      * Export user data for GDPR compliance

@@ -10,40 +10,51 @@ import javax.inject.Inject
 class UpdateProfileUseCase @Inject constructor(
     private val userProfileRepository: UserProfileRepository
 ) {
-    /**
-     * Update user's display name with validation
-     * @param displayName New display name to set
-     * @throws ProfileError.ValidationError if display name is invalid
-     * @throws ProfileError.AuthenticationExpired if user is not authenticated
-     * @throws ProfileError.UnknownError for other errors
-     */
     suspend fun updateDisplayName(displayName: String) {
+        println("UpdateProfileUseCase: updateDisplayName called with: '$displayName'")
+
         // Validate display name
-        validateDisplayName(displayName)
+        println("UpdateProfileUseCase: Starting validation")
+        try {
+            validateDisplayName(displayName)
+            println("UpdateProfileUseCase: Validation passed")
+        } catch (e: Exception) {
+            println("UpdateProfileUseCase: Validation failed: ${e.message}")
+            throw e
+        }
 
         // Update display name through repository
-        userProfileRepository.updateDisplayName(displayName)
+        println("UpdateProfileUseCase: Calling userProfileRepository.updateDisplayName")
+        try {
+            userProfileRepository.updateDisplayName(displayName)
+            println("UpdateProfileUseCase: Repository update successful")
+        } catch (e: Exception) {
+            println("UpdateProfileUseCase: Repository update failed: ${e.message}")
+            throw e
+        }
     }
 
-    /**
-     * Validate display name according to business rules
-     * @param displayName Display name to validate
-     * @throws ProfileError.ValidationError if validation fails
-     */
     private fun validateDisplayName(displayName: String) {
+        println("UpdateProfileUseCase: validateDisplayName called with: '$displayName' (length: ${displayName.length})")
+
         when {
             displayName.isBlank() -> {
+                println("UpdateProfileUseCase: Validation failed - display name is blank")
                 throw ProfileError.ValidationError("displayName", "Display name cannot be empty")
             }
             displayName.length < 2 -> {
+                println("UpdateProfileUseCase: Validation failed - display name too short (${displayName.length} < 2)")
                 throw ProfileError.ValidationError("displayName", "Display name must be at least 2 characters")
             }
             displayName.length > 50 -> {
+                println("UpdateProfileUseCase: Validation failed - display name too long (${displayName.length} > 50)")
                 throw ProfileError.ValidationError("displayName", "Display name cannot exceed 50 characters")
             }
             !displayName.matches(Regex("^[a-zA-Z0-9\\s._-]+$")) -> {
+                println("UpdateProfileUseCase: Validation failed - display name contains invalid characters")
                 throw ProfileError.ValidationError("displayName", "Display name contains invalid characters")
             }
         }
+        println("UpdateProfileUseCase: validateDisplayName - all checks passed")
     }
 }

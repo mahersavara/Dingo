@@ -27,6 +27,8 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -36,8 +38,11 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -49,9 +54,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import io.sukhuat.dingo.common.components.DingoTextField
@@ -62,6 +67,7 @@ import io.sukhuat.dingo.domain.model.UserProfile
 import io.sukhuat.dingo.ui.screens.profile.ImageUploadState
 import io.sukhuat.dingo.ui.screens.profile.ProfileEditState
 import io.sukhuat.dingo.ui.screens.profile.ProfileField
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -84,12 +90,47 @@ fun ProfileHeader(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    var showImageSourceDialog by remember { mutableStateOf(false) }
 
-    // Image picker launcher
-    val imagePickerLauncher = rememberLauncherForActivityResult(
+    // Temporary image URI for camera capture
+    var tempImageUri by remember { mutableStateOf<Uri?>(null) }
+
+    // Gallery picker launcher
+    val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let { onUploadProfileImage(it) }
+    }
+
+    // Camera launcher
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success: Boolean ->
+        if (success) {
+            // The image is saved to the provided URI in tempImageUri
+            tempImageUri?.let { onUploadProfileImage(it) }
+        }
+    }
+
+    // Create temp file for camera capture
+    LaunchedEffect(Unit) {
+        try {
+            val tempFile = File.createTempFile(
+                "profile_image_${System.currentTimeMillis()}",
+                ".jpg",
+                context.cacheDir
+            )
+            tempImageUri = FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                tempFile
+            )
+        } catch (e: Exception) {
+            // Handle FileProvider configuration issues gracefully
+            println("ProfileHeader: Failed to create temp URI for camera: ${e.message}")
+            e.printStackTrace()
+            tempImageUri = null
+        }
     }
 
     Card(
@@ -114,9 +155,66 @@ fun ProfileHeader(
                 profileImageUrl = profile.profileImageUrl,
                 isUploading = imageUploadState.isUploading,
                 uploadProgress = imageUploadState.progress,
-                onImageClick = { imagePickerLauncher.launch("image/*") },
+                onImageClick = { showImageSourceDialog = true },
                 onDeleteImage = onDeleteProfileImage
             )
+
+            // Image source selection dialog
+            if (showImageSourceDialog) {
+                AlertDialog(
+                    onDismissRequest = { showImageSourceDialog = false },
+                    title = { Text("Choose Photo Source") },
+                    text = { Text("Select where to get your profile photo from:") },
+                    confirmButton = {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            TextButton(
+                                onClick = {
+                                    showImageSourceDialog = false
+                                    tempImageUri?.let { uri ->
+                                        cameraLauncher.launch(uri)
+                                    } ?: run {
+                                        // Show error if FileProvider setup failed
+                                        println("Error: Camera feature unavailable due to FileProvider configuration")
+                                    }
+                                },
+                                enabled = tempImageUri != null
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.CameraAlt,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Camera")
+                            }
+
+                            TextButton(
+                                onClick = {
+                                    showImageSourceDialog = false
+                                    galleryLauncher.launch("image/*")
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.PhotoLibrary,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Gallery")
+                            }
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(
+                            onClick = { showImageSourceDialog = false }
+                        ) {
+                            Text("Cancel")
+                        }
+                    }
+                )
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -204,7 +302,7 @@ private fun ProfileImageSection(
                         contentAlignment = Alignment.Center
                     ) {
                         CircularProgressIndicator(
-                            progress = uploadProgress,
+                            progress = { uploadProgress },
                             color = RusticGold,
                             modifier = Modifier.size(40.dp)
                         )
@@ -249,7 +347,7 @@ private fun ProfileImageSection(
             modifier = Modifier.padding(top = 8.dp)
         ) {
             LinearProgressIndicator(
-                progress = uploadProgress,
+                progress = { uploadProgress },
                 color = RusticGold,
                 modifier = Modifier
                     .width(120.dp)
@@ -270,9 +368,6 @@ private fun ProfileImageSection(
     }
 }
 
-/**
- * Display name section with inline editing
- */
 @Composable
 private fun DisplayNameSection(
     displayName: String,
@@ -282,9 +377,14 @@ private fun DisplayNameSection(
     onConfirmEdit: () -> Unit,
     onUpdateTempDisplayName: (String) -> Unit
 ) {
+    println("ProfileHeader: DisplayNameSection - displayName='$displayName', isEditing=${editState.isEditing}, editingField=${editState.editingField}, tempDisplayName='${editState.tempDisplayName}'")
+
     val isEditingName = editState.isEditing && editState.editingField == ProfileField.DISPLAY_NAME
 
+    println("ProfileHeader: DisplayNameSection - isEditingName=$isEditingName")
+
     if (isEditingName) {
+        println("ProfileHeader: DisplayNameSection - Rendering editing mode")
         // Editing mode
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -292,11 +392,12 @@ private fun DisplayNameSection(
         ) {
             DingoTextField(
                 value = editState.tempDisplayName,
-                onValueChange = onUpdateTempDisplayName,
+                onValueChange = { newValue ->
+                    println("ProfileHeader: DisplayNameSection - DingoTextField onValueChange called with: '$newValue'")
+                    onUpdateTempDisplayName(newValue)
+                },
                 placeholder = "Enter display name",
-                singleLine = true,
                 isError = editState.validationError != null,
-                errorText = editState.validationError,
                 modifier = Modifier
                     .weight(1f)
                     .semantics {
@@ -306,10 +407,13 @@ private fun DisplayNameSection(
 
             // Confirm button
             IconButton(
-                onClick = onConfirmEdit,
+                onClick = {
+                    println("ProfileHeader: DisplayNameSection - Confirm button clicked")
+                    onConfirmEdit()
+                },
                 enabled = !editState.isValidating && editState.tempDisplayName.isNotBlank(),
                 modifier = Modifier.semantics {
-                    contentDescription = "Confirm changes"
+                    contentDescription = "Confirm name change"
                 }
             ) {
                 if (editState.isValidating) {
@@ -321,7 +425,7 @@ private fun DisplayNameSection(
                 } else {
                     Icon(
                         imageVector = Icons.Default.Check,
-                        contentDescription = "Confirm",
+                        contentDescription = null,
                         tint = RusticGold
                     )
                 }
@@ -329,45 +433,70 @@ private fun DisplayNameSection(
 
             // Cancel button
             IconButton(
-                onClick = onCancelEditing,
+                onClick = {
+                    println("ProfileHeader: DisplayNameSection - Cancel button clicked")
+                    onCancelEditing()
+                },
+                enabled = !editState.isValidating,
                 modifier = Modifier.semantics {
                     contentDescription = "Cancel editing"
                 }
             ) {
                 Icon(
                     imageVector = Icons.Default.Close,
-                    contentDescription = "Cancel",
-                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error
                 )
             }
         }
+
+        // Show validation error
+        if (editState.validationError != null) {
+            println("ProfileHeader: DisplayNameSection - Showing validation error: ${editState.validationError}")
+            Text(
+                text = editState.validationError,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier
+                    .padding(top = 4.dp)
+                    .semantics {
+                        contentDescription = "Error: ${editState.validationError}"
+                    }
+            )
+        }
     } else {
+        println("ProfileHeader: DisplayNameSection - Rendering display mode")
         // Display mode
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                text = displayName.ifEmpty { "No name set" },
+                text = displayName.ifBlank { "No name set" },
                 style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.Bold,
-                color = if (displayName.isEmpty()) {
-                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                } else {
-                    MaterialTheme.colorScheme.onSurface
-                },
-                textAlign = TextAlign.Center
+                modifier = Modifier.semantics {
+                    contentDescription = "Display name: $displayName"
+                }
             )
 
             IconButton(
-                onClick = onStartEditing,
-                modifier = Modifier.size(24.dp)
+                onClick = {
+                    println("ProfileHeader: DisplayNameSection - Edit button clicked, calling onStartEditing")
+                    onStartEditing()
+                },
+                modifier = Modifier
+                    .size(32.dp)
+                    .semantics {
+                        contentDescription = "Edit display name"
+                    }
             ) {
                 Icon(
                     imageVector = Icons.Default.Edit,
-                    contentDescription = "Edit name",
+                    contentDescription = null,
                     tint = RusticGold,
-                    modifier = Modifier.size(16.dp)
+                    modifier = Modifier.size(18.dp)
                 )
             }
         }

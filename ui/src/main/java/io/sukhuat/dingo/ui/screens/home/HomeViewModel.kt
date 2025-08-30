@@ -52,12 +52,16 @@ class HomeViewModel @Inject constructor(
     private val reorderGoalsUseCase: ReorderGoalsUseCase,
     private val migrateGoalWeekDataUseCase: MigrateGoalWeekDataUseCase,
     private val signOutUseCase: SignOutUseCase,
+    private val getUserProfileUseCase: io.sukhuat.dingo.domain.usecase.profile.GetUserProfileUseCase,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     // UI state
     private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
+
+    private val _userProfile = MutableStateFlow<io.sukhuat.dingo.domain.model.UserProfile?>(null)
+    val userProfile: StateFlow<io.sukhuat.dingo.domain.model.UserProfile?> = _userProfile.asStateFlow()
 
     // Goals state
     val allGoals = getGoalsUseCase()
@@ -141,6 +145,7 @@ class HomeViewModel @Inject constructor(
 
     init {
         loadGoals()
+        loadUserProfile()
         checkWeekChange()
         migrateOldGoalData()
     }
@@ -161,6 +166,19 @@ class HomeViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error during goal migration", e)
+            }
+        }
+    }
+
+    private fun loadUserProfile() {
+        viewModelScope.launch {
+            try {
+                getUserProfileUseCase().collect { profile ->
+                    _userProfile.value = profile
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to load user profile", e)
+                _userProfile.value = null
             }
         }
     }

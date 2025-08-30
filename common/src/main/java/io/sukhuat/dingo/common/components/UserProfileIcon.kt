@@ -25,10 +25,14 @@ import coil.request.ImageRequest
 import io.sukhuat.dingo.common.R
 import io.sukhuat.dingo.common.theme.MountainSunriseTheme
 import io.sukhuat.dingo.common.theme.RusticGold
+import io.sukhuat.dingo.domain.model.UserProfile
 
 /**
- * A circular user profile icon that displays either a profile image or a default icon
- * @param imageUrl URL of the user's profile image (null for default icon)
+ * A circular user profile icon with smart image priority logic
+ * Priority: Custom uploaded image > Google profile photo > Default icon
+ * * @param profileImageUrl Custom uploaded profile image URL
+ * @param googlePhotoUrl Google profile photo URL
+ * @param hasCustomImage Whether user has uploaded a custom image
  * @param size Size of the icon in dp
  * @param borderWidth Width of the border in dp
  * @param borderColor Color of the border
@@ -36,12 +40,20 @@ import io.sukhuat.dingo.common.theme.RusticGold
  */
 @Composable
 fun UserProfileIcon(
-    imageUrl: String? = null,
+    profileImageUrl: String? = null,
+    googlePhotoUrl: String? = null,
+    hasCustomImage: Boolean = false,
     size: Dp = 40.dp,
     borderWidth: Dp = 1.dp,
     borderColor: Color = RusticGold,
     backgroundColor: Color = MaterialTheme.colorScheme.primaryContainer
 ) {
+    // Determine image source using priority logic
+    val imageUrl = when {
+        hasCustomImage && !profileImageUrl.isNullOrEmpty() -> profileImageUrl
+        !googlePhotoUrl.isNullOrEmpty() -> googlePhotoUrl
+        else -> null
+    }
     Box(
         modifier = Modifier
             .size(size)
@@ -73,6 +85,29 @@ fun UserProfileIcon(
             )
         }
     }
+}
+
+/**
+ * Convenience overload that accepts a UserProfile object
+ * Uses the same priority logic internally
+ */
+@Composable
+fun UserProfileIcon(
+    userProfile: UserProfile,
+    size: Dp = 40.dp,
+    borderWidth: Dp = 1.dp,
+    borderColor: Color = RusticGold,
+    backgroundColor: Color = MaterialTheme.colorScheme.primaryContainer
+) {
+    UserProfileIcon(
+        profileImageUrl = userProfile.profileImageUrl,
+        googlePhotoUrl = userProfile.googlePhotoUrl,
+        hasCustomImage = userProfile.hasCustomImage,
+        size = size,
+        borderWidth = borderWidth,
+        borderColor = borderColor,
+        backgroundColor = backgroundColor
+    )
 }
 
 @Preview

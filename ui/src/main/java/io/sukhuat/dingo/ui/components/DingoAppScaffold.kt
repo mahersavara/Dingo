@@ -32,7 +32,7 @@ import kotlinx.coroutines.launch
  * @param floatingActionButton Optional floating action button
  * @param contentPadding Padding values for the content
  * @param isAuthenticated Whether the user is authenticated
- * @param userProfileImageUrl URL of the user's profile image
+ * @param userProfile User profile object containing avatar and user info
  * @param currentLanguage The currently selected language
  * @param showUserMenu Whether to show the user dropdown menu
  * @param onProfileClick Called when the profile option is clicked
@@ -54,11 +54,12 @@ fun DingoAppScaffold(
     floatingActionButton: @Composable () -> Unit = {},
     contentPadding: PaddingValues = PaddingValues(),
     isAuthenticated: Boolean = false,
-    userProfileImageUrl: String? = null,
+    userProfile: io.sukhuat.dingo.domain.model.UserProfile? = null,
     currentLanguage: AppLanguage? = null,
     showUserMenu: Boolean = false,
     onProfileClick: () -> Unit = {},
     onYearPlannerClick: () -> Unit = {},
+    onChangePasswordClick: () -> Unit = {},
     onLanguageChange: (String) -> Unit = {},
     onSettingsClick: () -> Unit = {},
     onLogoutClick: () -> Unit = {},
@@ -92,11 +93,12 @@ fun DingoAppScaffold(
         floatingActionButton = floatingActionButton,
         contentPadding = contentPadding,
         isAuthenticated = isAuthenticated,
-        userProfileImageUrl = userProfileImageUrl,
+        userProfile = userProfile,
         currentLanguage = currentLanguage ?: LocalAppLanguage.current,
         showUserMenu = showUserMenu,
         onProfileClick = onProfileClick,
         onYearPlannerClick = onYearPlannerClick,
+        onChangePasswordClick = onChangePasswordClick,
         onLanguageChange = onLanguageChange,
         onSettingsClick = onSettingsClick,
         onLogoutClick = onLogoutClick
