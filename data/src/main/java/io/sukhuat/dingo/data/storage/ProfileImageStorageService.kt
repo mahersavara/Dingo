@@ -45,23 +45,31 @@ class ProfileImageStorageService @Inject constructor(
         userId: String,
         imageUri: Uri
     ): ProfileImageUploadResult {
+        println("ProfileImageStorageService: uploadProfileImage called - userId=$userId, imageUri=$imageUri")
         return withContext(Dispatchers.IO) {
             try {
                 // Validate image first
+                println("ProfileImageStorageService: Validating image URI")
                 val validation = imageProcessor.validateImageUri(imageUri)
                 if (validation is ImageValidationResult.Invalid) {
+                    println("ProfileImageStorageService: Image validation failed: ${validation.reason}")
                     return@withContext ProfileImageUploadResult.Error(
                         "Invalid image: ${validation.reason}"
                     )
                 }
+                println("ProfileImageStorageService: Image validation passed")
 
                 // Process image into multiple sizes
+                println("ProfileImageStorageService: Processing image into multiple sizes")
                 val processedImage = imageProcessor.processProfileImage(imageUri)
+                println("ProfileImageStorageService: Image processing completed")
 
                 // Upload all sizes in parallel
+                println("ProfileImageStorageService: Starting parallel uploads for all sizes")
                 val uploadResults = coroutineScope {
                     listOf(
                         async {
+                            println("ProfileImageStorageService: Uploading original size")
                             uploadImageVariant(
                                 userId,
                                 ORIGINAL_FILE,
@@ -70,6 +78,7 @@ class ProfileImageStorageService @Inject constructor(
                             )
                         },
                         async {
+                            println("ProfileImageStorageService: Uploading medium size")
                             uploadImageVariant(
                                 userId,
                                 MEDIUM_FILE,
@@ -78,6 +87,7 @@ class ProfileImageStorageService @Inject constructor(
                             )
                         },
                         async {
+                            println("ProfileImageStorageService: Uploading small size")
                             uploadImageVariant(
                                 userId,
                                 SMALL_FILE,
@@ -87,12 +97,15 @@ class ProfileImageStorageService @Inject constructor(
                         }
                     ).awaitAll()
                 }
+                println("ProfileImageStorageService: All upload tasks completed")
 
                 // Check if all uploads succeeded
                 val failedUploads = uploadResults.filterIsInstance<UploadResult.Error>()
                 if (failedUploads.isNotEmpty()) {
+                    println("ProfileImageStorageService: Some uploads failed: ${failedUploads.map { "${it.fileName}: ${it.error}" }}")
                     // Clean up any successful uploads
                     val successfulUploads = uploadResults.filterIsInstance<UploadResult.Success>()
+                    println("ProfileImageStorageService: Cleaning up ${successfulUploads.size} successful uploads due to failures")
                     cleanupPartialUploads(userId, successfulUploads.map { it.fileName })
 
                     return@withContext ProfileImageUploadResult.Error(
@@ -102,21 +115,30 @@ class ProfileImageStorageService @Inject constructor(
 
                 // Extract URLs from successful uploads
                 val successfulUploads = uploadResults.filterIsInstance<UploadResult.Success>()
+                println("ProfileImageStorageService: All uploads successful, extracting URLs")
+
                 val originalUrl = successfulUploads.find { it.fileName == ORIGINAL_FILE }?.downloadUrl
                 val mediumUrl = successfulUploads.find { it.fileName == MEDIUM_FILE }?.downloadUrl
                 val smallUrl = successfulUploads.find { it.fileName == SMALL_FILE }?.downloadUrl
 
+                println("ProfileImageStorageService: URLs extracted - original=$originalUrl, medium=$mediumUrl, small=$smallUrl")
+
                 if (originalUrl != null && mediumUrl != null && smallUrl != null) {
-                    ProfileImageUploadResult.Success(
+                    val result = ProfileImageUploadResult.Success(
                         originalImageUrl = originalUrl,
                         mediumImageUrl = mediumUrl,
                         smallImageUrl = smallUrl,
                         uploadTimestamp = System.currentTimeMillis()
                     )
+                    println("ProfileImageStorageService: Upload completed successfully")
+                    result
                 } else {
+                    println("ProfileImageStorageService: ERROR - Failed to retrieve some download URLs")
                     ProfileImageUploadResult.Error("Failed to retrieve download URLs")
                 }
             } catch (e: Exception) {
+                println("ProfileImageStorageService: ERROR during upload: ${e.message}")
+                e.printStackTrace()
                 ProfileImageUploadResult.Error("Upload failed: ${e.message}")
             }
         }
@@ -189,6 +211,7 @@ class ProfileImageStorageService @Inject constructor(
         imageData: ByteArray,
         contentType: String
     ): UploadResult {
+        println("ProfileImageStorageService: uploadImageVariant - userId=$userId, fileName=$fileName, dataSize=${imageData.size} bytes, contentType=$contentType")
         return try {
             val storageRef = storage.reference
                 .child(PROFILE_IMAGES_PATH)
@@ -196,17 +219,25 @@ class ProfileImageStorageService @Inject constructor(
                 .child(PROFILE_FOLDER)
                 .child(fileName)
 
+            println("ProfileImageStorageService: Storage reference created: ${storageRef.path}")
+
             val metadata = StorageMetadata.Builder()
                 .setContentType(contentType)
                 .setCustomMetadata("userId", userId)
                 .setCustomMetadata("uploadTimestamp", System.currentTimeMillis().toString())
                 .build()
 
+            println("ProfileImageStorageService: Starting Firebase Storage upload")
             val uploadTask = storageRef.putBytes(imageData, metadata).await()
+            println("ProfileImageStorageService: Upload task completed, getting download URL")
+
             val downloadUrl = uploadTask.storage.downloadUrl.await().toString()
+            println("ProfileImageStorageService: Download URL obtained: $downloadUrl")
 
             UploadResult.Success(fileName, downloadUrl)
         } catch (e: Exception) {
+            println("ProfileImageStorageService: ERROR uploading $fileName: ${e.message}")
+            e.printStackTrace()
             UploadResult.Error(fileName, e.message ?: "Upload failed")
         }
     }

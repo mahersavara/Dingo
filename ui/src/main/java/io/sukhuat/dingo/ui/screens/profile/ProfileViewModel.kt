@@ -188,65 +188,89 @@ class ProfileViewModel @Inject constructor(
         imageOptimizationManager: ImageOptimizationManager? = null,
         performanceMonitor: ProfilePerformanceMonitor? = null
     ) {
+        println("ProfileViewModel: uploadProfileImage called with URI: $imageUri, mimeType: $mimeType, sizeBytes: $sizeBytes")
+
         viewModelScope.launch {
             try {
+                println("ProfileViewModel: Starting image upload process")
                 _imageUploadState.value = ImageUploadState(
                     isUploading = true,
                     progress = 0f,
                     error = null
                 )
+                println("ProfileViewModel: Upload state set to uploading")
 
                 // Validate image first
+                println("ProfileViewModel: Validating image URI")
                 val validationResult = profileValidator.validateProfileImage(imageUri, mimeType, sizeBytes)
                 if (validationResult is ProfileValidator.ValidationResult.Invalid) {
+                    println("ProfileViewModel: Image validation failed: ${validationResult.error.message}")
                     _imageUploadState.value = ImageUploadState(error = validationResult.error.message)
                     return@launch
                 }
+                println("ProfileViewModel: Image validation passed")
 
                 // Check network connectivity
+                println("ProfileViewModel: Checking network connectivity")
                 if (!networkConnectivityChecker.isConnected()) {
+                    println("ProfileViewModel: No network connection available")
                     _imageUploadState.value = ImageUploadState(error = "No internet connection. Please try again when online.")
                     return@launch
                 }
+                println("ProfileViewModel: Network connectivity confirmed")
 
                 // Update UI state to show uploading
                 val currentState = _uiState.value
                 if (currentState is ProfileUiState.Success) {
+                    println("ProfileViewModel: Setting UI state to uploading")
                     _uiState.value = currentState.copy(isUploadingImage = true)
                 }
 
                 // Execute with retry logic and progress tracking
+                println("ProfileViewModel: Starting upload with progress tracking")
                 _imageUploadState.value = _imageUploadState.value.copy(progress = 0.1f)
 
                 val imageUrl = errorRecoveryManager.executeWithRetry(
                     operation = {
+                        println("ProfileViewModel: Executing upload operation (with retry)")
                         _imageUploadState.value = _imageUploadState.value.copy(progress = 0.5f)
-                        manageProfileImageUseCase.uploadProfileImage(imageUri)
+                        val result = manageProfileImageUseCase.uploadProfileImage(imageUri)
+                        println("ProfileViewModel: Upload operation completed with URL: $result")
+                        result
                     },
                     maxRetries = 2,
                     baseDelayMs = 2000
                 )
 
+                println("ProfileViewModel: Upload successful, final URL: $imageUrl")
                 _imageUploadState.value = _imageUploadState.value.copy(progress = 1f)
 
                 // Reset upload state after successful upload
                 kotlinx.coroutines.delay(500) // Brief delay to show completion
+                println("ProfileViewModel: Resetting upload state after successful completion")
                 _imageUploadState.value = ImageUploadState()
 
                 // Update UI state
                 if (currentState is ProfileUiState.Success) {
+                    println("ProfileViewModel: Resetting UI uploading state")
                     _uiState.value = currentState.copy(isUploadingImage = false)
                 }
+                println("ProfileViewModel: Image upload process completed successfully")
             } catch (error: ProfileError.ValidationError) {
+                println("ProfileViewModel: ValidationError during upload: ${error.message}")
                 _imageUploadState.value = ImageUploadState(error = error.message)
                 resetUploadingState()
             } catch (error: ProfileError.StorageError) {
+                println("ProfileViewModel: StorageError during upload: ${error.message}")
                 _imageUploadState.value = ImageUploadState(error = profileErrorHandler.getErrorMessage(error))
                 resetUploadingState()
             } catch (error: ProfileError.QuotaExceeded) {
+                println("ProfileViewModel: QuotaExceeded during upload: ${error.message}")
                 _imageUploadState.value = ImageUploadState(error = "Storage quota exceeded. Please free up space and try again.")
                 resetUploadingState()
             } catch (error: Exception) {
+                println("ProfileViewModel: Unexpected error during upload: ${error.message}")
+                error.printStackTrace()
                 val profileError = errorRecoveryManager.mapToProfileError(error)
                 _imageUploadState.value = ImageUploadState(error = profileErrorHandler.getErrorMessage(profileError))
                 resetUploadingState()

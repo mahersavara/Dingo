@@ -165,54 +165,69 @@ class UserProfileRepositoryImpl @Inject constructor(
     }
 
     override suspend fun updateProfileImage(imageUri: Uri): String {
+        println("UserProfileRepositoryImpl: updateProfileImage called with URI: $imageUri")
         try {
             val userId = getCurrentUserId()
                 ?: throw ProfileError.AuthenticationExpired
 
-            // Use the new image storage service for multi-size upload and processing
+            println("UserProfileRepositoryImpl: User authenticated - userId=$userId")
+
+            // Use Firebase Storage for profile image upload
+            println("UserProfileRepositoryImpl: Uploading image to Firebase Storage")
             val uploadResult = profileImageStorageService.uploadProfileImage(userId, imageUri)
 
             when (uploadResult) {
                 is ProfileImageUploadResult.Success -> {
-                    // Update profile with new image URLs and metadata
+                    println("UserProfileRepositoryImpl: Firebase Storage upload successful")
+                    val imageUrl = uploadResult.originalImageUrl
+
+                    // Update profile with new image URL
                     val profileRef = firestore
                         .collection(USERS_COLLECTION)
                         .document(userId)
 
                     val updateMap = mapOf(
-                        "profile_image_url" to uploadResult.originalImageUrl,
+                        "profile_image_url" to imageUrl,
                         "has_custom_image" to true,
                         "last_image_update" to com.google.firebase.Timestamp.now()
                     )
 
+                    println("UserProfileRepositoryImpl: Updating Firestore profile document")
                     try {
                         profileRef.update(updateMap).await()
+                        println("UserProfileRepositoryImpl: Firestore profile update successful")
                     } catch (e: Exception) {
-                        // If profile update fails, clean up uploaded images
-                        profileImageStorageService.deleteProfileImages(userId)
+                        println("UserProfileRepositoryImpl: ERROR updating Firestore profile: ${e.message}")
                         throw mapFirebaseException(e)
                     }
 
                     // Update Firebase Auth profile (non-critical)
                     try {
+                        println("UserProfileRepositoryImpl: Updating Firebase Auth profile photo")
                         val profileUpdates = com.google.firebase.auth.UserProfileChangeRequest.Builder()
-                            .setPhotoUri(Uri.parse(uploadResult.originalImageUrl))
+                            .setPhotoUri(Uri.parse(imageUrl))
                             .build()
                         firebaseAuth.currentUser?.updateProfile(profileUpdates)?.await()
+                        println("UserProfileRepositoryImpl: Firebase Auth profile photo updated")
                     } catch (e: Exception) {
                         // Auth profile update is non-critical, just log the error
-                        println("Failed to update auth profile image: ${e.message}")
+                        println("UserProfileRepositoryImpl: Failed to update auth profile image (non-critical): ${e.message}")
                     }
 
-                    return uploadResult.originalImageUrl
+                    println("UserProfileRepositoryImpl: Profile image update completed successfully")
+                    return imageUrl
                 }
                 is ProfileImageUploadResult.Error -> {
-                    throw ProfileError.StorageError("image_upload", Exception(uploadResult.message))
+                    println("UserProfileRepositoryImpl: Firebase Storage upload failed: ${uploadResult.message}")
+                    throw ProfileError.StorageError("upload", Exception(uploadResult.message))
                 }
             }
         } catch (e: ProfileError) {
+            println("UserProfileRepositoryImpl: ProfileError during upload: ${e.message}")
             throw e
         } catch (e: Exception) {
+            println("UserProfileRepositoryImpl: Unexpected error during upload: ${e.message}")
+            e.printStackTrace()
             throw mapFirebaseException(e)
         }
     }

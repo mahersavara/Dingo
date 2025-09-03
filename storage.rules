@@ -1,0 +1,27 @@
+rules_version = '2';
+
+// Firebase Storage security rules for Dingo app
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Profile images - allow authenticated users to upload/read their own images
+    match /users/{userId}/profile/{allPaths=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Goal images - allow authenticated users to upload/read their own goal images
+    match /users/{userId}/goals/{goalId}/{allPaths=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // General user data - allow authenticated users to access their own data
+    match /users/{userId}/{allPaths=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Deny all other access
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

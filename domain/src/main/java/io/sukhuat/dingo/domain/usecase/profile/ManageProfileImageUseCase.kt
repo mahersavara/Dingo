@@ -20,11 +20,25 @@ class ManageProfileImageUseCase @Inject constructor(
      * @throws ProfileError.AuthenticationExpired if user is not authenticated
      */
     suspend fun uploadProfileImage(imageUri: Uri): String {
-        // Validate image URI
-        validateImageUri(imageUri)
+        println("ManageProfileImageUseCase: uploadProfileImage called with URI: $imageUri")
 
-        // Upload image through repository
-        return userProfileRepository.updateProfileImage(imageUri)
+        try {
+            // Validate image URI
+            println("ManageProfileImageUseCase: Validating image URI")
+            validateImageUri(imageUri)
+            println("ManageProfileImageUseCase: Image URI validation passed")
+
+            // Upload image through repository
+            println("ManageProfileImageUseCase: Calling repository.updateProfileImage")
+            val result = userProfileRepository.updateProfileImage(imageUri)
+            println("ManageProfileImageUseCase: Repository upload completed with URL: $result")
+
+            return result
+        } catch (e: Exception) {
+            println("ManageProfileImageUseCase: ERROR during upload: ${e.message}")
+            e.printStackTrace()
+            throw e
+        }
     }
 
     /**

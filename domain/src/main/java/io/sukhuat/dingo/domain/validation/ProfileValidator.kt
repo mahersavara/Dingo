@@ -141,12 +141,13 @@ class ProfileValidator @Inject constructor() {
     /**
      * Validate profile image
      */
-    fun validateProfileImage(uri: Uri?, mimeType: String?, sizeBytes: Long?): ValidationResult {
+    fun validateProfileImage(uri: Uri?, mimeType: String? = null, sizeBytes: Long? = null): ValidationResult {
         return when {
             uri == null -> ValidationResult.Invalid(
                 ProfileError.ValidationError("profileImage", "Please select an image")
             )
-            mimeType == null || !SUPPORTED_IMAGE_TYPES.contains(mimeType.lowercase()) -> ValidationResult.Invalid(
+            // Skip MIME type validation if not provided - let ImageProcessor handle format validation
+            mimeType != null && !SUPPORTED_IMAGE_TYPES.contains(mimeType.lowercase()) -> ValidationResult.Invalid(
                 ProfileError.ValidationError("profileImage", "Unsupported image format. Please use JPEG, PNG, or WebP")
             )
             sizeBytes != null && sizeBytes > MAX_IMAGE_SIZE_BYTES -> ValidationResult.Invalid(

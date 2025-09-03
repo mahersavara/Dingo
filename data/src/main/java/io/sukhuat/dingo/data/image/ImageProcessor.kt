@@ -29,47 +29,68 @@ class ImageProcessor @Inject constructor(
      * @return ProcessedProfileImage with all size variants
      */
     suspend fun processProfileImage(imageUri: Uri): ProcessedProfileImage {
+        println("ImageProcessor: processProfileImage called with URI: $imageUri")
         return withContext(Dispatchers.IO) {
-            // Load original bitmap
-            val originalBitmap = loadBitmapFromUri(imageUri)
-                ?: throw IllegalArgumentException("Cannot load image from URI")
+            try {
+                println("ImageProcessor: Loading original bitmap from URI")
+                // Load original bitmap
+                val originalBitmap = loadBitmapFromUri(imageUri)
+                    ?: throw IllegalArgumentException("Cannot load image from URI")
 
-            // Auto-rotate based on EXIF data
-            val rotatedBitmap = autoRotateImage(originalBitmap, imageUri)
+                println("ImageProcessor: Original bitmap loaded - ${originalBitmap.width}x${originalBitmap.height}")
 
-            // Generate multiple sizes with appropriate compression
-            val originalBytes = compressBitmap(
-                resizeBitmap(rotatedBitmap, 512, 512),
-                90,
-                Bitmap.CompressFormat.JPEG
-            )
+                // Auto-rotate based on EXIF data
+                println("ImageProcessor: Auto-rotating image based on EXIF data")
+                val rotatedBitmap = autoRotateImage(originalBitmap, imageUri)
+                println("ImageProcessor: Image rotation completed")
 
-            val mediumBytes = compressBitmap(
-                resizeBitmap(rotatedBitmap, 256, 256),
-                85,
-                Bitmap.CompressFormat.JPEG
-            )
+                // Generate multiple sizes with appropriate compression
+                println("ImageProcessor: Generating original size (512x512)")
+                val originalBytes = compressBitmap(
+                    resizeBitmap(rotatedBitmap, 512, 512),
+                    90,
+                    Bitmap.CompressFormat.JPEG
+                )
+                println("ImageProcessor: Original size generated - ${originalBytes.size} bytes")
 
-            val smallBytes = compressBitmap(
-                resizeBitmap(rotatedBitmap, 64, 64),
-                80,
-                Bitmap.CompressFormat.JPEG
-            )
+                println("ImageProcessor: Generating medium size (256x256)")
+                val mediumBytes = compressBitmap(
+                    resizeBitmap(rotatedBitmap, 256, 256),
+                    85,
+                    Bitmap.CompressFormat.JPEG
+                )
+                println("ImageProcessor: Medium size generated - ${mediumBytes.size} bytes")
 
-            // Clean up original bitmap
-            if (originalBitmap != rotatedBitmap) {
-                originalBitmap.recycle()
+                println("ImageProcessor: Generating small size (64x64)")
+                val smallBytes = compressBitmap(
+                    resizeBitmap(rotatedBitmap, 64, 64),
+                    80,
+                    Bitmap.CompressFormat.JPEG
+                )
+                println("ImageProcessor: Small size generated - ${smallBytes.size} bytes")
+
+                // Clean up original bitmap
+                if (originalBitmap != rotatedBitmap) {
+                    originalBitmap.recycle()
+                }
+                rotatedBitmap.recycle()
+                println("ImageProcessor: Bitmap cleanup completed")
+
+                val result = ProcessedProfileImage(
+                    originalSize = originalBytes,
+                    mediumSize = mediumBytes,
+                    smallSize = smallBytes,
+                    originalDimensions = Pair(512, 512),
+                    mediumDimensions = Pair(256, 256),
+                    smallDimensions = Pair(64, 64)
+                )
+                println("ImageProcessor: Image processing completed successfully")
+                result
+            } catch (e: Exception) {
+                println("ImageProcessor: ERROR during image processing: ${e.message}")
+                e.printStackTrace()
+                throw e
             }
-            rotatedBitmap.recycle()
-
-            ProcessedProfileImage(
-                originalSize = originalBytes,
-                mediumSize = mediumBytes,
-                smallSize = smallBytes,
-                originalDimensions = Pair(512, 512),
-                mediumDimensions = Pair(256, 256),
-                smallDimensions = Pair(64, 64)
-            )
         }
     }
 
@@ -210,10 +231,13 @@ class ImageProcessor @Inject constructor(
      * Validate image URI and get basic information
      */
     suspend fun validateImageUri(uri: Uri): ImageValidationResult {
+        println("ImageProcessor: validateImageUri called with URI: $uri")
         return withContext(Dispatchers.IO) {
             try {
+                println("ImageProcessor: Opening input stream for URI validation")
                 val inputStream = context.contentResolver.openInputStream(uri)
                 inputStream?.use { stream ->
+                    println("ImageProcessor: Input stream opened successfully, decoding bounds")
                     val options = BitmapFactory.Options().apply {
                         inJustDecodeBounds = true
                     }
@@ -223,17 +247,23 @@ class ImageProcessor @Inject constructor(
                     val height = options.outHeight
                     val mimeType = options.outMimeType
 
+                    println("ImageProcessor: Image decoded - width=$width, height=$height, mimeType=$mimeType")
+
                     when {
                         width <= 0 || height <= 0 -> {
+                            println("ImageProcessor: Validation failed - Invalid dimensions")
                             ImageValidationResult.Invalid("Invalid image dimensions")
                         }
                         width > 4096 || height > 4096 -> {
+                            println("ImageProcessor: Validation failed - Image too large")
                             ImageValidationResult.Invalid("Image too large (max 4096x4096)")
                         }
                         !isSupportedMimeType(mimeType) -> {
+                            println("ImageProcessor: Validation failed - Unsupported format: $mimeType")
                             ImageValidationResult.Invalid("Unsupported image format")
                         }
                         else -> {
+                            println("ImageProcessor: Validation successful - Valid image")
                             ImageValidationResult.Valid(
                                 width = width,
                                 height = height,
@@ -241,8 +271,13 @@ class ImageProcessor @Inject constructor(
                             )
                         }
                     }
-                } ?: ImageValidationResult.Invalid("Cannot open image file")
+                } ?: run {
+                    println("ImageProcessor: ERROR - Cannot open input stream for URI")
+                    ImageValidationResult.Invalid("Cannot open image file")
+                }
             } catch (e: Exception) {
+                println("ImageProcessor: ERROR during validation: ${e.message}")
+                e.printStackTrace()
                 ImageValidationResult.Invalid("Error validating image: ${e.message}")
             }
         }

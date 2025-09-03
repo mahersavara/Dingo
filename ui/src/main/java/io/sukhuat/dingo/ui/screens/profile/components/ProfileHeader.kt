@@ -89,6 +89,8 @@ fun ProfileHeader(
     onDeleteProfileImage: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    println("ProfileHeader: Component rendered - hasCustomImage=${profile.hasCustomImage}, profileImageUrl=${profile.profileImageUrl}, googlePhotoUrl=${profile.googlePhotoUrl}")
+
     val context = LocalContext.current
     var showImageSourceDialog by remember { mutableStateOf(false) }
 
@@ -99,22 +101,37 @@ fun ProfileHeader(
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
-        uri?.let { onUploadProfileImage(it) }
+        println("ProfileHeader: Gallery launcher callback - uri=$uri")
+        uri?.let {
+            println("ProfileHeader: Calling onUploadProfileImage with URI: $it")
+            onUploadProfileImage(it)
+        } ?: run {
+            println("ProfileHeader: Gallery launcher returned null URI")
+        }
     }
 
     // Camera launcher
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
     ) { success: Boolean ->
+        println("ProfileHeader: Camera launcher callback - success=$success, tempImageUri=$tempImageUri")
         if (success) {
             // The image is saved to the provided URI in tempImageUri
-            tempImageUri?.let { onUploadProfileImage(it) }
+            tempImageUri?.let {
+                println("ProfileHeader: Calling onUploadProfileImage with camera URI: $it")
+                onUploadProfileImage(it)
+            } ?: run {
+                println("ProfileHeader: ERROR - Camera successful but tempImageUri is null")
+            }
+        } else {
+            println("ProfileHeader: Camera capture failed or was cancelled")
         }
     }
 
     // Create temp file for camera capture
     LaunchedEffect(Unit) {
         try {
+            println("ProfileHeader: Creating temp file for camera capture")
             val tempFile = File.createTempFile(
                 "profile_image_${System.currentTimeMillis()}",
                 ".jpg",
@@ -125,9 +142,10 @@ fun ProfileHeader(
                 "${context.packageName}.fileprovider",
                 tempFile
             )
+            println("ProfileHeader: Temp URI created successfully: $tempImageUri")
         } catch (e: Exception) {
             // Handle FileProvider configuration issues gracefully
-            println("ProfileHeader: Failed to create temp URI for camera: ${e.message}")
+            println("ProfileHeader: ERROR - Failed to create temp URI for camera: ${e.message}")
             e.printStackTrace()
             tempImageUri = null
         }
@@ -155,14 +173,21 @@ fun ProfileHeader(
                 profileImageUrl = profile.profileImageUrl,
                 isUploading = imageUploadState.isUploading,
                 uploadProgress = imageUploadState.progress,
-                onImageClick = { showImageSourceDialog = true },
+                onImageClick = {
+                    println("ProfileHeader: Profile image clicked, showing dialog")
+                    showImageSourceDialog = true
+                },
                 onDeleteImage = onDeleteProfileImage
             )
 
             // Image source selection dialog
             if (showImageSourceDialog) {
+                println("ProfileHeader: Showing image source dialog")
                 AlertDialog(
-                    onDismissRequest = { showImageSourceDialog = false },
+                    onDismissRequest = {
+                        println("ProfileHeader: Image source dialog dismissed")
+                        showImageSourceDialog = false
+                    },
                     title = { Text("Choose Photo Source") },
                     text = { Text("Select where to get your profile photo from:") },
                     confirmButton = {
@@ -171,12 +196,14 @@ fun ProfileHeader(
                         ) {
                             TextButton(
                                 onClick = {
+                                    println("ProfileHeader: Camera button clicked")
                                     showImageSourceDialog = false
                                     tempImageUri?.let { uri ->
+                                        println("ProfileHeader: Launching camera with URI: $uri")
                                         cameraLauncher.launch(uri)
                                     } ?: run {
                                         // Show error if FileProvider setup failed
-                                        println("Error: Camera feature unavailable due to FileProvider configuration")
+                                        println("ProfileHeader: ERROR - Camera feature unavailable due to FileProvider configuration")
                                     }
                                 },
                                 enabled = tempImageUri != null
@@ -192,7 +219,9 @@ fun ProfileHeader(
 
                             TextButton(
                                 onClick = {
+                                    println("ProfileHeader: Gallery button clicked")
                                     showImageSourceDialog = false
+                                    println("ProfileHeader: Launching gallery picker")
                                     galleryLauncher.launch("image/*")
                                 }
                             ) {
@@ -208,7 +237,10 @@ fun ProfileHeader(
                     },
                     dismissButton = {
                         TextButton(
-                            onClick = { showImageSourceDialog = false }
+                            onClick = {
+                                println("ProfileHeader: Cancel button clicked")
+                                showImageSourceDialog = false
+                            }
                         ) {
                             Text("Cancel")
                         }
