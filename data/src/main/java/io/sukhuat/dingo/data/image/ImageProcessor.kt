@@ -3,6 +3,7 @@ package io.sukhuat.dingo.data.image
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
 import android.graphics.Matrix
 import android.net.Uri
 import androidx.exifinterface.media.ExifInterface
@@ -23,11 +24,6 @@ class ImageProcessor @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
 
-    /**
-     * Process profile image URI into multiple optimized sizes
-     * @param imageUri Original image URI
-     * @return ProcessedProfileImage with all size variants
-     */
     suspend fun processProfileImage(imageUri: Uri): ProcessedProfileImage {
         println("ImageProcessor: processProfileImage called with URI: $imageUri")
         return withContext(Dispatchers.IO) {
@@ -44,28 +40,25 @@ class ImageProcessor @Inject constructor(
                 val rotatedBitmap = autoRotateImage(originalBitmap, imageUri)
                 println("ImageProcessor: Image rotation completed")
 
-                // Generate multiple sizes with appropriate compression
-                println("ImageProcessor: Generating original size (512x512)")
-                val originalBytes = compressBitmap(
-                    resizeBitmap(rotatedBitmap, 512, 512),
-                    90,
-                    Bitmap.CompressFormat.JPEG
+                // Generate multiple sizes with aggressive compression for small file sizes
+                println("ImageProcessor: Generating original size (256x256) - targeting ~15KB")
+                val originalBytes = compressBitmapToTargetSize(
+                    resizeBitmap(rotatedBitmap, 256, 256), // Reduced from 512 to 256
+                    targetSizeKB = 15
                 )
                 println("ImageProcessor: Original size generated - ${originalBytes.size} bytes")
 
-                println("ImageProcessor: Generating medium size (256x256)")
-                val mediumBytes = compressBitmap(
-                    resizeBitmap(rotatedBitmap, 256, 256),
-                    85,
-                    Bitmap.CompressFormat.JPEG
+                println("ImageProcessor: Generating medium size (128x128) - targeting ~8KB")
+                val mediumBytes = compressBitmapToTargetSize(
+                    resizeBitmap(rotatedBitmap, 128, 128), // Reduced from 256 to 128
+                    targetSizeKB = 8
                 )
                 println("ImageProcessor: Medium size generated - ${mediumBytes.size} bytes")
 
-                println("ImageProcessor: Generating small size (64x64)")
-                val smallBytes = compressBitmap(
-                    resizeBitmap(rotatedBitmap, 64, 64),
-                    80,
-                    Bitmap.CompressFormat.JPEG
+                println("ImageProcessor: Generating small size (64x64) - targeting ~3KB")
+                val smallBytes = compressBitmapToTargetSize(
+                    resizeBitmap(rotatedBitmap, 64, 64), // Keep same size
+                    targetSizeKB = 3
                 )
                 println("ImageProcessor: Small size generated - ${smallBytes.size} bytes")
 
@@ -80,8 +73,8 @@ class ImageProcessor @Inject constructor(
                     originalSize = originalBytes,
                     mediumSize = mediumBytes,
                     smallSize = smallBytes,
-                    originalDimensions = Pair(512, 512),
-                    mediumDimensions = Pair(256, 256),
+                    originalDimensions = Pair(256, 256), // Updated dimensions
+                    mediumDimensions = Pair(128, 128), // Updated dimensions
                     smallDimensions = Pair(64, 64)
                 )
                 println("ImageProcessor: Image processing completed successfully")
@@ -111,120 +104,119 @@ class ImageProcessor @Inject constructor(
     }
 
     /**
-     * Auto-rotate bitmap based on EXIF orientation data
-     */
-    private suspend fun autoRotateImage(bitmap: Bitmap, uri: Uri): Bitmap {
-        return withContext(Dispatchers.IO) {
-            try {
-                val inputStream = context.contentResolver.openInputStream(uri)
-                inputStream?.use { stream ->
-                    val exif = ExifInterface(stream)
-                    val orientation = exif.getAttributeInt(
-                        ExifInterface.TAG_ORIENTATION,
-                        ExifInterface.ORIENTATION_NORMAL
-                    )
-
-                    val rotation = when (orientation) {
-                        ExifInterface.ORIENTATION_ROTATE_90 -> 90f
-                        ExifInterface.ORIENTATION_ROTATE_180 -> 180f
-                        ExifInterface.ORIENTATION_ROTATE_270 -> 270f
-                        else -> 0f
-                    }
-
-                    if (rotation != 0f) {
-                        val matrix = Matrix().apply { postRotate(rotation) }
-                        val rotatedBitmap = Bitmap.createBitmap(
-                            bitmap,
-                            0,
-                            0,
-                            bitmap.width,
-                            bitmap.height,
-                            matrix,
-                            true
-                        )
-                        if (rotatedBitmap != bitmap) {
-                            // Only recycle if we created a new bitmap
-                            bitmap.recycle()
-                        }
-                        rotatedBitmap
-                    } else {
-                        bitmap
-                    }
-                } ?: bitmap
-            } catch (e: Exception) {
-                // If we can't read EXIF, return original bitmap
-                bitmap
-            }
-        }
-    }
-
-    /**
-     * Resize bitmap maintaining aspect ratio with smart cropping
+     * Resize bitmap while maintaining aspect ratio and handling edge cases
      */
     private fun resizeBitmap(bitmap: Bitmap, targetWidth: Int, targetHeight: Int): Bitmap {
         val originalWidth = bitmap.width
         val originalHeight = bitmap.height
 
-        // Calculate scale to fill the target dimensions
+        // Calculate the scale factor while maintaining aspect ratio
         val scaleX = targetWidth.toFloat() / originalWidth
         val scaleY = targetHeight.toFloat() / originalHeight
-        val scale = maxOf(scaleX, scaleY)
+        val scale = minOf(scaleX, scaleY)
 
-        // Calculate scaled dimensions
-        val scaledWidth = (originalWidth * scale).toInt()
-        val scaledHeight = (originalHeight * scale).toInt()
+        // Calculate new dimensions
+        val newWidth = (originalWidth * scale).toInt()
+        val newHeight = (originalHeight * scale).toInt()
 
-        // Scale the bitmap
-        val scaledBitmap = Bitmap.createScaledBitmap(bitmap, scaledWidth, scaledHeight, true)
+        // Create scaled bitmap
+        val scaledBitmap = Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true)
 
-        // Center crop to exact target dimensions
-        val xOffset = (scaledWidth - targetWidth) / 2
-        val yOffset = (scaledHeight - targetHeight) / 2
+        // Create final bitmap with exact target size (center crop if needed)
+        val finalBitmap = Bitmap.createBitmap(targetWidth, targetHeight, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(finalBitmap)
 
-        val croppedBitmap = Bitmap.createBitmap(
-            scaledBitmap,
-            xOffset.coerceAtLeast(0),
-            yOffset.coerceAtLeast(0),
-            targetWidth.coerceAtMost(scaledWidth),
-            targetHeight.coerceAtMost(scaledHeight)
-        )
+        // Calculate position for centering
+        val left = (targetWidth - newWidth) / 2f
+        val top = (targetHeight - newHeight) / 2f
 
-        // Clean up intermediate bitmap if different
-        if (scaledBitmap != croppedBitmap) {
+        // Draw the scaled bitmap centered
+        canvas.drawBitmap(scaledBitmap, left, top, null)
+
+        // Clean up intermediate bitmap
+        if (scaledBitmap != bitmap) {
             scaledBitmap.recycle()
         }
 
-        return croppedBitmap
+        return finalBitmap
     }
 
     /**
-     * Compress bitmap to byte array with specified quality and format
+     * Auto-rotate image based on EXIF orientation data
      */
-    private fun compressBitmap(
-        bitmap: Bitmap,
-        quality: Int,
-        format: Bitmap.CompressFormat = Bitmap.CompressFormat.JPEG
-    ): ByteArray {
-        val stream = ByteArrayOutputStream()
-        bitmap.compress(format, quality, stream)
-        val bytes = stream.toByteArray()
+    private fun autoRotateImage(bitmap: Bitmap, uri: Uri): Bitmap {
+        return try {
+            val inputStream = context.contentResolver.openInputStream(uri)
+            val exif = inputStream?.use { ExifInterface(it) }
+            val orientation = exif?.getAttributeInt(
+                ExifInterface.TAG_ORIENTATION,
+                ExifInterface.ORIENTATION_NORMAL
+            ) ?: ExifInterface.ORIENTATION_NORMAL
 
-        // Clean up
+            when (orientation) {
+                ExifInterface.ORIENTATION_ROTATE_90 -> rotateBitmap(bitmap, 90f)
+                ExifInterface.ORIENTATION_ROTATE_180 -> rotateBitmap(bitmap, 180f)
+                ExifInterface.ORIENTATION_ROTATE_270 -> rotateBitmap(bitmap, 270f)
+                else -> bitmap
+            }
+        } catch (e: Exception) {
+            bitmap
+        }
+    }
+
+    /**
+     * Rotate bitmap by specified degrees
+     */
+    private fun rotateBitmap(bitmap: Bitmap, degrees: Float): Bitmap {
+        val matrix = Matrix().apply { postRotate(degrees) }
+        val rotatedBitmap = Bitmap.createBitmap(
+            bitmap,
+            0,
+            0,
+            bitmap.width,
+            bitmap.height,
+            matrix,
+            true
+        )
+        if (rotatedBitmap != bitmap) {
+            bitmap.recycle()
+        }
+        return rotatedBitmap
+    }
+
+    /**
+     * Compress bitmap to target file size using iterative quality adjustment
+     * @param bitmap Bitmap to compress
+     * @param targetSizeKB Target file size in kilobytes
+     * @return Compressed byte array within target size
+     */
+    private fun compressBitmapToTargetSize(
+        bitmap: Bitmap,
+        targetSizeKB: Int
+    ): ByteArray {
+        val targetSizeBytes = targetSizeKB * 1024
+        var quality = 90
+        var compressedBytes: ByteArray
+
+        do {
+            val stream = ByteArrayOutputStream()
+            bitmap.compress(Bitmap.CompressFormat.JPEG, quality, stream)
+            compressedBytes = stream.toByteArray()
+
+            println("ImageProcessor: Compression quality $quality -> ${compressedBytes.size} bytes (target: $targetSizeBytes)")
+
+            if (compressedBytes.size > targetSizeBytes && quality > 10) {
+                quality -= 10
+            } else {
+                break
+            }
+        } while (compressedBytes.size > targetSizeBytes && quality > 10)
+
+        // Clean up bitmap
         bitmap.recycle()
 
-        return bytes
-    }
-
-    /**
-     * Get file extension for the given format
-     */
-    fun getFileExtension(format: Bitmap.CompressFormat): String {
-        return when (format) {
-            Bitmap.CompressFormat.JPEG -> "jpg"
-            Bitmap.CompressFormat.PNG -> "png"
-            Bitmap.CompressFormat.WEBP -> "webp"
-            else -> "jpg"
-        }
+        println("ImageProcessor: Final compression: quality $quality, size ${compressedBytes.size} bytes")
+        return compressedBytes
     }
 
     /**
@@ -284,13 +276,12 @@ class ImageProcessor @Inject constructor(
     }
 
     /**
-     * Check if MIME type is supported
+     * Check if the MIME type is supported for image processing
      */
     private fun isSupportedMimeType(mimeType: String?): Boolean {
         return mimeType in listOf(
             "image/jpeg",
-            "image/jpg",
-            "image/png",
+            "image/jpg", "image/png",
             "image/webp"
         )
     }
@@ -300,9 +291,9 @@ class ImageProcessor @Inject constructor(
  * Result of processing a profile image with multiple sizes
  */
 data class ProcessedProfileImage(
-    val originalSize: ByteArray, // 512x512, JPEG 90%
-    val mediumSize: ByteArray, // 256x256, JPEG 85%
-    val smallSize: ByteArray, // 64x64, JPEG 80%
+    val originalSize: ByteArray, // 256x256, ~15KB
+    val mediumSize: ByteArray, // 128x128, ~8KB
+    val smallSize: ByteArray, // 64x64, ~3KB
     val originalDimensions: Pair<Int, Int>,
     val mediumDimensions: Pair<Int, Int>,
     val smallDimensions: Pair<Int, Int>
@@ -353,7 +344,7 @@ sealed class ImageValidationResult {
  * Image size variants for different use cases
  */
 enum class ImageSize(val width: Int, val height: Int, val quality: Int) {
-    ORIGINAL(512, 512, 90), // High quality for profile pages
-    MEDIUM(256, 256, 85), // Standard quality for profile display
-    SMALL(64, 64, 80) // Low quality for thumbnails and lists
+    ORIGINAL(256, 256, 90), // Updated to match new compression
+    MEDIUM(128, 128, 85), // Updated to match new compression
+    SMALL(64, 64, 80) // Thumbnails and lists
 }
