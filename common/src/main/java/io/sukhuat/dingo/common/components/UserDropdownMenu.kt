@@ -46,6 +46,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import android.util.Log
 import io.sukhuat.dingo.common.R
 import io.sukhuat.dingo.common.localization.AppLanguage
 import io.sukhuat.dingo.common.localization.LocalAppLanguage
@@ -74,6 +75,12 @@ fun UserDropdownMenu(
     var showLanguageSelector by remember { mutableStateOf(false) }
     var languageOptionPosition by remember { mutableStateOf(Offset.Zero) }
     val density = LocalDensity.current
+
+    // Debug logging
+    Log.d("UserDropdownMenu", "isAuthenticated: $isAuthenticated")
+    Log.d("UserDropdownMenu", "userProfile: $userProfile")
+    Log.d("UserDropdownMenu", "userProfile != null: ${userProfile != null}")
+    Log.d("UserDropdownMenu", "condition result: ${isAuthenticated && userProfile != null}")
 
     // Scale animation for the icon when clicked
     val scale by animateFloatAsState(

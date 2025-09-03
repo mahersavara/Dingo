@@ -49,8 +49,9 @@ fun UserProfileIcon(
     backgroundColor: Color = MaterialTheme.colorScheme.primaryContainer
 ) {
     // Determine image source using priority logic
+    // Fixed: Always prioritize profileImageUrl if available, regardless of hasCustomImage flag
     val imageUrl = when {
-        hasCustomImage && !profileImageUrl.isNullOrEmpty() -> profileImageUrl
+        !profileImageUrl.isNullOrEmpty() -> profileImageUrl
         !googlePhotoUrl.isNullOrEmpty() -> googlePhotoUrl
         else -> null
     }

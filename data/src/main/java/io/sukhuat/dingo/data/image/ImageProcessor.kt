@@ -281,7 +281,8 @@ class ImageProcessor @Inject constructor(
     private fun isSupportedMimeType(mimeType: String?): Boolean {
         return mimeType in listOf(
             "image/jpeg",
-            "image/jpg", "image/png",
+            "image/jpg",
+            "image/png",
             "image/webp"
         )
     }

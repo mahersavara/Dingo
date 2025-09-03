@@ -187,7 +187,7 @@ class UserProfileRepositoryImpl @Inject constructor(
                         .document(userId)
 
                     val updateMap = mapOf(
-                        "profile_image_url" to imageUrl,
+                        "profileImageUrl" to imageUrl,
                         "has_custom_image" to true,
                         "last_image_update" to com.google.firebase.Timestamp.now()
                     )
@@ -250,7 +250,7 @@ class UserProfileRepositoryImpl @Inject constructor(
                 .document(userId)
 
             val updateMap = mapOf(
-                "profile_image_url" to null,
+                "profileImageUrl" to null,
                 "has_custom_image" to false,
                 "last_image_update" to com.google.firebase.Timestamp.now()
             )

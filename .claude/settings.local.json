@@ -52,7 +52,10 @@
       "Bash(\"./gradlew.bat\" ktlintFormat --no-daemon)",
       "Bash(\"./gradlew.bat\" :app:assembleDebug --no-daemon)",
       "Bash(\"./gradlew.bat\" clean :data:compileDebugKotlin --no-daemon)",
-      "Bash(del \"nul\")"
+      "Bash(del \"nul\")",
+      "mcp__serena__find_referencing_symbols",
+      "Bash(\"./gradlew.bat\" :app:compileDebugKotlin --no-daemon)",
+      "Bash(\"./gradlew.bat\" :common:compileDebugKotlin --no-daemon)"
     ],
     "deny": [],
     "additionalDirectories": [

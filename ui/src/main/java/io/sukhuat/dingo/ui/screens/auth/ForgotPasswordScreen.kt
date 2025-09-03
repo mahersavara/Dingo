@@ -68,7 +68,7 @@ fun ForgotPasswordScreen(
             useGradientBackground = true,
             showUserMenu = false,
             isAuthenticated = false,
-            userProfileImageUrl = null,
+            userProfile = null,
             currentLanguage = currentLanguage,
             onLanguageChange = { viewModel.changeLanguage(it) },
             onSettingsClick = { }

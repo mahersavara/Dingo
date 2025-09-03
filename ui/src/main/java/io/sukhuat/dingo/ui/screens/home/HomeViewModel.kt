@@ -173,7 +173,9 @@ class HomeViewModel @Inject constructor(
     private fun loadUserProfile() {
         viewModelScope.launch {
             try {
+                Log.d(TAG, "Starting to load user profile...")
                 getUserProfileUseCase().collect { profile ->
+                    Log.d(TAG, "User profile loaded: $profile")
                     _userProfile.value = profile
                 }
             } catch (e: Exception) {

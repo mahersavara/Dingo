@@ -171,6 +171,8 @@ fun ProfileHeader(
             // Profile Image Section
             ProfileImageSection(
                 profileImageUrl = profile.profileImageUrl,
+                googlePhotoUrl = profile.googlePhotoUrl,
+                hasCustomImage = profile.hasCustomImage,
                 isUploading = imageUploadState.isUploading,
                 uploadProgress = imageUploadState.progress,
                 onImageClick = {
@@ -283,11 +285,22 @@ fun ProfileHeader(
 @Composable
 private fun ProfileImageSection(
     profileImageUrl: String?,
+    googlePhotoUrl: String?,
+    hasCustomImage: Boolean,
     isUploading: Boolean,
     uploadProgress: Float,
     onImageClick: () -> Unit,
     onDeleteImage: () -> Unit
 ) {
+    // Debug: prioritize profileImageUrl to test if the URL is actually there
+    val imageUrl = when {
+        !profileImageUrl.isNullOrEmpty() -> profileImageUrl // Show any profileImageUrl regardless of hasCustomImage flag
+        !googlePhotoUrl.isNullOrEmpty() -> googlePhotoUrl
+        else -> null
+    }
+
+    println("ProfileImageSection: hasCustomImage=$hasCustomImage, profileImageUrl=$profileImageUrl, googlePhotoUrl=$googlePhotoUrl, selectedImageUrl=$imageUrl")
+
     Box(
         contentAlignment = Alignment.Center
     ) {
@@ -301,10 +314,10 @@ private fun ProfileImageSection(
                 .clickable { onImageClick() },
             contentAlignment = Alignment.Center
         ) {
-            if (profileImageUrl != null) {
+            if (imageUrl != null) {
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
-                        .data(profileImageUrl)
+                        .data(imageUrl)
                         .crossfade(true)
                         .build(),
                     contentDescription = "Profile picture",

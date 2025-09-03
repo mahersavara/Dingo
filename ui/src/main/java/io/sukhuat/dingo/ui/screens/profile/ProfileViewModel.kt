@@ -81,23 +81,30 @@ class ProfileViewModel @Inject constructor(
         println("ProfileViewModel: loadProfileData called")
         viewModelScope.launch {
             try {
-                println("ProfileViewModel: loadProfileData - getting user profile")
-                val profile = getUserProfileUseCase().first()
-                println("ProfileViewModel: loadProfileData - got profile: userId=${profile.userId}, displayName='${profile.displayName}', email=${profile.email}")
+                println("ProfileViewModel: loadProfileData - setting up profile Flow collection")
 
-                println("ProfileViewModel: loadProfileData - getting statistics")
-                val statistics = getProfileStatisticsUseCase().first()
-                println("ProfileViewModel: loadProfileData - got statistics")
+                // Collect profile data continuously for real-time updates
+                getUserProfileUseCase().collect { profile ->
+                    println("ProfileViewModel: profile data updated - userId=${profile.userId}, displayName='${profile.displayName}', email=${profile.email}")
 
-                val successState = ProfileUiState.Success(
-                    profile = profile,
-                    statistics = statistics,
-                    isRefreshing = false
-                )
+                    // Get current statistics (or keep existing if already loaded)
+                    val currentState = _uiState.value
+                    val statistics = if (currentState is ProfileUiState.Success) {
+                        currentState.statistics
+                    } else {
+                        println("ProfileViewModel: getting fresh statistics")
+                        getProfileStatisticsUseCase().first()
+                    }
 
-                println("ProfileViewModel: loadProfileData - setting UI state to Success")
-                _uiState.value = successState
-                println("ProfileViewModel: loadProfileData - UI state updated successfully")
+                    val successState = ProfileUiState.Success(
+                        profile = profile,
+                        statistics = statistics,
+                        isRefreshing = false
+                    )
+
+                    println("ProfileViewModel: updating UI state with new profile data")
+                    _uiState.value = successState
+                }
             } catch (error: Exception) {
                 println("ProfileViewModel: loadProfileData - error occurred: ${error.message}")
                 error.printStackTrace()
@@ -250,11 +257,16 @@ class ProfileViewModel @Inject constructor(
                 println("ProfileViewModel: Resetting upload state after successful completion")
                 _imageUploadState.value = ImageUploadState()
 
-                // Update UI state
+                // Reload profile data to see the changes (same as updateDisplayName does)
                 if (currentState is ProfileUiState.Success) {
                     println("ProfileViewModel: Resetting UI uploading state")
                     _uiState.value = currentState.copy(isUploadingImage = false)
                 }
+
+                // Force reload profile data to refresh UI with new image
+                println("ProfileViewModel: Reloading profile data to refresh UI with new image")
+                loadProfileData()
+
                 println("ProfileViewModel: Image upload process completed successfully")
             } catch (error: ProfileError.ValidationError) {
                 println("ProfileViewModel: ValidationError during upload: ${error.message}")
