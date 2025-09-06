@@ -1,6 +1,5 @@
 package io.sukhuat.dingo.domain.usecase.profile
 
-import io.sukhuat.dingo.domain.model.ProfileError
 import io.sukhuat.dingo.domain.repository.UserProfileRepository
 import io.sukhuat.dingo.domain.validation.ProfileValidator
 import javax.inject.Inject
@@ -12,54 +11,67 @@ class ChangePasswordUseCase @Inject constructor(
     private val userProfileRepository: UserProfileRepository,
     private val profileValidator: ProfileValidator
 ) {
+
+    sealed class PasswordChangeResult {
+        object Success : PasswordChangeResult()
+        data class ValidationError(val field: String, val message: String) : PasswordChangeResult()
+        data class AuthError(val message: String) : PasswordChangeResult()
+        data class NetworkError(val message: String) : PasswordChangeResult()
+        data class UnknownError(val message: String) : PasswordChangeResult()
+    }
+
     /**
      * Change user password with validation and re-authentication
      * @param currentPassword Current password for verification
      * @param newPassword New password to set
-     * @throws ProfileError.ValidationError if passwords don't meet requirements
-     * @throws ProfileError.AuthenticationExpired if re-authentication fails
-     * @throws ProfileError.NetworkError if password change fails
+     * @return PasswordChangeResult indicating success or specific error type
      */
-    suspend fun changePassword(currentPassword: String, newPassword: String) {
+    suspend fun changePassword(currentPassword: String, newPassword: String): PasswordChangeResult {
         // Validate current password is not empty
         if (currentPassword.isBlank()) {
-            throw ProfileError.ValidationError("currentPassword", "Current password is required")
+            return PasswordChangeResult.ValidationError("currentPassword", "Current password is required")
         }
 
         // Validate new password meets requirements
         val newPasswordValidation = profileValidator.validatePassword(newPassword)
         if (newPasswordValidation is ProfileValidator.ValidationResult.Invalid) {
-            throw newPasswordValidation.error
+            return PasswordChangeResult.ValidationError("newPassword", newPasswordValidation.error.message)
         }
 
         // Ensure passwords are different
         if (currentPassword == newPassword) {
-            throw ProfileError.ValidationError("newPassword", "New password must be different from current password")
+            return PasswordChangeResult.ValidationError("newPassword", "New password must be different from current password")
         }
 
         // Check password strength
         val strengthScore = profileValidator.getPasswordStrength(newPassword)
         if (strengthScore < 2) {
-            throw ProfileError.ValidationError("newPassword", "Password is too weak. Please choose a stronger password.")
+            return PasswordChangeResult.ValidationError("newPassword", "Password is too weak. Please choose a stronger password.")
         }
 
         // Attempt password change through repository
-        try {
+        return try {
             userProfileRepository.changePassword(currentPassword, newPassword)
+            PasswordChangeResult.Success
         } catch (e: Exception) {
             // Map repository exceptions to domain errors
             when {
-                e.message?.contains("auth", ignoreCase = true) == true -> {
-                    throw ProfileError.AuthenticationExpired
+                e.message?.contains("incorrect", ignoreCase = true) == true || e.message?.contains("invalid", ignoreCase = true) == true ||
+                    e.message?.contains("wrong-password", ignoreCase = true) == true -> {
+                    PasswordChangeResult.ValidationError("currentPassword", "Current password is incorrect")
+                }
+                e.message?.contains("expired", ignoreCase = true) == true ||
+                    e.message?.contains("requires-recent-login", ignoreCase = true) == true -> {
+                    PasswordChangeResult.AuthError("Please sign out and sign in again to change your password")
                 }
                 e.message?.contains("network", ignoreCase = true) == true -> {
-                    throw ProfileError.NetworkUnavailable
+                    PasswordChangeResult.NetworkError("Network error. Please check your connection and try again.")
                 }
-                e.message?.contains("weak", ignoreCase = true) == true -> {
-                    throw ProfileError.ValidationError("newPassword", "Password does not meet security requirements")
+                e.message?.contains("weak-password", ignoreCase = true) == true -> {
+                    PasswordChangeResult.ValidationError("newPassword", "Password is too weak")
                 }
                 else -> {
-                    throw ProfileError.UnknownError(e)
+                    PasswordChangeResult.UnknownError("Password change failed: ${e.message ?: "Unknown error"}")
                 }
             }
         }

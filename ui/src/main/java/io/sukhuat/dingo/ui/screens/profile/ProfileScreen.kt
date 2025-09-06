@@ -29,8 +29,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -56,6 +58,7 @@ import io.sukhuat.dingo.common.theme.RusticGold
 import io.sukhuat.dingo.domain.model.ProfileStatistics
 import io.sukhuat.dingo.domain.model.UserPreferences
 import io.sukhuat.dingo.domain.model.UserProfile
+import io.sukhuat.dingo.ui.screens.profile.components.PasswordChangeDialog
 import io.sukhuat.dingo.ui.screens.profile.components.ProfileHeader
 import io.sukhuat.dingo.ui.screens.profile.components.ProfileQuickActions
 import io.sukhuat.dingo.ui.screens.profile.components.ProfileStatistics
@@ -191,7 +194,8 @@ fun ProfileScreen(
                         onToggleNotifications = viewModel::toggleNotifications,
                         onToggleSound = viewModel::toggleSound,
                         onToggleVibration = viewModel::toggleVibration,
-                        onLanguageChange = viewModel::updateLanguage
+                        onLanguageChange = viewModel::updateLanguage,
+                        onChangePassword = viewModel::changePassword
                     )
                 }
 
@@ -244,10 +248,14 @@ fun ProfileContent(
     onToggleNotifications: (Boolean) -> Unit,
     onToggleSound: (Boolean) -> Unit,
     onToggleVibration: (Boolean) -> Unit,
-    onLanguageChange: (String) -> Unit
+    onLanguageChange: (String) -> Unit,
+    onChangePassword: (String, String, String) -> Unit
 ) {
     val hapticFeedback = LocalHapticFeedback.current
     val coroutineScope = rememberCoroutineScope()
+
+    // State for password change dialog
+    var showPasswordChangeDialog by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -313,6 +321,7 @@ fun ProfileContent(
                     onUpdateTempDisplayName = onUpdateTempDisplayName,
                     onUploadProfileImage = onUploadProfileImage,
                     onDeleteProfileImage = onDeleteProfileImage,
+                    onChangePasswordClick = { showPasswordChangeDialog = true },
                     onNavigateToSettings = onNavigateToSettings,
                     onToggleDarkMode = onToggleDarkMode,
                     onToggleNotifications = onToggleNotifications,
@@ -347,6 +356,18 @@ fun ProfileContent(
                 )
             }
         }
+
+        // Password change dialog
+        if (showPasswordChangeDialog) {
+            PasswordChangeDialog(
+                onDismiss = { showPasswordChangeDialog = false },
+                onPasswordChange = { currentPassword, newPassword, confirmPassword ->
+                    showPasswordChangeDialog = false
+                    // Call ViewModel to change password
+                    onChangePassword(currentPassword, newPassword, confirmPassword)
+                }
+            )
+        }
     }
 }
 
@@ -369,6 +390,7 @@ private fun ProfileOverviewTab(
     onUpdateTempDisplayName: (String) -> Unit,
     onUploadProfileImage: (android.net.Uri) -> Unit,
     onDeleteProfileImage: () -> Unit,
+    onChangePasswordClick: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onToggleDarkMode: (Boolean) -> Unit,
     onToggleNotifications: (Boolean) -> Unit,
@@ -393,7 +415,8 @@ private fun ProfileOverviewTab(
                 onConfirmEdit = onConfirmEdit,
                 onUpdateTempDisplayName = onUpdateTempDisplayName,
                 onUploadProfileImage = onUploadProfileImage,
-                onDeleteProfileImage = onDeleteProfileImage
+                onDeleteProfileImage = onDeleteProfileImage,
+                onChangePasswordClick = onChangePasswordClick
             )
         }
 

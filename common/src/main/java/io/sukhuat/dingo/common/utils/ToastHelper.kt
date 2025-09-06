@@ -14,8 +14,9 @@ object ToastHelper {
      */
     fun showToast(context: Context, message: String, durationMs: Long) {
         currentToast?.cancel()
-        currentToast = Toast.makeText(context, message, Toast.LENGTH_SHORT)
-        currentToast?.duration = (durationMs / 1000).toInt().coerceAtMost(Toast.LENGTH_LONG)
+        // Map duration to Toast constants
+        val duration = if (durationMs > 3000) Toast.LENGTH_LONG else Toast.LENGTH_SHORT
+        currentToast = Toast.makeText(context, message, duration)
         currentToast?.show()
     }
 

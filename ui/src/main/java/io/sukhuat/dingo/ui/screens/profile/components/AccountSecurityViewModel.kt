@@ -1,12 +1,17 @@
 package io.sukhuat.dingo.ui.screens.profile.components
 
+import android.content.Context
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import io.sukhuat.dingo.common.utils.ToastHelper
 import io.sukhuat.dingo.domain.model.ProfileError
-import io.sukhuat.dingo.domain.usecase.account.ChangePasswordUseCase
 import io.sukhuat.dingo.domain.usecase.account.DeleteAccountUseCase
 import io.sukhuat.dingo.domain.usecase.account.GetLoginHistoryUseCase
+import io.sukhuat.dingo.domain.usecase.profile.ChangePasswordUseCase
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -20,7 +25,8 @@ import javax.inject.Inject
 class AccountSecurityViewModel @Inject constructor(
     private val changePasswordUseCase: ChangePasswordUseCase,
     private val getLoginHistoryUseCase: GetLoginHistoryUseCase,
-    private val deleteAccountUseCase: DeleteAccountUseCase
+    private val deleteAccountUseCase: DeleteAccountUseCase,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AccountSecurityUiState())
@@ -144,85 +150,267 @@ class AccountSecurityViewModel @Inject constructor(
      * Change user password
      */
     fun changePassword() {
-        val passwordState = _uiState.value.passwordChangeState
+        try {
+            viewModelScope.launch {
+                try {
+                    // Get current state safely
+                    val currentState = _uiState.value
+                    val passwordState = currentState.passwordChangeState
 
-        // Validate inputs first
-        val validationErrors = validatePasswordInputs(
-            passwordState.currentPassword,
-            passwordState.newPassword,
-            passwordState.confirmPassword
-        )
+                    // Basic validation to prevent null/empty crashes
+                    if (passwordState.currentPassword.isBlank()) {
+                        updateErrorState(currentState, "Current password is required")
+                        return@launch
+                    }
 
-        if (validationErrors.isNotEmpty()) {
+                    if (passwordState.newPassword.isBlank()) {
+                        updateErrorState(currentState, "New password is required")
+                        return@launch
+                    }
+
+                    if (passwordState.confirmPassword.isBlank()) {
+                        updateErrorState(currentState, "Please confirm your new password")
+                        return@launch
+                    }
+
+                    if (passwordState.newPassword != passwordState.confirmPassword) {
+                        updateErrorState(currentState, "Passwords do not match")
+                        return@launch
+                    }
+
+                    // Set loading state
+                    updateLoadingState(currentState, true)
+
+                    // Call use case and handle result
+                    Log.d("AccountSecurityVM", "Calling changePasswordUseCase...")
+                    val result = changePasswordUseCase.changePassword(
+                        currentPassword = passwordState.currentPassword,
+                        newPassword = passwordState.newPassword
+                    )
+                    Log.d("AccountSecurityVM", "ChangePasswordUseCase result: ${result::class.simpleName}")
+
+                    when (result) {
+                        is ChangePasswordUseCase.PasswordChangeResult.Success -> {
+                            Log.d("AccountSecurityVM", "SUCCESS result received - calling handlePasswordChangeSuccess")
+                            handlePasswordChangeSuccess()
+                        }
+                        is ChangePasswordUseCase.PasswordChangeResult.ValidationError -> {
+                            Log.d("AccountSecurityVM", "ValidationError: ${result.field} - ${result.message}")
+                            handleValidationError(result.field, result.message)
+                        }
+                        is ChangePasswordUseCase.PasswordChangeResult.AuthError -> {
+                            Log.d("AccountSecurityVM", "AuthError: ${result.message}")
+                            handleAuthenticationError(result.message)
+                        }
+                        is ChangePasswordUseCase.PasswordChangeResult.NetworkError -> {
+                            Log.d("AccountSecurityVM", "NetworkError: ${result.message}")
+                            handleNetworkError(result.message)
+                        }
+                        is ChangePasswordUseCase.PasswordChangeResult.UnknownError -> {
+                            Log.d("AccountSecurityVM", "UnknownError: ${result.message}")
+                            handleUnknownError(result.message)
+                        }
+                    }
+                } catch (coroutineError: Exception) {
+                    handleCoroutineError(coroutineError)
+                }
+            }
+        } catch (outerError: Exception) {
+            handleOuterError(outerError)
+        }
+    }
+
+    private fun updateErrorState(currentState: AccountSecurityUiState, errorMessage: String) {
+        try {
+            _uiState.value = currentState.copy(error = errorMessage)
+        } catch (e: Exception) {
+            // Even this fails, do nothing to prevent crash
+        }
+    }
+
+    private fun updateLoadingState(currentState: AccountSecurityUiState, isLoading: Boolean) {
+        try {
+            _uiState.value = currentState.copy(
+                passwordChangeState = currentState.passwordChangeState.copy(
+                    isChangingPassword = isLoading,
+                    currentPasswordError = null,
+                    newPasswordError = null,
+                    confirmPasswordError = null
+                )
+            )
+        } catch (e: Exception) {
+            // Fail silently to prevent crash
+        }
+    }
+
+    private fun handlePasswordChangeSuccess() {
+        try {
+            Log.d("AccountSecurityVM", "handlePasswordChangeSuccess called - showing success toast")
+            val successState = _uiState.value
+            _uiState.value = successState.copy(
+                passwordChangeState = successState.passwordChangeState.copy(
+                    isChangingPassword = false,
+                    showPasswordChangeDialog = false,
+                    changePasswordSuccess = true
+                )
+            )
+
+            // Show success toast
+            Log.d("AccountSecurityVM", "About to show toast: Password changed successfully!")
+            try {
+                // Try both ToastHelper and direct Toast as fallback
+                ToastHelper.showMedium(context, "Password changed successfully!")
+                Log.d("AccountSecurityVM", "ToastHelper called successfully")
+                
+                // Also try direct toast as backup
+                android.widget.Toast.makeText(context, "Password changed successfully! ✅", android.widget.Toast.LENGTH_LONG).show()
+                Log.d("AccountSecurityVM", "Direct Toast called successfully")
+            } catch (e: Exception) {
+                Log.e("AccountSecurityVM", "Error showing toast", e)
+            }
+
+            // Reset success flag after delay
+            viewModelScope.launch {
+                try {
+                    delay(3000)
+                    val resetState = _uiState.value
+                    _uiState.value = resetState.copy(
+                        passwordChangeState = resetState.passwordChangeState.copy(
+                            changePasswordSuccess = false
+                        )
+                    )
+                } catch (e: Exception) {
+                    Log.e("AccountSecurityVM", "Error resetting success flag", e)
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("AccountSecurityVM", "Error in handlePasswordChangeSuccess", e)
+        }
+    }
+
+    private fun handleValidationError(field: String, errorMessage: String) {
+        try {
+            val currentState = _uiState.value
+
+            when (field) {
+                "currentPassword" -> {
+                    _uiState.value = currentState.copy(
+                        passwordChangeState = currentState.passwordChangeState.copy(
+                            isChangingPassword = false,
+                            currentPasswordError = errorMessage
+                        ),
+                        error = errorMessage
+                    )
+                }
+                "newPassword" -> {
+                    _uiState.value = currentState.copy(
+                        passwordChangeState = currentState.passwordChangeState.copy(
+                            isChangingPassword = false,
+                            newPasswordError = errorMessage
+                        ),
+                        error = errorMessage
+                    )
+                }
+                "confirmPassword" -> {
+                    _uiState.value = currentState.copy(
+                        passwordChangeState = currentState.passwordChangeState.copy(
+                            isChangingPassword = false,
+                            confirmPasswordError = errorMessage
+                        ),
+                        error = errorMessage
+                    )
+                }
+                else -> {
+                    _uiState.value = currentState.copy(
+                        passwordChangeState = currentState.passwordChangeState.copy(
+                            isChangingPassword = false
+                        ),
+                        error = errorMessage
+                    )
+                }
+            }
+        } catch (e: Exception) {
+            handleGenericError("Validation error handling failed")
+        }
+    }
+
+    private fun handleAuthenticationError(errorMessage: String) {
+        try {
             val currentState = _uiState.value
             _uiState.value = currentState.copy(
                 passwordChangeState = currentState.passwordChangeState.copy(
-                    currentPasswordError = validationErrors["currentPassword"],
-                    newPasswordError = validationErrors["newPassword"],
-                    confirmPasswordError = validationErrors["confirmPassword"]
-                )
+                    isChangingPassword = false,
+                    currentPasswordError = errorMessage
+                ),
+                error = errorMessage
             )
-            return
+        } catch (e: Exception) {
+            handleGenericError("Authentication error handling failed")
         }
+    }
 
-        viewModelScope.launch {
-            try {
-                val currentState = _uiState.value
-                _uiState.value = currentState.copy(
-                    passwordChangeState = currentState.passwordChangeState.copy(
-                        isChangingPassword = true
-                    )
-                )
+    private fun handleNetworkError(errorMessage: String) {
+        try {
+            val currentState = _uiState.value
+            _uiState.value = currentState.copy(
+                passwordChangeState = currentState.passwordChangeState.copy(
+                    isChangingPassword = false
+                ),
+                error = errorMessage
+            )
+        } catch (e: Exception) {
+            handleGenericError("Network error handling failed")
+        }
+    }
 
-                changePasswordUseCase(
-                    currentPassword = passwordState.currentPassword,
-                    newPassword = passwordState.newPassword,
-                    confirmPassword = passwordState.confirmPassword
-                )
+    private fun handleUnknownError(errorMessage: String) {
+        try {
+            val currentState = _uiState.value
+            _uiState.value = currentState.copy(
+                passwordChangeState = currentState.passwordChangeState.copy(
+                    isChangingPassword = false
+                ),
+                error = errorMessage
+            )
+        } catch (e: Exception) {
+            handleGenericError("Unknown error handling failed")
+        }
+    }
 
-                // Success - close dialog and show success message
-                val successState = _uiState.value
-                _uiState.value = successState.copy(
-                    passwordChangeState = successState.passwordChangeState.copy(
-                        isChangingPassword = false,
-                        showPasswordChangeDialog = false,
-                        changePasswordSuccess = true
-                    )
-                )
+    private fun handleUseCaseError(error: Exception) {
+        try {
+            val currentState = _uiState.value
+            val errorMessage = error.message ?: "Unknown use case error"
+            _uiState.value = currentState.copy(
+                passwordChangeState = currentState.passwordChangeState.copy(
+                    isChangingPassword = false
+                ),
+                error = "Password change failed: $errorMessage"
+            )
+        } catch (e: Exception) {
+            handleGenericError("Use case error handling failed")
+        }
+    }
 
-                // Reset success flag after a delay
-                kotlinx.coroutines.delay(3000)
-                val resetState = _uiState.value
-                _uiState.value = resetState.copy(
-                    passwordChangeState = resetState.passwordChangeState.copy(
-                        changePasswordSuccess = false
-                    )
-                )
-            } catch (error: ProfileError.ValidationError) {
-                val currentState = _uiState.value
-                _uiState.value = currentState.copy(
-                    passwordChangeState = currentState.passwordChangeState.copy(
-                        isChangingPassword = false,
-                        newPasswordError = error.message
-                    )
-                )
-            } catch (error: ProfileError.AuthenticationExpired) {
-                val currentState = _uiState.value
-                _uiState.value = currentState.copy(
-                    passwordChangeState = currentState.passwordChangeState.copy(
-                        isChangingPassword = false,
-                        currentPasswordError = "Current password is incorrect"
-                    )
-                )
-            } catch (error: Exception) {
-                val currentState = _uiState.value
-                _uiState.value = currentState.copy(
-                    passwordChangeState = currentState.passwordChangeState.copy(
-                        isChangingPassword = false
-                    ),
-                    error = "Failed to change password. Please try again."
-                )
-            }
+    private fun handleCoroutineError(error: Exception) {
+        handleGenericError("Coroutine error: ${error.message ?: "Unknown coroutine error"}")
+    }
+
+    private fun handleOuterError(error: Exception) {
+        handleGenericError("Outer error: ${error.message ?: "Unknown outer error"}")
+    }
+
+    private fun handleGenericError(message: String) {
+        try {
+            val currentState = _uiState.value
+            _uiState.value = currentState.copy(
+                passwordChangeState = currentState.passwordChangeState.copy(
+                    isChangingPassword = false
+                ),
+                error = message
+            )
+        } catch (e: Exception) {
+            // Ultimate fallback - do nothing to prevent crash
         }
     }
 

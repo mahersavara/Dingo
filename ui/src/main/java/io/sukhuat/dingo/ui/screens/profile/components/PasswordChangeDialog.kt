@@ -48,7 +48,7 @@ import io.sukhuat.dingo.common.theme.MountainSunriseTheme
 @Composable
 fun PasswordChangeDialog(
     onDismiss: () -> Unit,
-    onPasswordChange: (currentPassword: String, newPassword: String) -> Unit,
+    onPasswordChange: (currentPassword: String, newPassword: String, confirmPassword: String) -> Unit,
     isLoading: Boolean = false,
     errorMessage: String? = null
 ) {
@@ -163,7 +163,7 @@ fun PasswordChangeDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    onPasswordChange(currentPassword, newPassword)
+                    onPasswordChange(currentPassword, newPassword, confirmPassword)
                 },
                 enabled = !isLoading && currentPassword.isNotEmpty() && newPassword.isNotEmpty() && newPassword == confirmPassword &&
                     isPasswordValid(newPassword),
@@ -304,7 +304,7 @@ fun PasswordChangeDialogPreview() {
     MountainSunriseTheme {
         PasswordChangeDialog(
             onDismiss = {},
-            onPasswordChange = { _, _ -> },
+            onPasswordChange = { _, _, _ -> },
             isLoading = false
         )
     }
@@ -316,7 +316,7 @@ fun PasswordChangeDialogLoadingPreview() {
     MountainSunriseTheme {
         PasswordChangeDialog(
             onDismiss = {},
-            onPasswordChange = { _, _ -> },
+            onPasswordChange = { _, _, _ -> },
             isLoading = true
         )
     }
@@ -328,7 +328,7 @@ fun PasswordChangeDialogErrorPreview() {
     MountainSunriseTheme {
         PasswordChangeDialog(
             onDismiss = {},
-            onPasswordChange = { _, _ -> },
+            onPasswordChange = { _, _, _ -> },
             isLoading = false,
             errorMessage = "Current password is incorrect. Please try again."
         )

@@ -12,15 +12,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Security
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -28,7 +25,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -43,9 +39,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -128,9 +121,10 @@ fun AccountSecurity(
         if (uiState.passwordChangeState.showPasswordChangeDialog) {
             io.sukhuat.dingo.ui.screens.profile.components.PasswordChangeDialog(
                 onDismiss = actions.onHidePasswordChangeDialog,
-                onPasswordChange = { currentPassword, newPassword ->
+                onPasswordChange = { currentPassword, newPassword, confirmPassword ->
                     actions.onCurrentPasswordChange(currentPassword)
                     actions.onNewPasswordChange(newPassword)
+                    actions.onConfirmPasswordChange(confirmPassword)
                     actions.onChangePassword()
                 },
                 isLoading = uiState.passwordChangeState.isChangingPassword,
@@ -630,167 +624,6 @@ private fun AccountDeletionSection(
             }
         }
     }
-}
-
-@Composable
-private fun PasswordChangeDialog(
-    passwordState: PasswordChangeState,
-    actions: AccountSecurityActions
-) {
-    AlertDialog(
-        onDismissRequest = actions.onHidePasswordChangeDialog,
-        title = {
-            Text(
-                text = "Change Password",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
-        },
-        text = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                // Current Password Field
-                OutlinedTextField(
-                    value = passwordState.currentPassword,
-                    onValueChange = actions.onCurrentPasswordChange,
-                    label = { Text("Current Password") },
-                    visualTransformation = if (passwordState.isPasswordVisible) {
-                        VisualTransformation.None
-                    } else {
-                        PasswordVisualTransformation()
-                    },
-                    trailingIcon = {
-                        IconButton(onClick = actions.onTogglePasswordVisibility) {
-                            Icon(
-                                imageVector = if (passwordState.isPasswordVisible) {
-                                    Icons.Default.VisibilityOff
-                                } else {
-                                    Icons.Default.Visibility
-                                },
-                                contentDescription = if (passwordState.isPasswordVisible) {
-                                    "Hide password"
-                                } else {
-                                    "Show password"
-                                }
-                            )
-                        }
-                    },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                    isError = passwordState.currentPasswordError != null,
-                    supportingText = passwordState.currentPasswordError?.let { error ->
-                        { Text(text = error, color = MaterialTheme.colorScheme.error) }
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                // New Password Field
-                OutlinedTextField(
-                    value = passwordState.newPassword,
-                    onValueChange = actions.onNewPasswordChange,
-                    label = { Text("New Password") },
-                    visualTransformation = if (passwordState.isNewPasswordVisible) {
-                        VisualTransformation.None
-                    } else {
-                        PasswordVisualTransformation()
-                    },
-                    trailingIcon = {
-                        IconButton(onClick = actions.onToggleNewPasswordVisibility) {
-                            Icon(
-                                imageVector = if (passwordState.isNewPasswordVisible) {
-                                    Icons.Default.VisibilityOff
-                                } else {
-                                    Icons.Default.Visibility
-                                },
-                                contentDescription = if (passwordState.isNewPasswordVisible) {
-                                    "Hide password"
-                                } else {
-                                    "Show password"
-                                }
-                            )
-                        }
-                    },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                    isError = passwordState.newPasswordError != null,
-                    supportingText = passwordState.newPasswordError?.let { error ->
-                        { Text(text = error, color = MaterialTheme.colorScheme.error) }
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                // Password Strength Indicator
-                if (passwordState.newPassword.isNotEmpty()) {
-                    PasswordStrengthIndicator(
-                        strength = passwordState.passwordStrength,
-                        password = passwordState.newPassword
-                    )
-                }
-
-                // Confirm Password Field
-                OutlinedTextField(
-                    value = passwordState.confirmPassword,
-                    onValueChange = actions.onConfirmPasswordChange,
-                    label = { Text("Confirm New Password") },
-                    visualTransformation = if (passwordState.isConfirmPasswordVisible) {
-                        VisualTransformation.None
-                    } else {
-                        PasswordVisualTransformation()
-                    },
-                    trailingIcon = {
-                        IconButton(onClick = actions.onToggleConfirmPasswordVisibility) {
-                            Icon(
-                                imageVector = if (passwordState.isConfirmPasswordVisible) {
-                                    Icons.Default.VisibilityOff
-                                } else {
-                                    Icons.Default.Visibility
-                                },
-                                contentDescription = if (passwordState.isConfirmPasswordVisible) {
-                                    "Hide password"
-                                } else {
-                                    "Show password"
-                                }
-                            )
-                        }
-                    },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                    isError = passwordState.confirmPasswordError != null,
-                    supportingText = passwordState.confirmPasswordError?.let { error ->
-                        { Text(text = error, color = MaterialTheme.colorScheme.error) }
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = actions.onChangePassword,
-                enabled = !passwordState.isChangingPassword &&
-                    passwordState.currentPassword.isNotEmpty() &&
-                    passwordState.newPassword.isNotEmpty() &&
-                    passwordState.confirmPassword.isNotEmpty() &&
-                    passwordState.currentPasswordError == null &&
-                    passwordState.newPasswordError == null &&
-                    passwordState.confirmPasswordError == null
-            ) {
-                if (passwordState.isChangingPassword) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
-                        strokeWidth = 2.dp
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                }
-                Text("Change Password")
-            }
-        },
-        dismissButton = {
-            TextButton(
-                onClick = actions.onHidePasswordChangeDialog,
-                enabled = !passwordState.isChangingPassword
-            ) {
-                Text("Cancel")
-            }
-        }
-    )
 }
 
 @Composable

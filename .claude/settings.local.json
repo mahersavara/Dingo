@@ -55,7 +55,10 @@
       "Bash(del \"nul\")",
       "mcp__serena__find_referencing_symbols",
       "Bash(\"./gradlew.bat\" :app:compileDebugKotlin --no-daemon)",
-      "Bash(\"./gradlew.bat\" :common:compileDebugKotlin --no-daemon)"
+      "Bash(\"./gradlew.bat\" :common:compileDebugKotlin --no-daemon)",
+      "Bash(\"./gradlew.bat\" assembleDebug --no-daemon)",
+      "Bash(del:*)",
+      "Bash(\"./gradlew.bat\" :domain:compileDebugKotlin --no-daemon)"
     ],
     "deny": [],
     "additionalDirectories": [

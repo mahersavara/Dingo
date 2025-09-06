@@ -63,7 +63,6 @@ fun DingoScaffold(
     showUserMenu: Boolean = false,
     onProfileClick: () -> Unit = {},
     onYearPlannerClick: () -> Unit = {},
-    onChangePasswordClick: () -> Unit = {},
     onLanguageChange: (String) -> Unit = {},
     onSettingsClick: () -> Unit = {},
     onLogoutClick: () -> Unit = {},
@@ -181,7 +180,6 @@ fun DingoScaffold(
                                         currentLanguage = currentLanguage,
                                         onProfileClick = onProfileClick,
                                         onYearPlannerClick = onYearPlannerClick,
-                                        onChangePasswordClick = onChangePasswordClick,
                                         onLanguageChange = onLanguageChange,
                                         onSettingsClick = onSettingsClick,
                                         onLogoutClick = onLogoutClick

@@ -1,21 +1,24 @@
 package io.sukhuat.dingo.ui.screens.profile
 
+import android.content.Context
 import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import io.sukhuat.dingo.domain.model.ErrorRecoveryManager
 import io.sukhuat.dingo.domain.model.ErrorRecoveryStrategy
 import io.sukhuat.dingo.domain.model.NetworkConnectivityChecker
 import io.sukhuat.dingo.domain.model.ProfileCacheManager
 import io.sukhuat.dingo.domain.model.ProfileError
 import io.sukhuat.dingo.domain.model.ProfileErrorHandler
-import io.sukhuat.dingo.domain.usecase.account.ChangePasswordUseCase
 import io.sukhuat.dingo.domain.usecase.account.DeleteAccountUseCase
 import io.sukhuat.dingo.domain.usecase.account.ExportUserDataUseCase
 import io.sukhuat.dingo.domain.usecase.account.GetLoginHistoryUseCase
 import io.sukhuat.dingo.domain.usecase.preferences.GetUserPreferencesUseCase
 import io.sukhuat.dingo.domain.usecase.preferences.UpdatePreferencesUseCase
+import io.sukhuat.dingo.domain.usecase.profile.ChangePasswordUseCase
 import io.sukhuat.dingo.domain.usecase.profile.GetAchievementsUseCase
 import io.sukhuat.dingo.domain.usecase.profile.GetProfileStatisticsUseCase
 import io.sukhuat.dingo.domain.usecase.profile.GetUserProfileUseCase
@@ -54,7 +57,8 @@ class ProfileViewModel @Inject constructor(
     private val profileValidator: ProfileValidator,
     private val networkConnectivityChecker: NetworkConnectivityChecker,
     private val profileCacheManager: ProfileCacheManager,
-    private val fallbackUiStateManager: FallbackUiStateManager
+    private val fallbackUiStateManager: FallbackUiStateManager,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<ProfileUiState>(ProfileUiState.Loading())
@@ -615,6 +619,60 @@ class ProfileViewModel @Inject constructor(
                 updatePreferencesUseCase.updateLanguageCode(languageCode)
             } catch (error: Exception) {
                 handleError(error)
+            }
+        }
+    }
+
+    /**
+     * Change user password with validation and error handling
+     */
+    fun changePassword(currentPassword: String, newPassword: String, confirmPassword: String) {
+        viewModelScope.launch {
+            Log.d("ProfileViewModel", "changePassword called - handling with sealed class result")
+            val result = changePasswordUseCase.changePassword(currentPassword, newPassword)
+            
+            when (result) {
+                is ChangePasswordUseCase.PasswordChangeResult.Success -> {
+                    Log.d("ProfileViewModel", "Password change successful - showing toast")
+                    // Show success toast immediately
+                    android.widget.Toast.makeText(
+                        context, 
+                        "🎉 Password changed successfully!", 
+                        android.widget.Toast.LENGTH_LONG
+                    ).show()
+                }
+                is ChangePasswordUseCase.PasswordChangeResult.ValidationError -> {
+                    Log.d("ProfileViewModel", "ValidationError: ${result.field} - ${result.message}")
+                    android.widget.Toast.makeText(
+                        context, 
+                        "❌ ${result.message}", 
+                        android.widget.Toast.LENGTH_LONG
+                    ).show()
+                }
+                is ChangePasswordUseCase.PasswordChangeResult.AuthError -> {
+                    Log.d("ProfileViewModel", "AuthError: ${result.message}")
+                    android.widget.Toast.makeText(
+                        context, 
+                        "⚠️ ${result.message}", 
+                        android.widget.Toast.LENGTH_LONG
+                    ).show()
+                }
+                is ChangePasswordUseCase.PasswordChangeResult.NetworkError -> {
+                    Log.d("ProfileViewModel", "NetworkError: ${result.message}")
+                    android.widget.Toast.makeText(
+                        context, 
+                        "🌐 ${result.message}", 
+                        android.widget.Toast.LENGTH_LONG
+                    ).show()
+                }
+                is ChangePasswordUseCase.PasswordChangeResult.UnknownError -> {
+                    Log.d("ProfileViewModel", "UnknownError: ${result.message}")
+                    android.widget.Toast.makeText(
+                        context, 
+                        "⚠️ ${result.message}", 
+                        android.widget.Toast.LENGTH_LONG
+                    ).show()
+                }
             }
         }
     }

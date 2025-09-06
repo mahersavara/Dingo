@@ -88,8 +88,29 @@ class UserProfileRepositoryImpl @Inject constructor(
                     val firebaseProfile = snapshot.toObject(FirebaseUserProfile::class.java)
                     if (firebaseProfile != null) {
                         println("UserProfileRepositoryImpl: getUserProfile - parsed FirebaseUserProfile: userId=${firebaseProfile.userId}, displayName='${firebaseProfile.displayName}', email=${firebaseProfile.email}")
+
+                        // Check if authCapabilities are missing and create a corrected domain profile
+                        val needsAuthCapabilitiesUpdate = !firebaseProfile.hasGoogleAuth && !firebaseProfile.hasPasswordAuth && !firebaseProfile.canChangePassword
+                        if (needsAuthCapabilitiesUpdate) {
+                            println("UserProfileRepositoryImpl: authCapabilities missing, creating corrected profile...")
+                            // Create corrected profile with current auth capabilities (non-suspend version)
+                            val currentAuthCapabilities = getCurrentAuthCapabilitiesSync()
+
+                            // Create corrected firebase profile with auth capabilities
+                            val correctedFirebaseProfile = firebaseProfile.copy(
+                                hasGoogleAuth = currentAuthCapabilities.hasGoogleAuth,
+                                hasPasswordAuth = currentAuthCapabilities.hasPasswordAuth,
+                                canChangePassword = currentAuthCapabilities.canChangePassword
+                            )
+
+                            val domainProfile = ProfileMapper.toDomain(correctedFirebaseProfile)
+                            println("UserProfileRepositoryImpl: getUserProfile - using corrected domain UserProfile: userId=${domainProfile.userId}, displayName='${domainProfile.displayName}', email=${domainProfile.email}, canChangePassword=${domainProfile.authCapabilities.canChangePassword}")
+                            trySend(domainProfile)
+                            return@addSnapshotListener
+                        }
+
                         val domainProfile = ProfileMapper.toDomain(firebaseProfile)
-                        println("UserProfileRepositoryImpl: getUserProfile - mapped to domain UserProfile: userId=${domainProfile.userId}, displayName='${domainProfile.displayName}', email=${domainProfile.email}")
+                        println("UserProfileRepositoryImpl: getUserProfile - mapped to domain UserProfile: userId=${domainProfile.userId}, displayName='${domainProfile.displayName}', email=${domainProfile.email}, canChangePassword=${domainProfile.authCapabilities.canChangePassword}")
                         trySend(domainProfile)
                     } else {
                         println("UserProfileRepositoryImpl: getUserProfile - failed to parse FirebaseUserProfile from snapshot")
@@ -482,6 +503,62 @@ class UserProfileRepositoryImpl @Inject constructor(
         }
     }
 
+    /**
+     * Get current auth capabilities synchronously (for use in callbacks)
+     */
+    private fun getCurrentAuthCapabilitiesSync(): AuthCapabilities {
+        return try {
+            val user = firebaseAuth.currentUser ?: return AuthCapabilities()
+
+            val providerIds = user.providerData.map { it.providerId }
+            val hasGoogleAuth = providerIds.contains("google.com")
+            val hasPasswordAuth = providerIds.contains("password") || providerIds.contains("firebase")
+
+            // Can change password only if user has password authentication
+            val canChangePassword = hasPasswordAuth && !user.email.isNullOrEmpty()
+
+            AuthCapabilities(
+                hasGoogleAuth = hasGoogleAuth,
+                hasPasswordAuth = hasPasswordAuth,
+                canChangePassword = canChangePassword
+            )
+        } catch (e: Exception) {
+            println("UserProfileRepositoryImpl: Error getting auth capabilities: ${e.message}")
+            AuthCapabilities() // Return default capabilities on error
+        }
+    }
+
+    /**
+     * Update authCapabilities for existing profiles that may be missing these fields
+     */
+    private suspend fun updateAuthCapabilitiesForProfile(userId: String) {
+        try {
+            println("UserProfileRepositoryImpl: updateAuthCapabilitiesForProfile called for userId: $userId")
+
+            val user = firebaseAuth.currentUser ?: return
+
+            // Get current auth capabilities
+            val authCapabilities = getAuthCapabilities()
+            println("UserProfileRepositoryImpl: Current authCapabilities - hasGoogleAuth: ${authCapabilities.hasGoogleAuth}, hasPasswordAuth: ${authCapabilities.hasPasswordAuth}, canChangePassword: ${authCapabilities.canChangePassword}")
+
+            // Update the profile with auth capabilities
+            val profileRef = firestore
+                .collection(USERS_COLLECTION)
+                .document(userId)
+
+            val updates = mapOf(
+                "has_google_auth" to authCapabilities.hasGoogleAuth,
+                "has_password_auth" to authCapabilities.hasPasswordAuth,
+                "can_change_password" to authCapabilities.canChangePassword
+            )
+
+            profileRef.update(updates).await()
+            println("UserProfileRepositoryImpl: authCapabilities updated successfully")
+        } catch (e: Exception) {
+            println("UserProfileRepositoryImpl: Failed to update authCapabilities: ${e.message}")
+        }
+    }
+
     override suspend fun changePassword(currentPassword: String, newPassword: String) {
         try {
             val user = firebaseAuth.currentUser
@@ -500,18 +577,6 @@ class UserProfileRepositoryImpl @Inject constructor(
                 throw ProfileError.ValidationError("password", "Password cannot be empty")
             }
 
-            if (newPassword.length < 6) {
-                throw ProfileError.ValidationError("password", "Password must be at least 6 characters")
-            }
-
-            // Validate password strength
-            if (!isPasswordStrong(newPassword)) {
-                throw ProfileError.ValidationError(
-                    "password",
-                    "Password must contain at least one uppercase letter, one lowercase letter, and one number"
-                )
-            }
-
             // Re-authenticate user with current password
             val credential = EmailAuthProvider.getCredential(user.email!!, currentPassword)
             user.reauthenticate(credential).await()
@@ -522,16 +587,19 @@ class UserProfileRepositoryImpl @Inject constructor(
             throw e
         } catch (e: Exception) {
             when {
-                e.message?.contains("wrong-password") == true -> {
+                e.message?.contains("wrong-password") == true ||
+                    e.message?.contains("incorrect") == true ||
+                    e.message?.contains("invalid") == true -> {
                     throw ProfileError.ValidationError("currentPassword", "Current password is incorrect")
                 }
                 e.message?.contains("weak-password") == true -> {
                     throw ProfileError.ValidationError("newPassword", "Password is too weak")
                 }
-                e.message?.contains("requires-recent-login") == true -> {
+                e.message?.contains("requires-recent-login") == true ||
+                    e.message?.contains("expired") == true -> {
                     throw ProfileError.ValidationError("auth", "Please sign out and sign in again to change your password")
                 }
-                else -> throw ProfileError.UnknownError(e)
+                else -> throw ProfileError.ValidationError("password", "Password change failed: ${e.message ?: "Unknown error"}")
             }
         }
     }

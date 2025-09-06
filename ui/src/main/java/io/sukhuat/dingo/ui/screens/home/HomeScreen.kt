@@ -310,7 +310,6 @@ fun HomeScreen(
         onLanguageChange = handleLanguageChange,
         onProfileClick = onNavigateToProfile,
         onYearPlannerClick = onNavigateToYearPlanner,
-        onChangePasswordClick = { /* TODO: Navigate to change password screen */ },
         onSettingsClick = onNavigateToSettings,
         onLogoutClick = { viewModel.signOut(onSignOut) }
     ) { paddingValues ->

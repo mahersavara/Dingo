@@ -26,9 +26,11 @@ import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -87,6 +89,7 @@ fun ProfileHeader(
     onUpdateTempDisplayName: (String) -> Unit,
     onUploadProfileImage: (Uri) -> Unit,
     onDeleteProfileImage: () -> Unit,
+    onChangePasswordClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     println("ProfileHeader: Component rendered - hasCustomImage=${profile.hasCustomImage}, profileImageUrl=${profile.profileImageUrl}, googlePhotoUrl=${profile.googlePhotoUrl}")
@@ -275,6 +278,30 @@ fun ProfileHeader(
 
             // Join Date Section
             JoinDateSection(joinDate = profile.joinDate)
+
+            // Change Password Section (only for email/password users)
+            println("ProfileHeader: Debug - authCapabilities=${profile.authCapabilities}")
+            println("ProfileHeader: Debug - canChangePassword=${profile.authCapabilities?.canChangePassword}")
+            if (profile.authCapabilities?.canChangePassword == true) {
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Button(
+                    onClick = onChangePasswordClick,
+                    modifier = Modifier
+                        .fillMaxWidth(0.6f)
+                        .semantics {
+                            contentDescription = "Change password"
+                        }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Lock,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Change Password")
+                }
+            }
         }
     }
 }
@@ -641,7 +668,8 @@ fun ProfileHeaderPreview() {
             onConfirmEdit = {},
             onUpdateTempDisplayName = {},
             onUploadProfileImage = {},
-            onDeleteProfileImage = {}
+            onDeleteProfileImage = {},
+            onChangePasswordClick = {}
         )
     }
 }
@@ -672,7 +700,8 @@ fun ProfileHeaderEditingPreview() {
             onConfirmEdit = {},
             onUpdateTempDisplayName = {},
             onUploadProfileImage = {},
-            onDeleteProfileImage = {}
+            onDeleteProfileImage = {},
+            onChangePasswordClick = {}
         )
     }
 }
@@ -702,7 +731,8 @@ fun ProfileHeaderUploadingPreview() {
             onConfirmEdit = {},
             onUpdateTempDisplayName = {},
             onUploadProfileImage = {},
-            onDeleteProfileImage = {}
+            onDeleteProfileImage = {},
+            onChangePasswordClick = {}
         )
     }
 }

@@ -15,12 +15,12 @@ import io.sukhuat.dingo.domain.model.ProfileErrorHandler
 import io.sukhuat.dingo.domain.model.ProfileStatistics
 import io.sukhuat.dingo.domain.model.UserPreferences
 import io.sukhuat.dingo.domain.model.UserProfile
-import io.sukhuat.dingo.domain.usecase.account.ChangePasswordUseCase
 import io.sukhuat.dingo.domain.usecase.account.DeleteAccountUseCase
 import io.sukhuat.dingo.domain.usecase.account.ExportUserDataUseCase
 import io.sukhuat.dingo.domain.usecase.account.GetLoginHistoryUseCase
 import io.sukhuat.dingo.domain.usecase.preferences.GetUserPreferencesUseCase
 import io.sukhuat.dingo.domain.usecase.preferences.UpdatePreferencesUseCase
+import io.sukhuat.dingo.domain.usecase.profile.ChangePasswordUseCase
 import io.sukhuat.dingo.domain.usecase.profile.GetAchievementsUseCase
 import io.sukhuat.dingo.domain.usecase.profile.GetProfileStatisticsUseCase
 import io.sukhuat.dingo.domain.usecase.profile.GetUserProfileUseCase

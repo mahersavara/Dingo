@@ -1,5 +1,6 @@
 package io.sukhuat.dingo.common.components
 
+import android.util.Log
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -18,7 +19,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
@@ -46,7 +46,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import android.util.Log
 import io.sukhuat.dingo.common.R
 import io.sukhuat.dingo.common.localization.AppLanguage
 import io.sukhuat.dingo.common.localization.LocalAppLanguage
@@ -66,7 +65,6 @@ fun UserDropdownMenu(
     currentLanguage: AppLanguage = LocalAppLanguage.current,
     onProfileClick: () -> Unit = {},
     onYearPlannerClick: () -> Unit = {},
-    onChangePasswordClick: () -> Unit = {},
     onLanguageChange: (String) -> Unit = {},
     onSettingsClick: () -> Unit = {},
     onLogoutClick: () -> Unit = {}
@@ -193,23 +191,6 @@ fun UserDropdownMenu(
                 )
             }
 
-            // Change Password option - only show if user can change password
-            if (isAuthenticated && userProfile?.authCapabilities?.canChangePassword == true) {
-                DropdownMenuItem(
-                    text = { Text("Change Password") },
-                    onClick = {
-                        expanded = false
-                        onChangePasswordClick()
-                    },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Lock,
-                            contentDescription = null
-                        )
-                    }
-                )
-            }
-
             // Language option with position tracking
             DropdownMenuItem(
                 text = { Text("Language") },
@@ -314,7 +295,6 @@ fun UserDropdownMenu(
     currentLanguage: AppLanguage = LocalAppLanguage.current,
     onProfileClick: () -> Unit = {},
     onYearPlannerClick: () -> Unit = {},
-    onChangePasswordClick: () -> Unit = {},
     onLanguageChange: (String) -> Unit = {},
     onSettingsClick: () -> Unit = {},
     onLogoutClick: () -> Unit = {}
@@ -340,7 +320,6 @@ fun UserDropdownMenu(
         currentLanguage = currentLanguage,
         onProfileClick = onProfileClick,
         onYearPlannerClick = onYearPlannerClick,
-        onChangePasswordClick = onChangePasswordClick,
         onLanguageChange = onLanguageChange,
         onSettingsClick = onSettingsClick,
         onLogoutClick = onLogoutClick
