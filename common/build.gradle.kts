@@ -66,6 +66,7 @@ dependencies {
     implementation(libs.konfetti.compose)
 
     // Firebase
+    implementation("com.google.firebase:firebase-auth-ktx:22.3.1")
     implementation("com.google.firebase:firebase-storage-ktx:20.3.0")
 
     // ExifInterface for image orientation handling

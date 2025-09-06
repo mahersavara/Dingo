@@ -78,44 +78,14 @@ fun GoalCell(
                         val safeImageUri = if (customImage != null) getSafeImageUri(context, customImage) else null
 
                         if (safeImageUri != null) {
-                            // Smart ContentScale based on image aspect ratio
-                            SubcomposeAsyncImage(
+                            // Use cached image loading for better performance
+                            CachedAsyncImage(
                                 model = safeImageUri,
                                 contentDescription = null,
                                 modifier = Modifier
                                     .fillMaxSize(0.8f)
                                     .padding(4.dp),
-                                success = { state ->
-                                    val imageSize = state.result.drawable.intrinsicWidth to state.result.drawable.intrinsicHeight
-                                    val aspectRatio = imageSize.first.toFloat() / imageSize.second.toFloat()
-                                    val isTallImage = aspectRatio < 0.75f // Height > 1.33x width (taller than 4:3)
-
-                                    AsyncImage(
-                                        model = safeImageUri,
-                                        contentDescription = null,
-                                        contentScale = if (isTallImage) ContentScale.Crop else ContentScale.Fit,
-                                        modifier = Modifier.fillMaxSize()
-                                    )
-                                },
-                                loading = {
-                                    // Loading state - use default Fit
-                                    AsyncImage(
-                                        model = safeImageUri,
-                                        contentDescription = null,
-                                        contentScale = ContentScale.Fit,
-                                        modifier = Modifier.fillMaxSize()
-                                    )
-                                },
-                                error = {
-                                    android.util.Log.e("GoalCell", "Error loading image: $safeImageUri")
-                                    // Error state - use default Fit
-                                    AsyncImage(
-                                        model = safeImageUri,
-                                        contentDescription = null,
-                                        contentScale = ContentScale.Fit,
-                                        modifier = Modifier.fillMaxSize()
-                                    )
-                                }
+                                contentScale = ContentScale.Fit
                             )
 
                             // Show cloud indicator for Firebase Storage URLs

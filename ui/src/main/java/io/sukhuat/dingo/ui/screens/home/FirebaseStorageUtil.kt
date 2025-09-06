@@ -228,4 +228,19 @@ object FirebaseStorageUtil {
             }
         }
     }
+    
+    /**
+     * Get cached local image URI for Firebase Storage URL
+     * @param context The application context
+     * @param firebaseUrl Firebase Storage URL
+     * @return Local cached URI or null if not available/failed
+     */
+    suspend fun getCachedImageUri(context: Context, firebaseUrl: String): Uri? {
+        return try {
+            GoalImageCacheManager.getInstance(context).getCachedImage(firebaseUrl)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting cached image", e)
+            null
+        }
+    }
 }

@@ -91,6 +91,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import io.sukhuat.dingo.ui.components.CachedAsyncImage
 import io.sukhuat.dingo.common.R
 import io.sukhuat.dingo.common.components.BubbleComponent
 import io.sukhuat.dingo.common.components.GoalCompletionCelebration
@@ -1159,8 +1160,8 @@ fun GoalCreationDialog(
                                         modifier = Modifier.padding(top = 8.dp)
                                     )
                                 } else if (customImageUri != null) {
-                                    // Display the selected image
-                                    AsyncImage(
+                                    // Display the selected image with caching
+                                    CachedAsyncImage(
                                         model = customImageUri,
                                         contentDescription = null,
                                         modifier = Modifier

@@ -3,6 +3,7 @@ package io.sukhuat.dingo.common.utils
 import android.content.Context
 import android.net.Uri
 import android.util.Log
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
@@ -32,13 +33,23 @@ suspend fun uploadImageToFirebase(
             imageUri
         }
 
+        // Get current user ID for proper storage structure
+        val currentUser = FirebaseAuth.getInstance().currentUser
+        if (currentUser == null) {
+            Log.e("ImageUploadUtils", "User not authenticated, cannot upload image")
+            return@withContext null
+        }
+        
+        val userId = currentUser.uid
+
         // Get reference to Firebase Storage
         val storage = FirebaseStorage.getInstance()
         val storageRef = storage.reference
 
-        // Create a unique filename
+        // Create a unique filename and path following security rules
         val filename = "image_${UUID.randomUUID()}.jpg"
-        val imageRef = storageRef.child("images/$filename")
+        val imagePath = "users/$userId/goals/images/$filename"
+        val imageRef = storageRef.child(imagePath)
 
         // Upload file
         val uploadTask = imageRef.putFile(finalUri)
@@ -49,7 +60,7 @@ suspend fun uploadImageToFirebase(
         // Get download URL
         val downloadUrl = imageRef.downloadUrl.await()
 
-        Log.d("ImageUploadUtils", "Image successfully uploaded to Firebase: $downloadUrl")
+        Log.d("ImageUploadUtils", "Image successfully uploaded to Firebase path: $imagePath - URL: $downloadUrl")
         return@withContext downloadUrl
     } catch (e: Exception) {
         Log.e("ImageUploadUtils", "Error uploading image to Firebase", e)
