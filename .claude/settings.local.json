@@ -58,7 +58,8 @@
       "Bash(\"./gradlew.bat\" :common:compileDebugKotlin --no-daemon)",
       "Bash(\"./gradlew.bat\" assembleDebug --no-daemon)",
       "Bash(del:*)",
-      "Bash(\"./gradlew.bat\" :domain:compileDebugKotlin --no-daemon)"
+      "Bash(\"./gradlew.bat\" :domain:compileDebugKotlin --no-daemon)",
+      "Bash(\"./gradlew.bat\" :domain:compileDebugUnitTestKotlin --no-daemon)"
     ],
     "deny": [],
     "additionalDirectories": [

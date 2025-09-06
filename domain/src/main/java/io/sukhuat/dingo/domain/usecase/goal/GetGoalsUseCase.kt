@@ -38,6 +38,7 @@ class GetGoalsUseCase @Inject constructor(
     /**
      * Get all weeks that have goals
      * Returns a list of week offsets relative to current week
+     * Always includes current week (offset 0) even if it has no goals
      */
     fun getWeeksWithGoals(): Flow<List<Int>> {
         val currentCalendar = Calendar.getInstance()
@@ -45,7 +46,7 @@ class GetGoalsUseCase @Inject constructor(
         val currentYear = currentCalendar.get(Calendar.YEAR)
 
         return goalRepository.getAllGoals().map { goals ->
-            goals.map { goal ->
+            val weekOffsets = goals.map { goal ->
                 // Calculate week offset relative to current week
                 val goalCalendar = Calendar.getInstance().apply {
                     set(Calendar.WEEK_OF_YEAR, goal.weekOfYear)
@@ -58,7 +59,11 @@ class GetGoalsUseCase @Inject constructor(
 
                 val weeksDiff = ((goalCalendar.timeInMillis - currentCalendarClone.timeInMillis) / (1000 * 60 * 60 * 24 * 7)).toInt()
                 weeksDiff
-            }.distinct().sorted()
+            }.distinct()
+
+            // Always include current week (offset 0) even if it has no goals
+            val allWeeks = (weekOffsets + 0).distinct().sorted()
+            allWeeks
         }
     }
 

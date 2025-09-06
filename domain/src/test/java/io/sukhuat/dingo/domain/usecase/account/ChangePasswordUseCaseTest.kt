@@ -1,130 +1,149 @@
 package io.sukhuat.dingo.domain.usecase.account
 
-import io.mockk.coEvery
-import io.mockk.coVerify
-import io.mockk.mockk
+import io.mockk.*
 import io.sukhuat.dingo.domain.model.ProfileError
 import io.sukhuat.dingo.domain.repository.UserProfileRepository
+import io.sukhuat.dingo.domain.usecase.profile.ChangePasswordUseCase
+import io.sukhuat.dingo.domain.validation.ProfileValidator
 import kotlinx.coroutines.test.runTest
 import org.junit.Before
 import org.junit.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
+import kotlin.test.assertTrue
 
 class ChangePasswordUseCaseTest {
 
     private lateinit var userProfileRepository: UserProfileRepository
+    private lateinit var profileValidator: ProfileValidator
     private lateinit var changePasswordUseCase: ChangePasswordUseCase
 
     @Before
     fun setUp() {
         userProfileRepository = mockk(relaxed = true)
-        changePasswordUseCase = ChangePasswordUseCase(userProfileRepository)
+        profileValidator = mockk(relaxed = true)
+        changePasswordUseCase = ChangePasswordUseCase(userProfileRepository, profileValidator)
     }
 
     @Test
-    fun `changePassword should call repository with valid passwords`() = runTest {
+    fun `changePassword should return Success with valid passwords`() = runTest {
         // Given
         val currentPassword = "currentPassword123"
         val newPassword = "NewPassword123!"
-        val confirmPassword = "NewPassword123!"
+        every { profileValidator.validatePassword(newPassword) } returns ProfileValidator.ValidationResult.Valid
+        every { profileValidator.getPasswordStrength(newPassword) } returns 3
         coEvery { userProfileRepository.changePassword(currentPassword, newPassword) } returns Unit
 
         // When
-        changePasswordUseCase(currentPassword, newPassword, confirmPassword)
+        val result = changePasswordUseCase.changePassword(currentPassword, newPassword)
 
         // Then
+        assertTrue(result is ChangePasswordUseCase.PasswordChangeResult.Success)
         coVerify { userProfileRepository.changePassword(currentPassword, newPassword) }
     }
 
     @Test
-    fun `changePassword should throw ValidationError for empty current password`() = runTest {
+    fun `changePassword should return ValidationError for empty current password`() = runTest {
         // Given
         val currentPassword = ""
         val newPassword = "NewPassword123!"
-        val confirmPassword = "NewPassword123!"
 
-        // When & Then
-        val exception = assertFailsWith<ProfileError.ValidationError> {
-            changePasswordUseCase(currentPassword, newPassword, confirmPassword)
-        }
-        assertEquals("currentPassword", exception.field)
-        assertEquals("Current password is required", exception.message)
+        // When
+        val result = changePasswordUseCase.changePassword(currentPassword, newPassword)
+
+        // Then
+        assertTrue(result is ChangePasswordUseCase.PasswordChangeResult.ValidationError)
+        val error = result as ChangePasswordUseCase.PasswordChangeResult.ValidationError
+        assertEquals("currentPassword", error.field)
+        assertEquals("Current password is required", error.message)
     }
 
     @Test
-    fun `changePassword should throw ValidationError for empty new password`() = runTest {
-        // Given
-        val currentPassword = "currentPassword123"
-        val newPassword = ""
-        val confirmPassword = ""
-
-        // When & Then
-        val exception = assertFailsWith<ProfileError.ValidationError> {
-            changePasswordUseCase(currentPassword, newPassword, confirmPassword)
-        }
-        assertEquals("newPassword", exception.field)
-        assertEquals("New password is required", exception.message)
-    }
-
-    @Test
-    fun `changePassword should throw ValidationError for weak new password`() = runTest {
+    fun `changePassword should return ValidationError for invalid new password`() = runTest {
         // Given
         val currentPassword = "currentPassword123"
         val newPassword = "weak"
-        val confirmPassword = "weak"
+        val validationError = ProfileError.ValidationError("newPassword", "Password must be at least 8 characters long")
+        every { profileValidator.validatePassword(newPassword) } returns ProfileValidator.ValidationResult.Invalid(validationError)
 
-        // When & Then
-        val exception = assertFailsWith<ProfileError.ValidationError> {
-            changePasswordUseCase(currentPassword, newPassword, confirmPassword)
-        }
-        assertEquals("newPassword", exception.field)
-        assertEquals("Password must be at least 8 characters long", exception.message)
+        // When
+        val result = changePasswordUseCase.changePassword(currentPassword, newPassword)
+
+        // Then
+        assertTrue(result is ChangePasswordUseCase.PasswordChangeResult.ValidationError)
+        val error = result as ChangePasswordUseCase.PasswordChangeResult.ValidationError
+        assertEquals("newPassword", error.field)
+        assertEquals("Password must be at least 8 characters long", error.message)
     }
 
     @Test
-    fun `changePassword should throw ValidationError for same passwords`() = runTest {
+    fun `changePassword should return ValidationError for same passwords`() = runTest {
         // Given
         val currentPassword = "SamePassword123!"
         val newPassword = "SamePassword123!"
-        val confirmPassword = "SamePassword123!"
+        every { profileValidator.validatePassword(newPassword) } returns ProfileValidator.ValidationResult.Valid
 
-        // When & Then
-        val exception = assertFailsWith<ProfileError.ValidationError> {
-            changePasswordUseCase(currentPassword, newPassword, confirmPassword)
-        }
-        assertEquals("newPassword", exception.field)
-        assertEquals("New password must be different from current password", exception.message)
+        // When
+        val result = changePasswordUseCase.changePassword(currentPassword, newPassword)
+
+        // Then
+        assertTrue(result is ChangePasswordUseCase.PasswordChangeResult.ValidationError)
+        val error = result as ChangePasswordUseCase.PasswordChangeResult.ValidationError
+        assertEquals("newPassword", error.field)
+        assertEquals("New password must be different from current password", error.message)
     }
 
     @Test
-    fun `changePassword should throw ValidationError for mismatched passwords`() = runTest {
+    fun `changePassword should return ValidationError for weak password strength`() = runTest {
         // Given
         val currentPassword = "currentPassword123"
-        val newPassword = "NewPassword123!"
-        val confirmPassword = "DifferentPassword123!"
+        val newPassword = "WeakPass1!"
+        every { profileValidator.validatePassword(newPassword) } returns ProfileValidator.ValidationResult.Valid
+        every { profileValidator.getPasswordStrength(newPassword) } returns 1 // Weak strength
 
-        // When & Then
-        val exception = assertFailsWith<ProfileError.ValidationError> {
-            changePasswordUseCase(currentPassword, newPassword, confirmPassword)
-        }
-        assertEquals("confirmPassword", exception.field)
-        assertEquals("Passwords do not match", exception.message)
+        // When
+        val result = changePasswordUseCase.changePassword(currentPassword, newPassword)
+
+        // Then
+        assertTrue(result is ChangePasswordUseCase.PasswordChangeResult.ValidationError)
+        val error = result as ChangePasswordUseCase.PasswordChangeResult.ValidationError
+        assertEquals("newPassword", error.field)
+        assertEquals("Password is too weak. Please choose a stronger password.", error.message)
     }
 
     @Test
-    fun `changePassword should propagate repository exceptions`() = runTest {
+    fun `changePassword should return AuthError for expired authentication`() = runTest {
         // Given
         val currentPassword = "currentPassword123"
         val newPassword = "NewPassword123!"
-        val confirmPassword = "NewPassword123!"
-        val repositoryException = ProfileError.AuthenticationExpired
-        coEvery { userProfileRepository.changePassword(currentPassword, newPassword) } throws repositoryException
+        every { profileValidator.validatePassword(newPassword) } returns ProfileValidator.ValidationResult.Valid
+        every { profileValidator.getPasswordStrength(newPassword) } returns 3
+        coEvery { userProfileRepository.changePassword(currentPassword, newPassword) } throws Exception("requires-recent-login")
 
-        // When & Then
-        val exception = assertFailsWith<ProfileError.AuthenticationExpired> {
-            changePasswordUseCase(currentPassword, newPassword, confirmPassword)
-        }
-        assertEquals(ProfileError.AuthenticationExpired, exception)
+        // When
+        val result = changePasswordUseCase.changePassword(currentPassword, newPassword)
+
+        // Then
+        assertTrue(result is ChangePasswordUseCase.PasswordChangeResult.AuthError)
+        val error = result as ChangePasswordUseCase.PasswordChangeResult.AuthError
+        assertEquals("Please sign out and sign in again to change your password", error.message)
+    }
+
+    @Test
+    fun `changePassword should return ValidationError for incorrect current password`() = runTest {
+        // Given
+        val currentPassword = "wrongPassword"
+        val newPassword = "NewPassword123!"
+        every { profileValidator.validatePassword(newPassword) } returns ProfileValidator.ValidationResult.Valid
+        every { profileValidator.getPasswordStrength(newPassword) } returns 3
+        coEvery { userProfileRepository.changePassword(currentPassword, newPassword) } throws Exception("wrong-password")
+
+        // When
+        val result = changePasswordUseCase.changePassword(currentPassword, newPassword)
+
+        // Then
+        assertTrue(result is ChangePasswordUseCase.PasswordChangeResult.ValidationError)
+        val error = result as ChangePasswordUseCase.PasswordChangeResult.ValidationError
+        assertEquals("currentPassword", error.field)
+        assertEquals("Current password is incorrect", error.message)
     }
 }
