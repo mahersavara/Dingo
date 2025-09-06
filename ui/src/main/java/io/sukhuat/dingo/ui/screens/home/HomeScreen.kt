@@ -43,9 +43,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -85,6 +88,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -104,6 +108,7 @@ import io.sukhuat.dingo.common.localization.LocalAppLanguage
 import io.sukhuat.dingo.common.localization.LocaleHelper
 import io.sukhuat.dingo.common.theme.MountainSunriseTheme
 import io.sukhuat.dingo.common.theme.RusticGold
+import io.sukhuat.dingo.common.utils.getSafeImageUri
 import io.sukhuat.dingo.common.utils.uploadImageToFirebase
 import io.sukhuat.dingo.domain.model.Goal
 import io.sukhuat.dingo.domain.model.GoalStatus
@@ -159,6 +164,10 @@ fun HomeScreen(
     var selectedGoalForEdit by remember { mutableStateOf<Goal?>(null) }
     var selectedGoalIndex by remember { mutableStateOf(-1) }
     var bubbleEditorPosition by remember { mutableStateOf(Pair(0f, 0f)) }
+
+    // Track goal completion confirmation dialog
+    var showGoalCompletionDialog by remember { mutableStateOf(false) }
+    var goalToComplete by remember { mutableStateOf<Goal?>(null) }
 
     // Setup media player for sound effects
     var mediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
@@ -262,6 +271,18 @@ fun HomeScreen(
         showCelebration = true
     }
 
+    // Function to complete a goal
+    val completeGoal = { goal: Goal ->
+        // Mark goal as complete
+        viewModel.updateGoalStatus(goal.id, GoalStatus.COMPLETED)
+
+        // Find the most up-to-date goal data from allGoals
+        val updatedGoal = allGoals.find { it.id == goal.id } ?: goal
+
+        // Show celebration with the most up-to-date goal data
+        celebrateGoalCompletion(updatedGoal)
+    }
+
     // Function to save custom image
     val saveCustomImage = { uri: Uri ->
         // For Firebase Storage, we just return the URL string
@@ -350,14 +371,9 @@ fun HomeScreen(
                             onGoalClick = { goal ->
                                 when (goal.status) {
                                     GoalStatus.ACTIVE -> {
-                                        // Mark goal as complete
-                                        viewModel.updateGoalStatus(goal.id, GoalStatus.COMPLETED)
-
-                                        // Find the most up-to-date goal data from allGoals
-                                        val updatedGoal = allGoals.find { it.id == goal.id } ?: goal
-
-                                        // Show celebration with the most up-to-date goal data
-                                        celebrateGoalCompletion(updatedGoal)
+                                        // Show confirmation dialog before completing the goal
+                                        goalToComplete = goal
+                                        showGoalCompletionDialog = true
                                     }
                                     GoalStatus.COMPLETED -> {
                                         // Show a message that the goal is already completed
@@ -509,14 +525,9 @@ fun HomeScreen(
                                 onGoalClick = { goal ->
                                     when (goal.status) {
                                         GoalStatus.ACTIVE -> {
-                                            // Mark goal as complete
-                                            viewModel.updateGoalStatus(goal.id, GoalStatus.COMPLETED)
-
-                                            // Find the most up-to-date goal data from allGoals
-                                            val updatedGoal = allGoals.find { it.id == goal.id } ?: goal
-
-                                            // Show celebration with the most up-to-date goal data
-                                            celebrateGoalCompletion(updatedGoal)
+                                            // Show confirmation dialog before completing the goal
+                                            goalToComplete = goal
+                                            showGoalCompletionDialog = true
                                         }
                                         GoalStatus.COMPLETED -> {
                                             // Show a message that the goal is already completed
@@ -573,6 +584,22 @@ fun HomeScreen(
                         }
                     }
                 }
+            }
+
+            // Goal completion confirmation dialog
+            if (showGoalCompletionDialog && goalToComplete != null) {
+                GoalCompletionConfirmDialog(
+                    goal = goalToComplete!!,
+                    onConfirm = {
+                        completeGoal(goalToComplete!!)
+                        showGoalCompletionDialog = false
+                        goalToComplete = null
+                    },
+                    onDismiss = {
+                        showGoalCompletionDialog = false
+                        goalToComplete = null
+                    }
+                )
             }
 
             // Goal completion celebration
@@ -1574,6 +1601,109 @@ fun HomeScreenPreview() {
             HomeScreen(onSignOut = {})
         }
     }
+}
+
+@Composable
+fun GoalCompletionConfirmDialog(
+    goal: Goal,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "Complete Goal?",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Column {
+                Text(
+                    text = "Are you sure you want to mark this goal as completed?",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // Show goal info
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            MaterialTheme.colorScheme.surfaceVariant,
+                            RoundedCornerShape(8.dp)
+                        )
+                        .padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Goal icon/image
+                    if (goal.customImage != null) {
+                        val context = LocalContext.current
+                        val safeImageUri = getSafeImageUri(context, goal.customImage!!)
+                        if (safeImageUri != null) {
+                            CachedAsyncImage(
+                                model = safeImageUri,
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(RoundedCornerShape(6.dp)),
+                                contentScale = ContentScale.Fit
+                            )
+                        }
+                    } else if (goal.imageResId != null) {
+                        Icon(
+                            painter = painterResource(id = goal.imageResId!!),
+                            contentDescription = null,
+                            tint = Color.Unspecified,
+                            modifier = Modifier.size(40.dp)
+                        )
+                    } else {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_goal_notes),
+                            contentDescription = null,
+                            tint = Color.Unspecified,
+                            modifier = Modifier.size(40.dp)
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.width(12.dp))
+                    
+                    Text(
+                        text = goal.text,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF4CAF50)
+                )
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Complete")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        },
+        containerColor = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(16.dp)
+    )
 }
 
 @Composable
