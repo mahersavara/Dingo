@@ -297,15 +297,15 @@ fun SimpleDraggableGoalItem(
 
         // Show edit popup overlay if needed
         if (showEditPopup && touchState is SimpleTouchState.LongPressDetected) {
-            // Add a simple visual indicator for edit mode
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                        RoundedCornerShape(16.dp)
-                    )
-            )
+            // ?Add a simple visual indicator for edit mode =))) khong co cai nao xoa ah
+//            Box(
+//                modifier = Modifier
+//                    .fillMaxSize()
+//                    .background(
+//                        MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+//                        RoundedCornerShape(16.dp)
+//                    )
+//            )
         }
     }
 }

@@ -76,7 +76,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.BlurredEdgeTreatment
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -335,10 +338,14 @@ fun HomeScreen(
         onSettingsClick = onNavigateToSettings,
         onLogoutClick = { viewModel.signOut(onSignOut) }
     ) { paddingValues ->
+        // Glass container with transparency and blur effect
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .background(
+                    Color.White.copy(alpha = 0.08f)
+                )
         ) {
             // Use different layouts based on screen size
             when (responsiveValues.screenSizeClass) {

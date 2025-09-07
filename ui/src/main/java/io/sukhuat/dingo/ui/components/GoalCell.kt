@@ -2,6 +2,7 @@ package io.sukhuat.dingo.ui.components
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -11,13 +12,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -26,6 +30,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.compose.SubcomposeAsyncImage
 import io.sukhuat.dingo.common.R
+import io.sukhuat.dingo.common.theme.*
 import io.sukhuat.dingo.common.utils.getSafeImageUri
 import io.sukhuat.dingo.domain.model.Goal
 import io.sukhuat.dingo.domain.model.GoalStatus
@@ -41,18 +46,25 @@ fun GoalCell(
 ) {
     Card(
         modifier = modifier
-            .aspectRatio(1f),
+            .aspectRatio(1f)
+            .border(
+                width = 1.dp,
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = 0.5f),
+                        Color.White.copy(alpha = 0.2f),
+                        Color.White.copy(alpha = 0.1f)
+                    )
+                ),
+                shape = RoundedCornerShape(16.dp)
+            )
+        ,
         shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = if (isDragged) 8.dp else 4.dp
-        ),
+//        elevation = CardDefaults.cardElevation(
+//            defaultElevation = if (isDragged) 12.dp else 6.dp
+//        ),
         colors = CardDefaults.cardColors(
-            containerColor = when (goal.status) {
-                GoalStatus.COMPLETED -> Color(0xFFE8F5E9) // Light green for completed
-                GoalStatus.FAILED -> Color(0xFFFFEBEE) // Light red for failed
-                GoalStatus.ARCHIVED -> Color(0xFFF5F5F5) // Light gray for archived
-                else -> MaterialTheme.colorScheme.surface
-            }
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.2f) // Consistent glass effect for all states
         )
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -90,21 +102,21 @@ fun GoalCell(
 
                             // Show cloud indicator for Firebase Storage URLs
                             if (customImage != null && customImage.startsWith("https://firebasestorage.googleapis.com")) {
-                                Box(
-                                    modifier = Modifier
-                                        .align(Alignment.TopEnd)
-                                        .padding(4.dp)
-                                        .size(16.dp)
-                                        .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        painter = painterResource(id = R.drawable.ic_upload),
-                                        contentDescription = "Stored in Firebase",
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(12.dp)
-                                    )
-                                }
+//                                Box(
+//                                    modifier = Modifier
+//                                        .align(Alignment.TopEnd)
+//                                        .padding(4.dp)
+//                                        .size(16.dp)
+//                                        .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
+//                                    contentAlignment = Alignment.Center
+//                                ) {
+//                                    Icon(
+//                                        painter = painterResource(id = R.drawable.ic_upload),
+//                                        contentDescription = "Stored in Firebase",
+//                                        tint = MaterialTheme.colorScheme.primary,
+//                                        modifier = Modifier.size(12.dp)
+//                                    )
+//                                }
                             }
                         } else {
                             // Fallback to default icon if URI is invalid
@@ -148,14 +160,33 @@ fun GoalCell(
             // Status overlays
             when (goal.status) {
                 GoalStatus.COMPLETED -> {
-                    // Overlay for completed goals
+                    // Mountain sunrise theme completion glow
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(Color(0x55FFFFFF)), // Slightly more opaque white overlay to dim content
+                            .background(
+                                Brush.radialGradient(
+                                    colors = listOf(
+                                        RusticGold.copy(alpha = 0.15f),
+                                        AmberHorizon.copy(alpha = 0.08f),
+                                        Color.Transparent
+                                    )
+                                )
+                            )
+                            .border(
+                                width = 2.dp,
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        RusticGold.copy(alpha = 0.6f), // Gold glow theo theme
+                                        RusticGold.copy(alpha = 0.3f),
+                                        Color.Transparent
+                                    )
+                                ),
+                                shape = RoundedCornerShape(16.dp)
+                            ),
                         contentAlignment = Alignment.Center
                     ) {
-                        // Stylized completion mark overlay
+                        // Mountain sunrise theme completion stamp
                         Canvas(
                             modifier = Modifier
                                 .size(100.dp)
@@ -163,24 +194,24 @@ fun GoalCell(
                                     rotationZ = -15f
                                 }
                         ) {
-                            // Outer circle
+                            // Outer circle with theme gold
                             drawCircle(
-                                color = Color(0xDD4CAF50), // More opaque green
+                                color = RusticGold.copy(alpha = 0.8f),
                                 radius = size.minDimension / 2,
                                 style = Stroke(width = 4f)
                             )
 
-                            // Inner circle
+                            // Inner circle with warm amber
                             drawCircle(
-                                color = Color(0x554CAF50), // More visible green
+                                color = AmberHorizon.copy(alpha = 0.4f),
                                 radius = size.minDimension / 2 - 8f
                             )
 
-                            // Decorative lines
+                            // Decorative sunrise rays
                             for (i in 0 until 8) {
                                 rotate(degrees = i * 45f) {
                                     drawLine(
-                                        color = Color(0xDD4CAF50), // More opaque green
+                                        color = RusticGold.copy(alpha = 0.7f),
                                         start = center + Offset(0f, -size.minDimension / 4),
                                         end = center + Offset(0f, -size.minDimension / 2 + 4f),
                                         strokeWidth = 3f
@@ -189,10 +220,10 @@ fun GoalCell(
                             }
                         }
 
-                        // "DONE" text in the center of the stamp
+                        // "DONE" text with theme colors
                         Text(
-                            text = "✅ DONE",
-                            color = Color(0xFF4CAF50), // Green color
+                            text = "✨ DONE",
+                            color = RusticGold,
                             fontWeight = FontWeight.ExtraBold,
                             style = MaterialTheme.typography.titleMedium,
                             modifier = Modifier
@@ -203,11 +234,19 @@ fun GoalCell(
                     }
                 }
                 GoalStatus.FAILED -> {
-                    // Overlay for failed goals
+                    // Mountain theme failed overlay
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(Color(0x55FFFFFF)), // Slightly more opaque white overlay to dim content
+                            .background(
+                                Brush.radialGradient(
+                                    colors = listOf(
+                                        DustyRose.copy(alpha = 0.12f),
+                                        DustyRose.copy(alpha = 0.06f),
+                                        Color.Transparent
+                                    )
+                                )
+                            ),
                         contentAlignment = Alignment.Center
                     ) {
                         Canvas(
@@ -217,15 +256,15 @@ fun GoalCell(
                                     rotationZ = -15f
                                 }
                         ) {
-                            // X mark
+                            // X mark with theme color
                             drawLine(
-                                color = Color(0xDDFF5252), // More opaque red
+                                color = DustyRose.copy(alpha = 0.8f),
                                 start = Offset(size.width * 0.3f, size.height * 0.3f),
                                 end = Offset(size.width * 0.7f, size.height * 0.7f),
                                 strokeWidth = 5f
                             )
                             drawLine(
-                                color = Color(0xDDFF5252), // More opaque red
+                                color = DustyRose.copy(alpha = 0.8f),
                                 start = Offset(size.width * 0.7f, size.height * 0.3f),
                                 end = Offset(size.width * 0.3f, size.height * 0.7f),
                                 strokeWidth = 5f
@@ -233,8 +272,8 @@ fun GoalCell(
                         }
 
                         Text(
-                            text = "❌ FAILED",
-                            color = Color(0xFFFF5252), // Red color
+                            text = "☒ FAILED",
+                            color = DustyRose,
                             fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.labelMedium,
                             modifier = Modifier
@@ -246,54 +285,91 @@ fun GoalCell(
                     }
                 }
                 GoalStatus.ARCHIVED -> {
-                    // Overlay for archived goals
+                    // Elegant archived ribbon overlay
                     Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color(0x55FFFFFF)), // Slightly more opaque white overlay to dim content
+                        modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
+                        // Diagonal ribbon background
                         Canvas(
                             modifier = Modifier
-                                .size(100.dp)
+                                .fillMaxSize()
                                 .graphicsLayer {
-                                    rotationZ = -15f
+                                    rotationZ = -12f
                                 }
                         ) {
-                            // Outer rectangle with rounded corners
-                            drawRoundRect(
-                                color = Color(0xDD9E9E9E), // More opaque gray
-                                cornerRadius = CornerRadius(16f, 16f),
-                                style = Stroke(width = 3f)
+                            // Ribbon background with mountain theme gradient
+                            drawRect(
+                                brush = Brush.verticalGradient(
+                                    colors = listOf(
+                                        MountainShadow.copy(alpha = 0.85f),
+                                        MountainShadow.copy(alpha = 0.65f)
+                                    )
+                                ),
+                                size = Size(
+                                    width = size.width * 1.4f,
+                                    height = size.height * 0.25f
+                                ),
+                                topLeft = Offset(
+                                    x = -size.width * 0.2f,
+                                    y = size.height * 0.375f
+                                )
+                            )
+
+                            // Ribbon shadow/depth
+                            drawRect(
+                                color = MountainShadow.copy(alpha = 0.3f),
+                                size = Size(
+                                    width = size.width * 1.4f,
+                                    height = size.height * 0.25f
+                                ),
+                                topLeft = Offset(
+                                    x = -size.width * 0.2f + 3f,
+                                    y = size.height * 0.375f + 3f
+                                )
                             )
                         }
 
+                        // Archive text on ribbon
                         Text(
-                            text = "⛔ ARCHIVED",
-                            color = Color(0xFF9E9E9E), // Gray color
-                            fontWeight = FontWeight.Bold,
+                            text = "ARCHIVED",
+                            color = White,
+                            fontWeight = FontWeight.ExtraBold,
                             style = MaterialTheme.typography.labelMedium,
                             modifier = Modifier
                                 .graphicsLayer {
-                                    rotationZ = -15f
+                                    rotationZ = -12f
                                 }
                         )
                     }
                 }
                 GoalStatus.ACTIVE -> {
-                    // Add a subtle indicator for active goals
+                    //LinhKD Debug 1
+                    // Mountain theme active indicator
                     Box(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .padding(8.dp)
                             .size(16.dp)
-                            .background(Color(0xFF64B5F6), CircleShape)
+                            .background(
+                                Brush.radialGradient(
+                                    colors = listOf(
+                                        MistyLavender.copy(alpha = 0.8f),
+                                        MistyLavender.copy(alpha = 0.6f)
+                                    )
+                                ),
+                                CircleShape
+                            ),
+                        contentAlignment = Alignment.Center // Đây là key để căn giữa icon
                     ) {
                         Text(
                             text = "⏳",
                             fontSize = 10.sp,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.fillMaxSize()
+                            maxLines = 1,
+                            lineHeight = 10.sp, // = fontSize để không dư leading
+                            style = LocalTextStyle.current.copy(
+                                platformStyle = PlatformTextStyle(includeFontPadding = false)
+                            )
                         )
                     }
                 }
