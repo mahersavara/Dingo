@@ -261,7 +261,7 @@ class AccountSecurityViewModel @Inject constructor(
                 // Try both ToastHelper and direct Toast as fallback
                 ToastHelper.showMedium(context, "Password changed successfully!")
                 Log.d("AccountSecurityVM", "ToastHelper called successfully")
-                
+
                 // Also try direct toast as backup
                 android.widget.Toast.makeText(context, "Password changed successfully! ✅", android.widget.Toast.LENGTH_LONG).show()
                 Log.d("AccountSecurityVM", "Direct Toast called successfully")

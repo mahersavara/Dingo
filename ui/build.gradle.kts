@@ -62,7 +62,7 @@ dependencies {
 //    implementation(libs.iconsax.compose)
     // Coil for image loading
     implementation(libs.coil.compose.v240)
-    
+
     // OkHttp for image cache manager
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 

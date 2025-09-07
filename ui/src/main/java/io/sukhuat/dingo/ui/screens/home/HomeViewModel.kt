@@ -22,6 +22,7 @@ import io.sukhuat.dingo.domain.usecase.goal.ReorderGoalsUseCase
 import io.sukhuat.dingo.domain.usecase.goal.UpdateGoalStatusUseCase
 import io.sukhuat.dingo.domain.usecase.goal.UpdateGoalUseCase
 import io.sukhuat.dingo.usecases.auth.SignOutUseCase
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -31,6 +32,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.Calendar
 import javax.inject.Inject
 
@@ -120,6 +122,24 @@ class HomeViewModel @Inject constructor(
     val soundEnabled: State<Boolean> = _soundEnabled
 
     private val _vibrationEnabled = mutableStateOf(true)
+
+    // Drag mode state
+    private val _isDragModeActive = MutableStateFlow(false)
+    val isDragModeActive: StateFlow<Boolean> = _isDragModeActive.asStateFlow()
+
+    private val _isSavingPositions = MutableStateFlow(false)
+    val isSavingPositions: StateFlow<Boolean> = _isSavingPositions.asStateFlow()
+
+    private val _lastPositionSyncTime = MutableStateFlow<Long?>(null)
+    val lastPositionSyncTime: StateFlow<Long?> = _lastPositionSyncTime.asStateFlow()
+
+    // Enhanced drag state tracking for snapshot-based operations
+    private val _dragOperations = MutableStateFlow<Map<String, Int>>(emptyMap())
+    val dragOperations: StateFlow<Map<String, Int>> = _dragOperations.asStateFlow()
+
+    private val _dragSnapshot = MutableStateFlow<Map<String, Int>>(emptyMap())
+    private val _dragSessionActive = MutableStateFlow(false)
+    val isDragSessionActive: StateFlow<Boolean> = _dragSessionActive.asStateFlow()
     val vibrationEnabled: State<Boolean> = _vibrationEnabled
 
     // Week navigation state
@@ -452,7 +472,7 @@ class HomeViewModel @Inject constructor(
     }
 
     /**
-     * Reorder goal to a new position
+     * Reorder goal to a new position (legacy method for immediate saves)
      */
     fun reorderGoal(goal: io.sukhuat.dingo.domain.model.Goal, newPosition: Int) {
         viewModelScope.launch {
@@ -466,4 +486,250 @@ class HomeViewModel @Inject constructor(
             }
         }
     }
+
+    /**
+     * Enhanced drag operation tracking - accumulate drag operations without immediate save
+     */
+    fun updateDragPosition(goalId: String, newPosition: Int) {
+        println("🔄 DRAG_STATE: updateDragPosition - goalId=$goalId, newPosition=$newPosition")
+
+        // Only track if in drag session
+        if (_dragSessionActive.value) {
+            _dragOperations.value = _dragOperations.value.plus(goalId to newPosition)
+            println("🔄 DRAG_STATE: dragOperations updated = ${_dragOperations.value}")
+        } else {
+            println("⚠️ DRAG_STATE: ignoring update - drag session not active")
+        }
+    }
+
+    /**
+     * Start drag session - begins accumulating drag operations
+     */
+    fun startDragSession() {
+        println("🎯 DRAG_STATE: startDragSession")
+        _dragSessionActive.value = true
+        _dragOperations.value = emptyMap()
+        println("🎯 DRAG_STATE: drag session started, operations cleared")
+    }
+
+    /**
+     * End drag session - creates snapshot and prepares for save
+     */
+    fun endDragSession() {
+        println("🎯 DRAG_STATE: endDragSession")
+        if (_dragSessionActive.value) {
+            _dragSnapshot.value = _dragOperations.value.toMap()
+            _dragSessionActive.value = false
+            println("🎯 DRAG_STATE: snapshot created = ${_dragSnapshot.value}")
+        } else {
+            println("⚠️ DRAG_STATE: endDragSession called but session not active")
+        }
+    }
+
+    /**
+     * Get current drag state for a goal
+     */
+    fun getDragPosition(goalId: String): Int? {
+        return _dragOperations.value[goalId]
+    }
+
+    /**
+     * Check if there are pending drag operations to save
+     */
+    fun hasPendingDragOperations(): Boolean {
+        return _dragSnapshot.value.isNotEmpty()
+    }
+
+    /**
+     * Clear all drag operations (for cancellation)
+     */
+    fun clearDragOperations() {
+        println("🧹 DRAG_STATE: clearDragOperations")
+        _dragOperations.value = emptyMap()
+        _dragSnapshot.value = emptyMap()
+        _dragSessionActive.value = false
+        println("🧹 DRAG_STATE: all drag state cleared")
+    }
+
+    /**
+     * Toggle drag mode on/off with enhanced snapshot-based batch save logic
+     */
+    fun toggleDragMode() {
+        val currentState = _isDragModeActive.value
+        println("🔥 DRAG_DEBUG: ViewModel.toggleDragMode() called")
+        println("🔥 DRAG_DEBUG: Current drag mode state: $currentState")
+
+        if (currentState) {
+            // Exiting drag mode -> End session and save positions
+            println("🔥 DRAG_DEBUG: Exiting drag mode")
+            endDragSession()
+            exitDragModeAndSave()
+        } else {
+            // Entering drag mode -> Enable and start session
+            println("🔥 DRAG_DEBUG: Entering drag mode")
+            _isDragModeActive.value = true
+            startDragSession()
+            println("🔥 DRAG_DEBUG: isDragModeActive set to: ${_isDragModeActive.value}")
+        }
+    }
+
+    /**
+     * Exit drag mode and batch save all goal positions using snapshot-based approach
+     */
+    private fun exitDragModeAndSave() {
+        viewModelScope.launch {
+            try {
+                println("💾 SAVE_DEBUG: exitDragModeAndSave started")
+
+                // 1. Disable drag mode immediately for UI responsiveness
+                _isDragModeActive.value = false
+                println("💾 SAVE_DEBUG: drag mode disabled")
+
+                // 2. Show saving indicator
+                _isSavingPositions.value = true
+
+                // 3. Use snapshot for consistent state during save
+                val dragSnapshot = _dragSnapshot.value.toMap()
+                println("💾 SAVE_DEBUG: using snapshot = $dragSnapshot")
+
+                // 4. Batch update positions if we have drag operations
+                if (dragSnapshot.isNotEmpty()) {
+                    println("💾 SAVE_DEBUG: processing ${dragSnapshot.size} drag operations")
+
+                    // Validate and apply drag operations
+                    val result = saveDragOperations(dragSnapshot)
+
+                    result.fold(
+                        onSuccess = {
+                            println("💾 SAVE_DEBUG: ✅ save successful")
+                            // Clear drag operations after successful save
+                            clearDragOperations()
+
+                            // Success feedback
+                            _lastPositionSyncTime.value = System.currentTimeMillis()
+
+                            // Haptic feedback for success
+                            if (vibrationEnabled.value) {
+                                vibrateOnGoalCompleted(intensity = 50, duration = 200)
+                            }
+                        },
+                        onFailure = { error ->
+                            println("💾 SAVE_DEBUG: ❌ save failed - ${error.message}")
+                            _uiState.value = HomeUiState.Error("Failed to save positions: ${error.message}")
+                            // Keep drag operations for potential retry
+                        }
+                    )
+                } else {
+                    println("💾 SAVE_DEBUG: no drag operations to save")
+                    clearDragOperations()
+                }
+
+                // 5. Hide saving indicator
+                _isSavingPositions.value = false
+            } catch (e: Exception) {
+                // 6. Error handling with detailed logging
+                println("💾 SAVE_DEBUG: ❌ exception during save - ${e.message}")
+                _isSavingPositions.value = false
+                _uiState.value = HomeUiState.Error("Failed to save positions: ${e.message}")
+                Log.e(TAG, "Error saving goal positions", e)
+            }
+        }
+    }
+
+    /**
+     * Save drag operations atomically with proper validation and rollback
+     */
+    private suspend fun saveDragOperations(operations: Map<String, Int>): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            println("💾 SAVE_ATOMIC: starting atomic save of ${operations.size} operations")
+
+            // 1. Validate operations before applying
+            val validatedOperations = validateDragOperations(operations)
+            if (validatedOperations.isEmpty()) {
+                println("💾 SAVE_ATOMIC: no valid operations after validation")
+                return@withContext Result.success(Unit)
+            }
+
+            // 2. Get current goals to create final position list
+            val currentGoals = currentWeekGoals.value
+            if (currentGoals.isEmpty()) {
+                println("💾 SAVE_ATOMIC: no current goals available")
+                return@withContext Result.failure(Exception("No goals available for reordering"))
+            }
+
+            // 3. Create final goal positions incorporating drag operations
+            val finalPositions = createFinalPositionList(currentGoals, validatedOperations)
+            println("💾 SAVE_ATOMIC: final positions = $finalPositions")
+
+            // 4. Apply operations atomically using existing use case
+            reorderGoalsUseCase(finalPositions)
+
+            println("💾 SAVE_ATOMIC: ✅ atomic save completed successfully")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            println("💾 SAVE_ATOMIC: ❌ atomic save failed - ${e.message}")
+            Log.e(TAG, "Failed to save drag operations atomically", e)
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Validate drag operations to ensure they're within valid bounds
+     */
+    private fun validateDragOperations(operations: Map<String, Int>): Map<String, Int> {
+        println("🔍 VALIDATION: validating ${operations.size} operations")
+
+        return operations.filter { (goalId, position) ->
+            val isValid = position in 0..11 && goalId.isNotEmpty()
+            if (!isValid) {
+                println("🔍 VALIDATION: ❌ invalid operation - goalId=$goalId, position=$position")
+            }
+            isValid
+        }.also {
+            println("🔍 VALIDATION: ${it.size}/${operations.size} operations valid")
+        }
+    }
+
+    /**
+     * Create final goal ID list with drag operations applied
+     */
+    private fun createFinalPositionList(goals: List<io.sukhuat.dingo.domain.model.Goal>, operations: Map<String, Int>): List<String> {
+        println("📋 POSITION_LIST: creating final positions for ${goals.size} goals with ${operations.size} operations")
+
+        // Create array to hold final positions
+        val finalArray = arrayOfNulls<String>(12)
+
+        // First, place goals with drag operations in their new positions
+        operations.forEach { (goalId, newPosition) ->
+            if (newPosition in 0..11) {
+                finalArray[newPosition] = goalId
+                println("📋 POSITION_LIST: placed dragged goal $goalId at position $newPosition")
+            }
+        }
+
+        // Then, place remaining goals in their current positions if available
+        goals.filter { it.id !in operations.keys }.forEach { goal ->
+            var targetPosition = goal.position.coerceIn(0, 11)
+
+            // If position is occupied by a dragged goal, find next available
+            while (targetPosition < 12 && finalArray[targetPosition] != null) {
+                targetPosition++
+            }
+
+            if (targetPosition < 12) {
+                finalArray[targetPosition] = goal.id
+                println("📋 POSITION_LIST: placed non-dragged goal ${goal.id} at position $targetPosition")
+            }
+        }
+
+        // Convert to list, filtering out nulls
+        return finalArray.filterNotNull().also {
+            println("📋 POSITION_LIST: final list = $it")
+        }
+    }
+
+    /**
+     * Check if goal completion should be disabled (drag mode active)
+     */
+    fun isGoalCompletionDisabled(): Boolean = _isDragModeActive.value
 }

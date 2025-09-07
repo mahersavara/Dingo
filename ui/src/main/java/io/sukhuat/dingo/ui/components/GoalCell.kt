@@ -23,8 +23,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
-import coil.compose.SubcomposeAsyncImage
 import io.sukhuat.dingo.common.R
 import io.sukhuat.dingo.common.utils.getSafeImageUri
 import io.sukhuat.dingo.domain.model.Goal

@@ -5,7 +5,6 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.Log
-import androidx.annotation.VisibleForTesting
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -24,36 +23,36 @@ import java.util.concurrent.TimeUnit
  * Handles downloading Firebase Storage images and caching them locally
  */
 class GoalImageCacheManager private constructor(private val context: Context) {
-    
+
     companion object {
         private const val TAG = "GoalImageCacheManager"
         private const val CACHE_FOLDER = "goal_image_cache"
         private const val MAX_CACHE_SIZE_MB = 50L
         private const val CACHE_CLEANUP_THRESHOLD = 0.8f // Clean when 80% full
-        
+
         @Volatile
         private var INSTANCE: GoalImageCacheManager? = null
-        
+
         fun getInstance(context: Context): GoalImageCacheManager {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: GoalImageCacheManager(context.applicationContext).also { INSTANCE = it }
             }
         }
     }
-    
+
     private val httpClient = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
         .build()
-    
+
     // In-memory cache for quick access
     private val memoryCache = ConcurrentHashMap<String, Bitmap>()
     private val downloadMutexMap = ConcurrentHashMap<String, Mutex>()
-    
+
     private val cacheDir = File(context.filesDir, CACHE_FOLDER).apply {
         if (!exists()) mkdirs()
     }
-    
+
     /**
      * Get cached image or download if not available
      * @param firebaseUrl Firebase Storage URL
@@ -67,18 +66,18 @@ class GoalImageCacheManager private constructor(private val context: Context) {
                     Log.d(TAG, "Not a Firebase Storage URL: $firebaseUrl")
                     return@withContext Uri.parse(firebaseUrl)
                 }
-                
+
                 val cacheKey = generateCacheKey(firebaseUrl)
                 val cachedFile = File(cacheDir, "$cacheKey.jpg")
-                
+
                 // Check if file exists in cache and is still valid
                 if (cachedFile.exists() && cachedFile.lastModified() > System.currentTimeMillis() - TimeUnit.DAYS.toMillis(30)) {
                     Log.d(TAG, "Using cached image: ${cachedFile.absolutePath}")
                     return@withContext Uri.fromFile(cachedFile)
                 }
-                
+
                 // Download image if not cached or expired
-                downloadAndCache(firebaseUrl, cachedFile)?.let { 
+                downloadAndCache(firebaseUrl, cachedFile)?.let {
                     Uri.fromFile(it)
                 }
             } catch (e: Exception) {
@@ -87,16 +86,16 @@ class GoalImageCacheManager private constructor(private val context: Context) {
             }
         }
     }
-    
+
     /**
      * Download image from Firebase and cache it locally
      */
     private suspend fun downloadAndCache(firebaseUrl: String, cacheFile: File): File? {
         val cacheKey = generateCacheKey(firebaseUrl)
-        
+
         // Use mutex to prevent concurrent downloads of the same image
         val mutex = downloadMutexMap.getOrPut(cacheKey) { Mutex() }
-        
+
         return mutex.withLock {
             try {
                 // Double-check if file was created while waiting for lock
@@ -104,37 +103,37 @@ class GoalImageCacheManager private constructor(private val context: Context) {
                     Log.d(TAG, "Image was cached while waiting: ${cacheFile.absolutePath}")
                     return@withLock cacheFile
                 }
-                
+
                 Log.d(TAG, "Downloading image from Firebase: $firebaseUrl")
-                
+
                 val request = Request.Builder()
                     .url(firebaseUrl)
                     .build()
-                
+
                 val response = httpClient.newCall(request).execute()
-                
+
                 if (response.isSuccessful) {
                     response.body?.let { responseBody ->
                         // Create temporary file first
                         val tempFile = File(cacheFile.parent, "${cacheFile.name}.tmp")
-                        
+
                         responseBody.byteStream().use { inputStream ->
                             // Compress and save image
                             val compressedBytes = compressDownloadedImage(inputStream)
-                            
+
                             FileOutputStream(tempFile).use { outputStream ->
                                 outputStream.write(compressedBytes)
                                 outputStream.flush()
                             }
                         }
-                        
+
                         // Atomically move temp file to final location
                         if (tempFile.renameTo(cacheFile)) {
                             Log.d(TAG, "Successfully cached image: ${cacheFile.absolutePath}")
-                            
+
                             // Clean cache if needed
                             cleanCacheIfNeeded()
-                            
+
                             cacheFile
                         } else {
                             tempFile.delete()
@@ -155,41 +154,41 @@ class GoalImageCacheManager private constructor(private val context: Context) {
             }
         }
     }
-    
+
     /**
      * Compress downloaded image to save storage space
      */
     private fun compressDownloadedImage(inputStream: InputStream): ByteArray {
         val bitmap = BitmapFactory.decodeStream(inputStream)
-        
+
         if (bitmap == null) {
             throw IllegalArgumentException("Could not decode downloaded image")
         }
-        
+
         // Calculate compression parameters
         val maxDimension = 800f // Slightly smaller for cached images
         val originalWidth = bitmap.width
         val originalHeight = bitmap.height
-        
+
         val scale = if (originalWidth > maxDimension || originalHeight > maxDimension) {
             minOf(maxDimension / originalWidth, maxDimension / originalHeight)
         } else {
             1f
         }
-        
+
         val compressedBitmap = if (scale < 1f) {
             val newWidth = (originalWidth * scale).toInt()
             val newHeight = (originalHeight * scale).toInt()
-            
+
             Log.d(TAG, "Resizing downloaded image from ${originalWidth}x$originalHeight to ${newWidth}x$newHeight")
-            
+
             Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true).also {
                 if (it != bitmap) bitmap.recycle()
             }
         } else {
             bitmap
         }
-        
+
         // Compress to JPEG with good quality for cached images
         return compressedBitmap.let { bmp ->
             val outputStream = java.io.ByteArrayOutputStream()
@@ -198,7 +197,7 @@ class GoalImageCacheManager private constructor(private val context: Context) {
             outputStream.toByteArray()
         }
     }
-    
+
     /**
      * Generate cache key from Firebase URL
      */
@@ -211,14 +210,14 @@ class GoalImageCacheManager private constructor(private val context: Context) {
             url.hashCode().toString().replace("-", "n")
         }
     }
-    
+
     /**
      * Check if URL is a Firebase Storage URL
      */
     private fun isFirebaseStorageUrl(url: String): Boolean {
         return url.startsWith("https://firebasestorage.googleapis.com")
     }
-    
+
     /**
      * Clean cache when it exceeds size limit
      */
@@ -226,35 +225,35 @@ class GoalImageCacheManager private constructor(private val context: Context) {
         try {
             val cacheSize = calculateCacheSize()
             val maxSize = MAX_CACHE_SIZE_MB * 1024 * 1024 // Convert to bytes
-            
+
             if (cacheSize > maxSize * CACHE_CLEANUP_THRESHOLD) {
                 Log.d(TAG, "Cache size ($cacheSize bytes) exceeds threshold, cleaning...")
-                
+
                 val files = cacheDir.listFiles()?.toList() ?: return
-                
+
                 // Sort by last access time (oldest first)
                 val sortedFiles = files.sortedBy { it.lastModified() }
-                
+
                 var deletedSize = 0L
                 val targetSize = maxSize * 0.6f // Clean down to 60% of max size
-                
+
                 for (file in sortedFiles) {
                     if (cacheSize - deletedSize <= targetSize) break
-                    
+
                     val fileSize = file.length()
                     if (file.delete()) {
                         deletedSize += fileSize
                         Log.d(TAG, "Deleted cache file: ${file.name}")
                     }
                 }
-                
+
                 Log.d(TAG, "Cache cleanup completed. Deleted $deletedSize bytes")
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error during cache cleanup", e)
         }
     }
-    
+
     /**
      * Calculate total cache size
      */
@@ -266,7 +265,7 @@ class GoalImageCacheManager private constructor(private val context: Context) {
             0L
         }
     }
-    
+
     /**
      * Clear all cached images
      */
@@ -274,19 +273,19 @@ class GoalImageCacheManager private constructor(private val context: Context) {
         try {
             Log.d(TAG, "Clearing image cache...")
             memoryCache.clear()
-            
+
             cacheDir.listFiles()?.forEach { file ->
                 if (file.delete()) {
                     Log.d(TAG, "Deleted cache file: ${file.name}")
                 }
             }
-            
+
             Log.d(TAG, "Cache cleared successfully")
         } catch (e: Exception) {
             Log.e(TAG, "Error clearing cache", e)
         }
     }
-    
+
     /**
      * Get cache statistics
      */
@@ -295,7 +294,7 @@ class GoalImageCacheManager private constructor(private val context: Context) {
             val files = cacheDir.listFiles() ?: emptyArray()
             val totalSize = files.sumOf { it.length() }
             val fileCount = files.size
-            
+
             CacheStats(
                 fileCount = fileCount,
                 totalSizeBytes = totalSize,
@@ -306,7 +305,7 @@ class GoalImageCacheManager private constructor(private val context: Context) {
             CacheStats(0, 0, 0.0)
         }
     }
-    
+
     data class CacheStats(
         val fileCount: Int,
         val totalSizeBytes: Long,

@@ -10,8 +10,13 @@ import android.os.Vibrator
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -44,6 +49,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.AlertDialog
@@ -93,9 +99,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
-import coil.compose.AsyncImage
-import io.sukhuat.dingo.ui.components.CachedAsyncImage
 import io.sukhuat.dingo.common.R
 import io.sukhuat.dingo.common.components.BubbleComponent
 import io.sukhuat.dingo.common.components.GoalCompletionCelebration
@@ -108,11 +113,14 @@ import io.sukhuat.dingo.common.localization.LocalAppLanguage
 import io.sukhuat.dingo.common.localization.LocaleHelper
 import io.sukhuat.dingo.common.theme.MountainSunriseTheme
 import io.sukhuat.dingo.common.theme.RusticGold
+import io.sukhuat.dingo.common.theme.White
 import io.sukhuat.dingo.common.utils.getSafeImageUri
 import io.sukhuat.dingo.common.utils.uploadImageToFirebase
 import io.sukhuat.dingo.domain.model.Goal
 import io.sukhuat.dingo.domain.model.GoalStatus
+import io.sukhuat.dingo.ui.components.CachedAsyncImage
 import io.sukhuat.dingo.ui.components.DingoAppScaffold
+import io.sukhuat.dingo.ui.components.DragToggleButton
 import io.sukhuat.dingo.ui.components.GoalCell
 import io.sukhuat.dingo.ui.components.SimpleSamsungDragGrid
 import io.sukhuat.dingo.ui.components.WeeklyWrapUp
@@ -155,6 +163,16 @@ fun HomeScreen(
 
     // User profile state for avatar display
     val userProfile by viewModel.userProfile.collectAsState()
+
+    // Drag mode state
+    val isDragModeActive by viewModel.isDragModeActive.collectAsState()
+    val isSavingPositions by viewModel.isSavingPositions.collectAsState()
+    val lastPositionSyncTime by viewModel.lastPositionSyncTime.collectAsState()
+
+    // DEBUG: Log drag mode state changes
+    LaunchedEffect(isDragModeActive) {
+        println("🔥 DRAG_DEBUG: HomeScreen - isDragModeActive changed to: $isDragModeActive")
+    }
 
     // Track if settings dialog is shown
     var showSettingsDialog by remember { mutableStateOf(false) }
@@ -323,7 +341,7 @@ fun HomeScreen(
             null
         },
         topBarActions = {
-            // Remove the duplicate profile icon since it's already handled by the scaffold
+            // Removed drag toggle from top bar - moved to grid area
         },
         showUserMenu = true,
         isAuthenticated = true, // Assuming the user is authenticated since we're on the home screen
@@ -416,7 +434,15 @@ fun HomeScreen(
                                 showBubbleEditor = true
                             },
                             onGoalReorder = { goal, newPosition ->
-                                viewModel.reorderGoal(goal, newPosition)
+                                if (isDragModeActive) {
+                                    // In drag mode: accumulate operations, don't save immediately
+                                    println("🏁 HOMESCREEN: drag mode reorder - ${goal.id} to $newPosition")
+                                    viewModel.updateDragPosition(goal.id, newPosition)
+                                } else {
+                                    // Not in drag mode: immediate save (legacy behavior)
+                                    println("🏁 HOMESCREEN: immediate reorder - ${goal.id} to $newPosition")
+                                    viewModel.reorderGoal(goal, newPosition)
+                                }
                             },
                             onEmptyCellClick = {
                                 selectedEmptyIndex = -1 // Default position for old grid
@@ -425,6 +451,12 @@ fun HomeScreen(
                             onEmptyPositionClick = { position ->
                                 selectedEmptyIndex = position
                                 showGoalCreationDialog = true
+                            },
+                            isDragModeActive = isDragModeActive,
+                            isSavingPositions = isSavingPositions,
+                            onDragToggle = {
+                                println("🔥 DRAG_DEBUG: Toggle button clicked!")
+                                viewModel.toggleDragMode()
                             }
                         )
                     }
@@ -570,7 +602,15 @@ fun HomeScreen(
                                     showBubbleEditor = true
                                 },
                                 onGoalReorder = { goal, newPosition ->
-                                    viewModel.reorderGoal(goal, newPosition)
+                                    if (isDragModeActive) {
+                                        // In drag mode: accumulate operations, don't save immediately
+                                        println("🏁 HOMESCREEN: drag mode reorder - ${goal.id} to $newPosition")
+                                        viewModel.updateDragPosition(goal.id, newPosition)
+                                    } else {
+                                        // Not in drag mode: immediate save (legacy behavior)
+                                        println("🏁 HOMESCREEN: immediate reorder - ${goal.id} to $newPosition")
+                                        viewModel.reorderGoal(goal, newPosition)
+                                    }
                                 },
                                 onEmptyCellClick = {
                                     selectedEmptyIndex = -1 // Default position for old grid
@@ -579,6 +619,12 @@ fun HomeScreen(
                                 onEmptyPositionClick = { position ->
                                     selectedEmptyIndex = position
                                     showGoalCreationDialog = true
+                                },
+                                isDragModeActive = isDragModeActive,
+                                isSavingPositions = isSavingPositions,
+                                onDragToggle = {
+                                    println("🔥 DRAG_DEBUG: Toggle button clicked!")
+                                    viewModel.toggleDragMode()
                                 }
                             )
                         }
@@ -1624,9 +1670,9 @@ fun GoalCompletionConfirmDialog(
                     text = "Are you sure you want to mark this goal as completed?",
                     style = MaterialTheme.typography.bodyMedium
                 )
-                
+
                 Spacer(modifier = Modifier.height(16.dp))
-                
+
                 // Show goal info
                 Row(
                     modifier = Modifier
@@ -1667,9 +1713,9 @@ fun GoalCompletionConfirmDialog(
                             modifier = Modifier.size(40.dp)
                         )
                     }
-                    
+
                     Spacer(modifier = Modifier.width(12.dp))
-                    
+
                     Text(
                         text = goal.text,
                         style = MaterialTheme.typography.bodyMedium,
@@ -1751,6 +1797,9 @@ fun WeekNavigationGrid(
     onGoalReorder: (Goal, Int) -> Unit,
     onEmptyCellClick: () -> Unit,
     onEmptyPositionClick: (Int) -> Unit,
+    isDragModeActive: Boolean = false,
+    isSavingPositions: Boolean = false, // New parameter for saving state
+    onDragToggle: () -> Unit = {}, // New parameter for drag toggle
     modifier: Modifier = Modifier
 ) {
     val weekGoals = getGoalsForWeek(currentWeekOffset)
@@ -1763,45 +1812,48 @@ fun WeekNavigationGrid(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .pointerInput(weeksWithGoals, currentWeekOffset) {
-                detectDragGestures(
-                    onDragEnd = {
-                        when {
-                            offsetX > swipeThreshold -> {
-                                // Swipe right - go to previous week
-                                val currentIndex = weeksWithGoals.indexOf(currentWeekOffset)
-                                val canGoLeft = currentIndex > 0 || (currentIndex == -1 && weeksWithGoals.any { it < currentWeekOffset })
-                                if (canGoLeft) {
-                                    val previousWeek = if (currentIndex > 0) {
-                                        weeksWithGoals[currentIndex - 1]
-                                    } else {
-                                        weeksWithGoals.filter { it < currentWeekOffset }.maxOrNull() ?: weeksWithGoals.first()
+            .pointerInput(weeksWithGoals, currentWeekOffset, isDragModeActive) {
+                // Only enable week swipe when NOT in drag mode
+                if (!isDragModeActive) {
+                    detectDragGestures(
+                        onDragEnd = {
+                            when {
+                                offsetX > swipeThreshold -> {
+                                    // Swipe right - go to previous week
+                                    val currentIndex = weeksWithGoals.indexOf(currentWeekOffset)
+                                    val canGoLeft = currentIndex > 0 || (currentIndex == -1 && weeksWithGoals.any { it < currentWeekOffset })
+                                    if (canGoLeft) {
+                                        val previousWeek = if (currentIndex > 0) {
+                                            weeksWithGoals[currentIndex - 1]
+                                        } else {
+                                            weeksWithGoals.filter { it < currentWeekOffset }.maxOrNull() ?: weeksWithGoals.first()
+                                        }
+                                        onWeekChange(previousWeek)
                                     }
-                                    onWeekChange(previousWeek)
+                                }
+                                offsetX < -swipeThreshold -> {
+                                    // Swipe left - go to next week
+                                    val currentIndex = weeksWithGoals.indexOf(currentWeekOffset)
+                                    val canGoRight = (currentIndex >= 0 && currentIndex < weeksWithGoals.size - 1) || (currentIndex == -1 && weeksWithGoals.any { it > currentWeekOffset })
+                                    if (canGoRight) {
+                                        val nextWeek = if (currentIndex >= 0 && currentIndex < weeksWithGoals.size - 1) {
+                                            weeksWithGoals[currentIndex + 1]
+                                        } else {
+                                            weeksWithGoals.filter { it > currentWeekOffset }.minOrNull() ?: weeksWithGoals.last()
+                                        }
+                                        onWeekChange(nextWeek)
+                                    }
                                 }
                             }
-                            offsetX < -swipeThreshold -> {
-                                // Swipe left - go to next week
-                                val currentIndex = weeksWithGoals.indexOf(currentWeekOffset)
-                                val canGoRight = (currentIndex >= 0 && currentIndex < weeksWithGoals.size - 1) || (currentIndex == -1 && weeksWithGoals.any { it > currentWeekOffset })
-                                if (canGoRight) {
-                                    val nextWeek = if (currentIndex >= 0 && currentIndex < weeksWithGoals.size - 1) {
-                                        weeksWithGoals[currentIndex + 1]
-                                    } else {
-                                        weeksWithGoals.filter { it > currentWeekOffset }.minOrNull() ?: weeksWithGoals.last()
-                                    }
-                                    onWeekChange(nextWeek)
-                                }
-                            }
+                            offsetX = 0f
                         }
-                        offsetX = 0f
-                    }
-                ) { _, dragAmount ->
-                    // Only allow horizontal swipe if there are multiple weeks
-                    if (weeksWithGoals.size > 1) {
-                        offsetX += dragAmount.x
-                        // Limit offset to prevent excessive dragging
-                        offsetX = offsetX.coerceIn(-swipeThreshold * 2, swipeThreshold * 2)
+                    ) { _, dragAmount ->
+                        // Only allow horizontal swipe if there are multiple weeks
+                        if (weeksWithGoals.size > 1) {
+                            offsetX += dragAmount.x
+                            // Limit offset to prevent excessive dragging
+                            offsetX = offsetX.coerceIn(-swipeThreshold * 2, swipeThreshold * 2)
+                        }
                     }
                 }
             }
@@ -1819,6 +1871,8 @@ fun WeekNavigationGrid(
                 goals = weekGoals,
                 onGoalClick = if (isReadOnly && currentWeekOffset < 0) {
                     { /* No action for read-only past weeks */ }
+                } else if (isDragModeActive) {
+                    { /* Disable goal completion in drag mode */ }
                 } else {
                     onGoalClick
                 },
@@ -1836,8 +1890,59 @@ fun WeekNavigationGrid(
                     { _ -> /* No action for read-only past weeks */ }
                 } else {
                     onEmptyPositionClick
-                }
+                },
+                modifier = Modifier.fillMaxSize(),
+                isDragModeActive = isDragModeActive
             )
+        }
+
+        // Floating Drag Toggle Button (top-right of grid area)
+        if (!isReadOnly || currentWeekOffset >= 0) {
+            DragToggleButton(
+                isDragModeActive = isDragModeActive,
+                isSaving = isSavingPositions,
+                onToggle = onDragToggle,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(16.dp)
+                    .zIndex(10f) // Ensure button appears above grid
+            )
+        }
+
+        // Drag mode indicator overlay
+        if (isDragModeActive) {
+            AnimatedVisibility(
+                visible = true,
+                enter = slideInVertically() + fadeIn(),
+                exit = slideOutVertically() + fadeOut()
+            ) {
+                Card(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = RusticGold.copy(alpha = 0.9f)
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = null,
+                            tint = White,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            text = "Drag mode active - Goals cannot be completed",
+                            color = White,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+            }
         }
 
         // Swipe indicators

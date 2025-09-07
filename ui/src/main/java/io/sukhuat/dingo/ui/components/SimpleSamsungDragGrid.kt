@@ -3,9 +3,8 @@ package io.sukhuat.dingo.ui.components
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -14,6 +13,7 @@ import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,22 +23,20 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import io.sukhuat.dingo.common.theme.RusticGold
 import io.sukhuat.dingo.domain.model.Goal
 
 /**
  * Simplified Samsung/One UI launcher-style drag and drop grid
- * For now, provides basic drag functionality while maintaining visual consistency
+ * Enhanced with drag mode toggle support
  */
 @Composable
 fun SimpleSamsungDragGrid(
@@ -47,7 +45,8 @@ fun SimpleSamsungDragGrid(
     onGoalLongPress: (Goal, Pair<Float, Float>) -> Unit,
     onGoalReorder: (Goal, Int) -> Unit,
     onEmptyPositionClick: (Int) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isDragModeActive: Boolean = false // New parameter for drag mode
 ) {
     val gridState = rememberLazyGridState()
 
@@ -55,7 +54,15 @@ fun SimpleSamsungDragGrid(
     var draggedGoal by remember { mutableStateOf<Goal?>(null) }
     var dragPosition by remember { mutableStateOf(Offset.Zero) }
     var gridBounds by remember { mutableStateOf(Rect.Zero) }
-    var previewGridPositions by remember { mutableStateOf<Array<Goal?>>(arrayOfNulls(12)) }
+
+    // Reset drag state when exiting drag mode
+    LaunchedEffect(isDragModeActive) {
+        if (!isDragModeActive && draggedGoal != null) {
+            // Clear drag state when exiting drag mode
+            draggedGoal = null
+            dragPosition = Offset.Zero
+        }
+    }
 
     // Grid position calculator
     val calculateDropPosition = rememberSimpleGridPositionCalculator(
@@ -164,24 +171,31 @@ fun SimpleSamsungDragGrid(
                             draggedGoal = null
                             dragPosition = Offset.Zero
                         },
-                        modifier = Modifier.aspectRatio(1f)
+                        modifier = Modifier.aspectRatio(1f),
+                        isDragModeActive = isDragModeActive // Pass drag mode state
                     )
                 } else {
                     SimpleEmptyGridPosition(
                         position = index,
                         onTap = { onEmptyPositionClick(index) },
                         modifier = Modifier.aspectRatio(1f),
-                        isHighlighted = draggedGoal != null && calculateDropPosition(dragPosition) == index
+                        isHighlighted = draggedGoal != null && calculateDropPosition(dragPosition) == index,
+                        isDragModeActive = isDragModeActive // Pass drag mode state
                     )
                 }
             }
         }
 
-        // Floating dragged item overlay
+        // Enhanced floating dragged item overlay
         draggedGoal?.let { goal ->
-            SimpleFloatingDraggedItem(
+            val targetPosition = if (dragPosition != Offset.Zero) calculateDropPosition(dragPosition) else -1
+            val isValidTarget = targetPosition in 0..11
+
+            EnhancedFloatingDragItem(
                 goal = goal,
-                position = dragPosition,
+                globalPosition = dragPosition,
+                targetGridPosition = targetPosition,
+                isValidDropTarget = isValidTarget,
                 modifier = Modifier.zIndex(10f)
             )
         }
@@ -189,7 +203,7 @@ fun SimpleSamsungDragGrid(
 }
 
 /**
- * Samsung-style draggable goal item with proper touch detection
+ * Samsung-style draggable goal item with drag mode support
  */
 @Composable
 fun SimpleDraggableGoalItem(
@@ -201,14 +215,13 @@ fun SimpleDraggableGoalItem(
     onDragStart: (Offset) -> Unit,
     onDragUpdate: (Offset) -> Unit,
     onDragEnd: (Offset) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isDragModeActive: Boolean = false // New parameter
 ) {
     var touchState by remember { mutableStateOf<SimpleTouchState>(SimpleTouchState.Idle) }
     var showEditPopup by remember { mutableStateOf(false) }
     var itemGlobalPosition by remember { mutableStateOf(Offset.Zero) }
-    val hapticFeedback = LocalHapticFeedback.current
-
-    // Touch state is now handled directly by gesture detectors
+    var showDragStartAnimation by remember { mutableStateOf(false) }
 
     // Smooth animations
     val animationSpec = spring<Float>(
@@ -225,7 +238,8 @@ fun SimpleDraggableGoalItem(
     val scaleAnimation by animateFloatAsState(
         targetValue = when {
             isDropTarget -> 1.1f
-            touchState is SimpleTouchState.LongPressDetected -> 0.95f
+            touchState is SimpleTouchState.Dragging -> 0.95f
+            isDragModeActive -> 1.02f // Subtle scale in drag mode
             else -> 1f
         },
         animationSpec = animationSpec,
@@ -239,54 +253,58 @@ fun SimpleDraggableGoalItem(
             .onGloballyPositioned { coordinates ->
                 itemGlobalPosition = coordinates.positionInWindow()
             }
-            .pointerInput(goal.id) {
-                // Handle taps and long press
-                detectTapGestures(
-                    onTap = {
-                        // Simple tap - always works
+            .unifiedGoalGestures(
+                isDragModeActive = isDragModeActive,
+                onTap = {
+                    // Only allow goal completion if NOT in drag mode
+                    if (!isDragModeActive) {
                         onGoalClick(goal)
-                    },
-                    onLongPress = { offset ->
-                        // Long press - show popup with absolute screen coordinates
-                        touchState = SimpleTouchState.LongPressDetected(offset)
+                    }
+                },
+                onLongPress = { globalPosition ->
+                    // DEBUG: Log drag mode state and actions
+                    println("🎯 UNIFIED_DEBUG: Long press triggered")
+                    println("🎯 UNIFIED_DEBUG: isDragModeActive = $isDragModeActive")
+                    println("🎯 UNIFIED_DEBUG: Goal = ${goal.text}")
+                    println("🎯 UNIFIED_DEBUG: globalPosition = $globalPosition")
+
+                    if (isDragModeActive) {
+                        // In drag mode: prepare for potential dragging
+                        touchState = SimpleTouchState.Dragging(globalPosition)
+                        println("🎯 UNIFIED_DEBUG: Set touchState to Dragging for drag mode")
+                    } else {
+                        // Not in drag mode: show edit popup
                         showEditPopup = true
-                        hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                        // Convert to absolute screen coordinates
-                        val absoluteX = itemGlobalPosition.x + offset.x
-                        val absoluteY = itemGlobalPosition.y + offset.y
-                        onGoalLongPress(goal, Pair(absoluteX, absoluteY))
+                        println("🎯 UNIFIED_DEBUG: Setting showEditPopup = true")
+                        onGoalLongPress(goal, Pair(globalPosition.x, globalPosition.y))
                     }
-                )
-            }
-            .pointerInput(goal.id) {
-                // Handle drag operations (separate pointer input for drag)
-                detectDragGestures(
-                    onDragStart = { startOffset ->
-                        // Only start drag if we're in long press mode
-                        if (touchState is SimpleTouchState.LongPressDetected) {
-                            showEditPopup = false
-                            touchState = SimpleTouchState.Dragging(startOffset)
-                            onDragStart(startOffset)
-                            hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                        }
-                    },
-                    onDrag = { change, _ ->
-                        if (touchState is SimpleTouchState.Dragging) {
-                            touchState = SimpleTouchState.Dragging(change.position)
-                            onDragUpdate(change.position)
-                        }
-                    },
-                    onDragEnd = {
-                        if (touchState is SimpleTouchState.Dragging) {
-                            val dragState = touchState as SimpleTouchState.Dragging
-                            onDragEnd(dragState.currentPosition)
-                        }
-                        // Reset state
-                        touchState = SimpleTouchState.Idle
-                        showEditPopup = false
+                },
+                onDragStart = { globalPosition ->
+                    println("🎯 UNIFIED_DEBUG: Drag started at $globalPosition")
+                    showEditPopup = false
+                    touchState = SimpleTouchState.Dragging(globalPosition)
+                    onDragStart(globalPosition)
+                },
+                onDragUpdate = { globalPosition ->
+                    if (touchState is SimpleTouchState.Dragging) {
+                        touchState = SimpleTouchState.Dragging(globalPosition)
+                        onDragUpdate(globalPosition)
                     }
-                )
-            }
+                },
+                onDragEnd = { globalPosition ->
+                    println("🎯 UNIFIED_DEBUG: Drag ended at $globalPosition")
+                    if (touchState is SimpleTouchState.Dragging) {
+                        onDragEnd(globalPosition)
+                    }
+                    // Reset state
+                    touchState = SimpleTouchState.Idle
+                    showEditPopup = false
+                    showDragStartAnimation = false
+                },
+                onDragStartAnimation = {
+                    showDragStartAnimation = true
+                }
+            )
     ) {
         // Use the existing GoalCell component
         GoalCell(
@@ -295,8 +313,42 @@ fun SimpleDraggableGoalItem(
             modifier = Modifier.fillMaxSize()
         )
 
-        // Show edit popup overlay if needed
-        if (showEditPopup && touchState is SimpleTouchState.LongPressDetected) {
+        // Enhanced drag mode visual indicators
+        if (isDragModeActive && !isDraggedAway) {
+            EnhancedDragModeIndicator(
+                isDragModeActive = true,
+                modifier = Modifier.fillMaxSize()
+            )
+
+            // Drag handle icon with enhanced positioning
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.TopEnd
+            ) {
+                Icon(
+                    imageVector = Icons.Default.DragHandle,
+                    contentDescription = "Drag to reorder",
+                    tint = RusticGold,
+                    modifier = Modifier
+                        .padding(4.dp)
+                        .size(16.dp)
+                        .graphicsLayer {
+                            shadowElevation = 4.dp.toPx()
+                        }
+                )
+            }
+        }
+
+        // Show edit popup overlay if needed (only when NOT in drag mode)
+        // DEBUG: Log popup conditions
+        val shouldShowPopup = showEditPopup && touchState is SimpleTouchState.Idle && !isDragModeActive
+        if (shouldShowPopup) {
+            println("🎯 UNIFIED_DEBUG: 🚨 POPUP SHOWN!")
+            println("🎯 UNIFIED_DEBUG: showEditPopup = $showEditPopup")
+            println("🎯 UNIFIED_DEBUG: touchState = $touchState")
+            println("🎯 UNIFIED_DEBUG: isDragModeActive = $isDragModeActive")
+        }
+        if (shouldShowPopup) {
             // Add a simple visual indicator for edit mode
             Box(
                 modifier = Modifier
@@ -307,18 +359,28 @@ fun SimpleDraggableGoalItem(
                     )
             )
         }
+
+        // Drag start animation effect
+        if (showDragStartAnimation) {
+            DragStartEffect(
+                isTriggered = showDragStartAnimation,
+                onAnimationEnd = { showDragStartAnimation = false },
+                modifier = Modifier.fillMaxSize()
+            )
+        }
     }
 }
 
 /**
- * Simplified empty grid position
+ * Simplified empty grid position with drag mode support
  */
 @Composable
 fun SimpleEmptyGridPosition(
     position: Int,
     onTap: () -> Unit,
     modifier: Modifier = Modifier,
-    isHighlighted: Boolean = false
+    isHighlighted: Boolean = false,
+    isDragModeActive: Boolean = false // New parameter
 ) {
     val animationSpec = spring<Float>(
         dampingRatio = Spring.DampingRatioMediumBouncy,
@@ -326,7 +388,11 @@ fun SimpleEmptyGridPosition(
     )
 
     val scaleAnimation by animateFloatAsState(
-        targetValue = if (isHighlighted) 1.05f else 1f,
+        targetValue = when {
+            isHighlighted -> 1.05f
+            isDragModeActive -> 1.02f
+            else -> 1f
+        },
         animationSpec = animationSpec,
         label = "empty_scale_animation"
     )
@@ -334,18 +400,22 @@ fun SimpleEmptyGridPosition(
     Card(
         modifier = modifier
             .scale(scaleAnimation)
-            .clickable { onTap() },
+            .clickable { // Only allow adding goals if NOT in drag mode
+                if (!isDragModeActive) {
+                    onTap()
+                }
+            },
         colors = CardDefaults.cardColors(
-            containerColor = if (isHighlighted) {
-                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-            } else {
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+            containerColor = when {
+                isHighlighted -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                isDragModeActive -> RusticGold.copy(alpha = 0.1f)
+                else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
             }
         ),
-        border = if (isHighlighted) {
-            BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
-        } else {
-            BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+        border = when {
+            isHighlighted -> BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+            isDragModeActive -> BorderStroke(2.dp, RusticGold.copy(alpha = 0.5f))
+            else -> BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
         },
         shape = RoundedCornerShape(16.dp)
     ) {
@@ -359,11 +429,11 @@ fun SimpleEmptyGridPosition(
             ) {
                 Icon(
                     Icons.Default.Add,
-                    contentDescription = "Add goal",
-                    tint = if (isHighlighted) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                    contentDescription = if (isDragModeActive) "Drop target" else "Add goal",
+                    tint = when {
+                        isHighlighted -> MaterialTheme.colorScheme.primary
+                        isDragModeActive -> RusticGold.copy(alpha = 0.7f)
+                        else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                     },
                     modifier = Modifier.size(32.dp)
                 )
@@ -373,15 +443,24 @@ fun SimpleEmptyGridPosition(
                 Text(
                     text = "${position + 1}",
                     style = MaterialTheme.typography.labelSmall,
-                    color = if (isHighlighted) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                    color = when {
+                        isHighlighted -> MaterialTheme.colorScheme.primary
+                        isDragModeActive -> RusticGold.copy(alpha = 0.7f)
+                        else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
                     },
                     fontWeight = FontWeight.Medium,
                     fontSize = 10.sp
                 )
             }
+        }
+
+        // Enhanced drop zone highlighting overlay
+        if (isHighlighted) {
+            EnhancedDropZoneHighlight(
+                isHighlighted = true,
+                isValidTarget = true,
+                modifier = Modifier.fillMaxSize()
+            )
         }
     }
 }
@@ -418,11 +497,11 @@ fun SimpleFloatingDraggedItem(
 }
 
 /**
- * Touch states for Samsung-style interaction
+ * Simplified touch states for Samsung-style interaction
+ * Reduced from 3 states to 2 states for better reliability
  */
 sealed class SimpleTouchState {
     data object Idle : SimpleTouchState()
-    data class LongPressDetected(val position: Offset) : SimpleTouchState()
     data class Dragging(val currentPosition: Offset) : SimpleTouchState()
 }
 
