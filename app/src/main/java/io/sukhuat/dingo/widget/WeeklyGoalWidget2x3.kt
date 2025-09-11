@@ -27,6 +27,8 @@ import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.layout.width
+import androidx.glance.appwidget.lazy.LazyColumn
+import androidx.glance.appwidget.lazy.items
 import androidx.glance.state.GlanceStateDefinition
 import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.glance.text.Text
@@ -261,101 +263,26 @@ private fun WeekNavigation2x3WidgetContent(
                 )
             }
         } else {
-            Column {
-                // Row 1
-                Row(modifier = GlanceModifier.fillMaxWidth()) {
-                    if (goals.isNotEmpty()) {
-                        GoalCard(
-                            goal = goals[0],
-                            onClick = onGoalClick(),
-                            modifier = GlanceModifier.defaultWeight()
-                        )
-                    } else {
-                        EmptyGoalSlot(
-                            onClick = onGoalClick(),
-                            modifier = GlanceModifier.defaultWeight()
-                        )
-                    }
-
-                    Spacer(modifier = GlanceModifier.width(4.dp))
-
-                    if (goals.size > 1) {
-                        GoalCard(
-                            goal = goals[1],
-                            onClick = onGoalClick(),
-                            modifier = GlanceModifier.defaultWeight()
-                        )
-                    } else {
-                        EmptyGoalSlot(
-                            onClick = onGoalClick(),
-                            modifier = GlanceModifier.defaultWeight()
-                        )
-                    }
-                }
-
-                Spacer(modifier = GlanceModifier.height(4.dp))
-
-                // Row 2
-                Row(modifier = GlanceModifier.fillMaxWidth()) {
-                    if (goals.size > 2) {
-                        GoalCard(
-                            goal = goals[2],
-                            onClick = onGoalClick(),
-                            modifier = GlanceModifier.defaultWeight()
-                        )
-                    } else {
-                        EmptyGoalSlot(
-                            onClick = onGoalClick(),
-                            modifier = GlanceModifier.defaultWeight()
-                        )
-                    }
-
-                    Spacer(modifier = GlanceModifier.width(4.dp))
-
-                    if (goals.size > 3) {
-                        GoalCard(
-                            goal = goals[3],
-                            onClick = onGoalClick(),
-                            modifier = GlanceModifier.defaultWeight()
-                        )
-                    } else {
-                        EmptyGoalSlot(
-                            onClick = onGoalClick(),
-                            modifier = GlanceModifier.defaultWeight()
-                        )
-                    }
-                }
-
-                Spacer(modifier = GlanceModifier.height(4.dp))
-
-                // Row 3
-                Row(modifier = GlanceModifier.fillMaxWidth()) {
-                    if (goals.size > 4) {
-                        GoalCard(
-                            goal = goals[4],
-                            onClick = onGoalClick(),
-                            modifier = GlanceModifier.defaultWeight()
-                        )
-                    } else {
-                        EmptyGoalSlot(
-                            onClick = onGoalClick(),
-                            modifier = GlanceModifier.defaultWeight()
-                        )
-                    }
-
-                    Spacer(modifier = GlanceModifier.width(4.dp))
-
-                    if (goals.size > 5) {
-                        GoalCard(
-                            goal = goals[5],
-                            onClick = onGoalClick(),
-                            modifier = GlanceModifier.defaultWeight()
-                        )
-                    } else {
-                        EmptyGoalSlot(
-                            onClick = onGoalClick(),
-                            modifier = GlanceModifier.defaultWeight()
-                        )
+            // Show ALL goals in scrollable 2x3 layout (2 goals per row)
+            LazyColumn {
+                items(goals.chunked(2)) { rowGoals ->
+                    Row(modifier = GlanceModifier.fillMaxWidth()) {
+                        rowGoals.forEach { goal ->
+                            GoalCard(
+                                goal = goal,
+                                onClick = onGoalClick(),
+                                modifier = GlanceModifier.defaultWeight()
+                            )
+                        }
+                        
+                        // Fill empty slot if odd number of goals in last row  
+                        if (rowGoals.size == 1) {
+                            Spacer(modifier = GlanceModifier.width(4.dp))
+                            EmptyGoalSlot(
+                                onClick = onGoalClick(),
+                                modifier = GlanceModifier.defaultWeight()
+                            )
+                        }
                     }
                 }
             }

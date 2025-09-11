@@ -29,6 +29,8 @@ import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.layout.size
 import androidx.glance.layout.width
+import androidx.glance.appwidget.lazy.LazyColumn
+import androidx.glance.appwidget.lazy.items
 import androidx.glance.state.GlanceStateDefinition
 import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.glance.text.Text
@@ -372,46 +374,45 @@ private fun Goals3x2Content(goals: List<io.sukhuat.dingo.widget.models.WidgetGoa
 
         Spacer(modifier = GlanceModifier.height(4.dp))
 
-        // Show first 6 goals in 3x2 horizontal layout (2 rows of 3)
-        goals.take(6).chunked(3).forEach { rowGoals ->
-            Row(modifier = GlanceModifier.fillMaxWidth()) {
-                rowGoals.forEach { goal ->
-                    Column(
-                        modifier = GlanceModifier
-                            .defaultWeight()
-                            .padding(2.dp)
-                            .background(ColorProvider(Color.White))
-                            .padding(4.dp)
-                            .clickable(actionStartActivity(MainActivity::class.java)),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // Show image if available (local resource only for now)
-                        goal.imageResId?.let { resId ->
-                            Image(
-                                provider = ImageProvider(resId),
-                                contentDescription = goal.text,
-                                modifier = GlanceModifier.size(20.dp)
+        // Show ALL goals in scrollable 3x2 horizontal layout (3 goals per row)
+        LazyColumn {
+            items(goals.chunked(3)) { rowGoals ->
+                Row(modifier = GlanceModifier.fillMaxWidth()) {
+                    rowGoals.forEach { goal ->
+                        Column(
+                            modifier = GlanceModifier
+                                .defaultWeight()
+                                .padding(2.dp)
+                                .background(ColorProvider(Color.White))
+                                .padding(4.dp)
+                                .clickable(actionStartActivity(MainActivity::class.java)),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // Show image if available (local resource only for now)
+                            goal.imageResId?.let { resId ->
+                                Image(
+                                    provider = ImageProvider(resId),
+                                    contentDescription = goal.text,
+                                    modifier = GlanceModifier.size(20.dp)
+                                )
+                                Spacer(modifier = GlanceModifier.height(2.dp))
+                            }
+                            
+                            Text(
+                                text = goal.text.take(if (goal.imageResId != null) 10 else 12),
+                                style = TextStyle(
+                                    fontSize = 7.sp,
+                                    color = ColorProvider(Color.Black)
+                                )
                             )
-                            Spacer(modifier = GlanceModifier.height(2.dp))
                         }
-                        
-                        Text(
-                            text = goal.text.take(if (goal.imageResId != null) 10 else 12),
-                            style = TextStyle(
-                                fontSize = 7.sp,
-                                color = ColorProvider(Color.Black)
-                            )
-                        )
+                    }
+                    // Fill remaining slots with empty space for last row
+                    repeat(3 - rowGoals.size) {
+                        Spacer(modifier = GlanceModifier.defaultWeight())
                     }
                 }
-                // Fill remaining slots with empty space
-                repeat(3 - rowGoals.size) {
-                    Spacer(modifier = GlanceModifier.defaultWeight())
-                }
-            }
-            if (rowGoals != goals.take(6).chunked(3).last()) {
-                Spacer(modifier = GlanceModifier.height(2.dp))
             }
         }
 
@@ -472,50 +473,57 @@ private fun Sample3x2Content(message: String) {
 
         Spacer(modifier = GlanceModifier.height(4.dp))
 
-        // Show sample goals in 3x2 layout (2 rows of 3)
+        // Show ALL sample goals in scrollable 3x2 layout (3 goals per row)
         val sampleGoals = listOf(
             "Exercise" to true,
             "Read 30 min" to false,
             "Healthy meals" to true,
             "Call family" to false,
             "Learn skill" to true,
-            "Save money" to false
+            "Save money" to false,
+            "Meditate" to true,
+            "Walk outside" to false,
+            "Sleep 8hrs" to true,
+            "Drink water" to false,
+            "Clean room" to true,
+            "Plan week" to false
         )
 
-        sampleGoals.chunked(3).forEach { rowGoals ->
-            Row(modifier = GlanceModifier.fillMaxWidth()) {
-                rowGoals.forEach { (goalText, completed) ->
-                    Column(
-                        modifier = GlanceModifier
-                            .defaultWeight()
-                            .padding(2.dp)
-                            .background(ColorProvider(Color.White))
-                            .padding(4.dp)
-                            .clickable(actionStartActivity(MainActivity::class.java)),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = if (completed) "✅" else "⭕",
-                            style = TextStyle(fontSize = 8.sp)
-                        )
-                        Text(
-                            text = goalText.take(8),
-                            style = TextStyle(
-                                fontSize = 7.sp,
-                                color = ColorProvider(
-                                    if (completed) Color(0xFF059669) else Color.Black
+        LazyColumn {
+            items(sampleGoals.chunked(3)) { rowGoals ->
+                Row(modifier = GlanceModifier.fillMaxWidth()) {
+                    rowGoals.forEach { (goalText, completed) ->
+                        Column(
+                            modifier = GlanceModifier
+                                .defaultWeight()
+                                .padding(2.dp)
+                                .background(ColorProvider(Color.White))
+                                .padding(4.dp)
+                                .clickable(actionStartActivity(MainActivity::class.java)),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = if (completed) "✅" else "⭕",
+                                style = TextStyle(fontSize = 8.sp)
+                            )
+                            Text(
+                                text = goalText.take(8),
+                                style = TextStyle(
+                                    fontSize = 7.sp,
+                                    color = ColorProvider(
+                                        if (completed) Color(0xFF059669) else Color.Black
+                                    )
                                 )
                             )
-                        )
+                        }
+                    }
+                    // Fill remaining slots
+                    repeat(3 - rowGoals.size) {
+                        Spacer(modifier = GlanceModifier.defaultWeight())
                     }
                 }
-                // Fill remaining slots
-                repeat(3 - rowGoals.size) {
-                    Spacer(modifier = GlanceModifier.defaultWeight())
-                }
             }
-            Spacer(modifier = GlanceModifier.height(2.dp))
         }
 
         Spacer(modifier = GlanceModifier.height(4.dp))

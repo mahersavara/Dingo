@@ -84,7 +84,8 @@
       "Bash(\"./gradlew.bat\" compileDebugKotlin --no-daemon --quiet --continue)",
       "Bash(\"./gradlew.bat\" :app:ktlintFormat --no-daemon --quiet)",
       "WebSearch",
-      "WebFetch(domain:www.droidcon.com)"
+      "WebFetch(domain:www.droidcon.com)",
+      "WebFetch(domain:composables.com)"
     ],
     "deny": [],
     "additionalDirectories": [
