@@ -16,6 +16,8 @@ import androidx.glance.appwidget.action.ActionCallback
 import androidx.glance.appwidget.provideContent
 import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.glance.background
+import androidx.glance.Image
+import androidx.glance.ImageProvider
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Box
 import androidx.glance.layout.Column
@@ -25,6 +27,7 @@ import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
+import androidx.glance.layout.size
 import androidx.glance.layout.width
 import androidx.glance.state.GlanceStateDefinition
 import androidx.glance.state.PreferencesGlanceStateDefinition
@@ -32,6 +35,7 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
+import dagger.hilt.android.EntryPointAccessors
 import io.sukhuat.dingo.MainActivity
 import java.util.*
 
@@ -46,68 +50,62 @@ object WeeklyGoalWidget3x2 : GlanceAppWidget() {
     override val stateDefinition: GlanceStateDefinition<*> = PreferencesGlanceStateDefinition
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        android.util.Log.e("WIDGET_EMERGENCY", "🚨🚨🚨 3x2 provideGlance CALLED - TIMESTAMP: ${System.currentTimeMillis()}")
-        android.util.Log.e("WIDGET_EMERGENCY", "Context: $context")
-        android.util.Log.e("WIDGET_EMERGENCY", "GlanceId: $id")
-        android.util.Log.e("WIDGET_EMERGENCY", "Thread: ${Thread.currentThread().name}")
+        android.util.Log.d("WeeklyGoalWidget3x2", "🎯 3x2 Widget - Loading real goal data")
 
-        android.util.Log.e("WIDGET_EMERGENCY", "🧪 BYPASSING ALL DATA LOADING - SHOWING 3x2 STATIC UI")
+        // Try to get real goals, fall back to samples if needed
+        val widgetContent = try {
+            // Get current week info
+            val calendar = java.util.Calendar.getInstance()
+            val currentWeek = calendar.get(java.util.Calendar.WEEK_OF_YEAR)
+            val currentYear = calendar.get(java.util.Calendar.YEAR)
 
-        provideContent {
-            android.util.Log.e("WIDGET_EMERGENCY", "📱📱📱 3x2 provideContent STARTED - ABOUT TO RENDER")
+            android.util.Log.d("WeeklyGoalWidget3x2", "📅 Loading week: $currentWeek, year: $currentYear")
 
-            Column(
-                modifier = GlanceModifier
-                    .fillMaxSize()
-                    .background(ColorProvider(Color(0xFFFDF2E9)))
-                    .padding(8.dp)
-            ) {
-                Text(
-                    text = "🚨 3x2 UPDATED! 🚨",
-                    style = TextStyle(
-                        fontSize = 14.sp,
-                        color = ColorProvider(Color(0xFF000000))
-                    )
+            // Try to get Hilt entry point (but don't fail if unavailable)
+            val entryPoint = try {
+                EntryPointAccessors.fromApplication(
+                    context,
+                    WeeklyGoalWidgetEntryPoint::class.java
                 )
-
-                Spacer(modifier = GlanceModifier.height(4.dp))
-
-                Text(
-                    text = "Size: 3x2 Horizontal",
-                    style = TextStyle(
-                        fontSize = 12.sp,
-                        color = ColorProvider(Color(0xFF666666))
-                    )
-                )
-
-                Spacer(modifier = GlanceModifier.height(4.dp))
-
-                Text(
-                    text = "Debug: ${System.currentTimeMillis()}",
-                    style = TextStyle(
-                        fontSize = 10.sp,
-                        color = ColorProvider(Color(0xFF666666))
-                    )
-                )
-
-                Spacer(modifier = GlanceModifier.height(4.dp))
-
-                Text(
-                    text = "Tap to open app",
-                    style = TextStyle(
-                        fontSize = 10.sp,
-                        color = ColorProvider(Color.Blue)
-                    ),
-                    modifier = GlanceModifier.clickable(
-                        actionStartActivity(MainActivity::class.java)
-                    )
-                )
+            } catch (e: Exception) {
+                android.util.Log.w("WeeklyGoalWidget3x2", "Hilt not available, using samples", e)
+                null
             }
 
-            android.util.Log.d("WeeklyGoalWidget3x2", "✅ 3x2 provideContent UI CREATED SUCCESSFULLY")
+            if (entryPoint != null) {
+                try {
+                    val dataLoader = entryPoint.getWidgetDataLoader()
+                    val cachedGoals = dataLoader.getCachedGoalsSync(currentWeek, currentYear)
+                    android.util.Log.d("WeeklyGoalWidget3x2", "📦 Found ${cachedGoals.size} goals")
+
+                    if (cachedGoals.isNotEmpty()) {
+                        WidgetContentType.Goals(cachedGoals)
+                    } else {
+                        android.util.Log.d("WeeklyGoalWidget3x2", "No goals, showing empty state")
+                        WidgetContentType.Empty
+                    }
+                } catch (e: Exception) {
+                    android.util.Log.w("WeeklyGoalWidget3x2", "DataLoader failed, using samples", e)
+                    WidgetContentType.Debug("Using samples - DataLoader error: ${e.message}")
+                }
+            } else {
+                android.util.Log.d("WeeklyGoalWidget3x2", "No Hilt, showing samples")
+                WidgetContentType.Debug("Using samples - Hilt unavailable")
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("WeeklyGoalWidget3x2", "Complete failure, using samples", e)
+            WidgetContentType.Debug("Using samples - Error: ${e.message}")
         }
 
-        android.util.Log.d("WeeklyGoalWidget3x2", "✅ SUPER DEBUG 3x2 provideGlance COMPLETED")
+        provideContent {
+            when (widgetContent) {
+                is WidgetContentType.Goals -> Goals3x2Content(widgetContent.goals)
+                is WidgetContentType.Empty -> Empty3x2Content()
+                is WidgetContentType.Debug -> Sample3x2Content(widgetContent.message)
+            }
+        }
+
+        android.util.Log.d("WeeklyGoalWidget3x2", "✅ 3x2 Widget completed successfully")
     }
 }
 
@@ -350,6 +348,182 @@ private fun EmptyGoalSlot(
             style = TextStyle(
                 fontSize = 16.sp,
                 color = ColorProvider(Color(0xFF9CA3AF)) // Gray plus sign
+            )
+        )
+    }
+}
+
+@Composable
+private fun Goals3x2Content(goals: List<io.sukhuat.dingo.widget.models.WidgetGoal>) {
+    Column(
+        modifier = GlanceModifier
+            .fillMaxSize()
+            .background(ColorProvider(Color(0xFFFDF2E9)))
+            .padding(8.dp)
+    ) {
+        Text(
+            text = "Weekly Goals",
+            style = TextStyle(
+                fontSize = 12.sp,
+                color = ColorProvider(Color(0xFF92400E))
+            ),
+            modifier = GlanceModifier.clickable(actionStartActivity(MainActivity::class.java))
+        )
+
+        Spacer(modifier = GlanceModifier.height(4.dp))
+
+        // Show first 6 goals in 3x2 horizontal layout (2 rows of 3)
+        goals.take(6).chunked(3).forEach { rowGoals ->
+            Row(modifier = GlanceModifier.fillMaxWidth()) {
+                rowGoals.forEach { goal ->
+                    Column(
+                        modifier = GlanceModifier
+                            .defaultWeight()
+                            .padding(2.dp)
+                            .background(ColorProvider(Color.White))
+                            .padding(4.dp)
+                            .clickable(actionStartActivity(MainActivity::class.java)),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Show image if available (local resource only for now)
+                        goal.imageResId?.let { resId ->
+                            Image(
+                                provider = ImageProvider(resId),
+                                contentDescription = goal.text,
+                                modifier = GlanceModifier.size(20.dp)
+                            )
+                            Spacer(modifier = GlanceModifier.height(2.dp))
+                        }
+                        
+                        Text(
+                            text = goal.text.take(if (goal.imageResId != null) 10 else 12),
+                            style = TextStyle(
+                                fontSize = 7.sp,
+                                color = ColorProvider(Color.Black)
+                            )
+                        )
+                    }
+                }
+                // Fill remaining slots with empty space
+                repeat(3 - rowGoals.size) {
+                    Spacer(modifier = GlanceModifier.defaultWeight())
+                }
+            }
+            if (rowGoals != goals.take(6).chunked(3).last()) {
+                Spacer(modifier = GlanceModifier.height(2.dp))
+            }
+        }
+
+        Spacer(modifier = GlanceModifier.height(4.dp))
+        Text(
+            text = "Tap to open app",
+            style = TextStyle(
+                fontSize = 8.sp,
+                color = ColorProvider(Color(0xFF666666))
+            ),
+            modifier = GlanceModifier.clickable(actionStartActivity(MainActivity::class.java))
+        )
+    }
+}
+
+@Composable
+private fun Empty3x2Content() {
+    Column(
+        modifier = GlanceModifier
+            .fillMaxSize()
+            .background(ColorProvider(Color(0xFFFDF2E9)))
+            .padding(8.dp)
+    ) {
+        Text(
+            text = "No Goals Yet",
+            style = TextStyle(
+                fontSize = 12.sp,
+                color = ColorProvider(Color(0xFF92400E))
+            )
+        )
+        Text(
+            text = "Tap to add goals",
+            style = TextStyle(
+                fontSize = 10.sp,
+                color = ColorProvider(Color(0xFF666666))
+            ),
+            modifier = GlanceModifier.clickable(actionStartActivity(MainActivity::class.java))
+        )
+    }
+}
+
+@Composable
+private fun Sample3x2Content(message: String) {
+    Column(
+        modifier = GlanceModifier
+            .fillMaxSize()
+            .background(ColorProvider(Color(0xFFFDF2E9)))
+            .padding(8.dp)
+    ) {
+        Text(
+            text = "🎯 Weekly Goals",
+            style = TextStyle(
+                fontSize = 12.sp,
+                color = ColorProvider(Color(0xFF92400E))
+            ),
+            modifier = GlanceModifier.clickable(actionStartActivity(MainActivity::class.java))
+        )
+
+        Spacer(modifier = GlanceModifier.height(4.dp))
+
+        // Show sample goals in 3x2 layout (2 rows of 3)
+        val sampleGoals = listOf(
+            "Exercise" to true,
+            "Read 30 min" to false,
+            "Healthy meals" to true,
+            "Call family" to false,
+            "Learn skill" to true,
+            "Save money" to false
+        )
+
+        sampleGoals.chunked(3).forEach { rowGoals ->
+            Row(modifier = GlanceModifier.fillMaxWidth()) {
+                rowGoals.forEach { (goalText, completed) ->
+                    Column(
+                        modifier = GlanceModifier
+                            .defaultWeight()
+                            .padding(2.dp)
+                            .background(ColorProvider(Color.White))
+                            .padding(4.dp)
+                            .clickable(actionStartActivity(MainActivity::class.java)),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = if (completed) "✅" else "⭕",
+                            style = TextStyle(fontSize = 8.sp)
+                        )
+                        Text(
+                            text = goalText.take(8),
+                            style = TextStyle(
+                                fontSize = 7.sp,
+                                color = ColorProvider(
+                                    if (completed) Color(0xFF059669) else Color.Black
+                                )
+                            )
+                        )
+                    }
+                }
+                // Fill remaining slots
+                repeat(3 - rowGoals.size) {
+                    Spacer(modifier = GlanceModifier.defaultWeight())
+                }
+            }
+            Spacer(modifier = GlanceModifier.height(2.dp))
+        }
+
+        Spacer(modifier = GlanceModifier.height(4.dp))
+        Text(
+            text = message,
+            style = TextStyle(
+                fontSize = 6.sp,
+                color = ColorProvider(Color(0xFF999999))
             )
         )
     }
