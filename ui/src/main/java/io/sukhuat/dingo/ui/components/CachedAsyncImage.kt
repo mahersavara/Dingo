@@ -1,7 +1,5 @@
 package io.sukhuat.dingo.ui.components
 
-import android.net.Uri
-import androidx.compose.foundation.Image
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,14 +33,14 @@ fun CachedAsyncImage(
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
-    
+
     var imageModel by remember(model) { mutableStateOf(model) }
     var isLoadingCache by remember(model) { mutableStateOf(false) }
-    
+
     // Try to get cached image for Firebase URLs
     LaunchedEffect(model) {
         val modelString = model?.toString()
-        
+
         if (modelString != null && modelString.startsWith("https://firebasestorage.googleapis.com")) {
             isLoadingCache = true
             coroutineScope.launch {
@@ -66,7 +64,7 @@ fun CachedAsyncImage(
             isLoadingCache = false
         }
     }
-    
+
     AsyncImage(
         model = imageModel,
         contentDescription = contentDescription,
@@ -89,7 +87,7 @@ fun CachedAsyncImage(
  */
 suspend fun getCachedImageModel(originalModel: Any?, context: android.content.Context): Any? {
     val modelString = originalModel?.toString()
-    
+
     return if (modelString != null && modelString.startsWith("https://firebasestorage.googleapis.com")) {
         try {
             FirebaseStorageUtil.getCachedImageUri(context, modelString) ?: originalModel

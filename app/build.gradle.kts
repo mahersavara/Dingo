@@ -89,6 +89,12 @@ dependencies {
     // DataStore for preferences
     implementation("androidx.datastore:datastore-preferences:1.0.0")
 
+    // Widget dependencies
+    implementation("androidx.glance:glance-appwidget:1.1.0")
+    implementation("androidx.work:work-runtime-ktx:2.8.1")
+    // implement gson for glance
+    implementation("com.google.code.gson:gson:2.10.1")
+
     // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.ext.junit)

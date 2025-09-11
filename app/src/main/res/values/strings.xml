@@ -1,3 +1,6 @@
 <resources>
     <string name="app_name">Dingo</string>
+    <string name="widget_description">View your weekly goals at a glance</string>
+    <string name="widget_description_2x3">Weekly goals - Vertical layout (6 goals)</string>
+    <string name="widget_description_3x2">Weekly goals - Horizontal layout (6 goals)</string>
 </resources>

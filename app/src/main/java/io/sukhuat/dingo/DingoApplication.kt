@@ -4,6 +4,7 @@ import android.app.Application
 import com.google.firebase.FirebaseApp
 import dagger.hilt.android.HiltAndroidApp
 import io.sukhuat.dingo.data.sync.SyncManager
+import io.sukhuat.dingo.widget.WidgetUpdateScheduler
 import javax.inject.Inject
 
 /**
@@ -16,6 +17,9 @@ class DingoApplication : Application() {
     @Inject
     lateinit var syncManager: SyncManager
 
+    @Inject
+    lateinit var widgetUpdateScheduler: WidgetUpdateScheduler
+
     override fun onCreate() {
         super.onCreate()
 
@@ -24,5 +28,11 @@ class DingoApplication : Application() {
 
         // Start observing network connectivity for data sync
         syncManager.startSyncObserver()
+
+        // Schedule periodic widget updates
+        widgetUpdateScheduler.schedulePeriodicUpdates()
+
+        // Trigger immediate widget data caching
+        widgetUpdateScheduler.forceUpdateNow()
     }
 }

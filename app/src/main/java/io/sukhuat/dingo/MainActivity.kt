@@ -46,6 +46,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        android.util.Log.e("EMERGENCY_DEBUG", "🚨 MainActivity.onCreate() - APP STARTING")
         enableEdgeToEdge()
 
         // Apply smooth transition if this is a recreation due to language change
@@ -58,6 +59,7 @@ class MainActivity : ComponentActivity() {
             isLanguageChange = false
         }
 
+        android.util.Log.e("EMERGENCY_DEBUG", "🚨 MainActivity - About to setContent")
         setContent {
             DingoTheme {
                 // A surface container using the 'background' color from the theme
@@ -75,11 +77,13 @@ class MainActivity : ComponentActivity() {
                         LocalAppLanguage provides currentLanguage,
                         LocalLanguageUpdateState provides androidx.compose.runtime.mutableIntStateOf(0)
                     ) {
+                        android.util.Log.e("EMERGENCY_DEBUG", "🚨 MainActivity - About to render DingoApp")
                         DingoApp()
                     }
                 }
             }
         }
+        android.util.Log.d("MainActivity", "=== MainActivity onCreate complete ===")
     }
 
     override fun onNewIntent(intent: android.content.Intent?) {
@@ -95,6 +99,13 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handleDeepLink(intent: android.content.Intent?) {
+        // Handle widget navigation to current week
+        if (intent?.getBooleanExtra("navigate_to_current_week", false) == true) {
+            // Widget clicked - navigate to current week in HomeScreen
+            // The navigation will be handled by the navigation system
+            return
+        }
+
         val deepLinkDestination = io.sukhuat.dingo.util.DeepLinkHandler.parseDeepLink(intent)
 
         when (deepLinkDestination) {

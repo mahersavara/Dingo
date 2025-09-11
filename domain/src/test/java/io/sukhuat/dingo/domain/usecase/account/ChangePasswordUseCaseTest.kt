@@ -1,6 +1,9 @@
 package io.sukhuat.dingo.domain.usecase.account
 
-import io.mockk.*
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.every
+import io.mockk.mockk
 import io.sukhuat.dingo.domain.model.ProfileError
 import io.sukhuat.dingo.domain.repository.UserProfileRepository
 import io.sukhuat.dingo.domain.usecase.profile.ChangePasswordUseCase

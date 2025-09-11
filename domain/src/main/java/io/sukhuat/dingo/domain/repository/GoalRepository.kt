@@ -14,6 +14,12 @@ interface GoalRepository {
     fun getAllGoals(): Flow<List<Goal>>
 
     /**
+     * Get all goals synchronously for widget use
+     * This bypasses the Flow mechanism to avoid listener conflicts
+     */
+    suspend fun getAllGoalsSync(): List<Goal>
+
+    /**
      * Get goals filtered by status
      */
     fun getGoalsByStatus(status: GoalStatus): Flow<List<Goal>>

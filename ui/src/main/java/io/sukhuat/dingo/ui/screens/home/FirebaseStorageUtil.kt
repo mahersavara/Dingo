@@ -228,7 +228,7 @@ object FirebaseStorageUtil {
             }
         }
     }
-    
+
     /**
      * Get cached local image URI for Firebase Storage URL
      * @param context The application context

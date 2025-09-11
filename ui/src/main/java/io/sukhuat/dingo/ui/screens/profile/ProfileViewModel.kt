@@ -630,46 +630,46 @@ class ProfileViewModel @Inject constructor(
         viewModelScope.launch {
             Log.d("ProfileViewModel", "changePassword called - handling with sealed class result")
             val result = changePasswordUseCase.changePassword(currentPassword, newPassword)
-            
+
             when (result) {
                 is ChangePasswordUseCase.PasswordChangeResult.Success -> {
                     Log.d("ProfileViewModel", "Password change successful - showing toast")
                     // Show success toast immediately
                     android.widget.Toast.makeText(
-                        context, 
-                        "🎉 Password changed successfully!", 
+                        context,
+                        "🎉 Password changed successfully!",
                         android.widget.Toast.LENGTH_LONG
                     ).show()
                 }
                 is ChangePasswordUseCase.PasswordChangeResult.ValidationError -> {
                     Log.d("ProfileViewModel", "ValidationError: ${result.field} - ${result.message}")
                     android.widget.Toast.makeText(
-                        context, 
-                        "❌ ${result.message}", 
+                        context,
+                        "❌ ${result.message}",
                         android.widget.Toast.LENGTH_LONG
                     ).show()
                 }
                 is ChangePasswordUseCase.PasswordChangeResult.AuthError -> {
                     Log.d("ProfileViewModel", "AuthError: ${result.message}")
                     android.widget.Toast.makeText(
-                        context, 
-                        "⚠️ ${result.message}", 
+                        context,
+                        "⚠️ ${result.message}",
                         android.widget.Toast.LENGTH_LONG
                     ).show()
                 }
                 is ChangePasswordUseCase.PasswordChangeResult.NetworkError -> {
                     Log.d("ProfileViewModel", "NetworkError: ${result.message}")
                     android.widget.Toast.makeText(
-                        context, 
-                        "🌐 ${result.message}", 
+                        context,
+                        "🌐 ${result.message}",
                         android.widget.Toast.LENGTH_LONG
                     ).show()
                 }
                 is ChangePasswordUseCase.PasswordChangeResult.UnknownError -> {
                     Log.d("ProfileViewModel", "UnknownError: ${result.message}")
                     android.widget.Toast.makeText(
-                        context, 
-                        "⚠️ ${result.message}", 
+                        context,
+                        "⚠️ ${result.message}",
                         android.widget.Toast.LENGTH_LONG
                     ).show()
                 }

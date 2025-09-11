@@ -27,6 +27,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -144,10 +145,17 @@ class HomeViewModel @Inject constructor(
         )
 
     init {
+        android.util.Log.e("EMERGENCY_DEBUG", "🚨 HomeViewModel.init() - VIEWMODEL CREATED")
+        android.util.Log.d(TAG, "=== HomeViewModel initializing ===")
+        android.util.Log.d(TAG, "Starting loadGoals()...")
         loadGoals()
+        android.util.Log.d(TAG, "Starting loadUserProfile()...")
         loadUserProfile()
+        android.util.Log.d(TAG, "Starting checkWeekChange()...")
         checkWeekChange()
+        android.util.Log.d(TAG, "Starting migrateOldGoalData()...")
         migrateOldGoalData()
+        android.util.Log.d(TAG, "=== HomeViewModel initialization complete ===")
     }
 
     /**
@@ -175,7 +183,7 @@ class HomeViewModel @Inject constructor(
             try {
                 Log.d(TAG, "Starting to load user profile...")
                 getUserProfileUseCase().collect { profile ->
-                    Log.d(TAG, "User profile loaded: $profile")
+                    Log.d(TAG, "User profile received: ${if (profile != null) "Profile found" else "No profile"}")
                     _userProfile.value = profile
                 }
             } catch (e: Exception) {
@@ -187,14 +195,41 @@ class HomeViewModel @Inject constructor(
 
     private fun loadGoals() {
         viewModelScope.launch {
+            android.util.Log.d(TAG, "loadGoals() started - setting UI state to Loading")
             _uiState.value = HomeUiState.Loading
+
             try {
-                // The goals are already loaded via StateFlow
+                android.util.Log.d(TAG, "Waiting for first goals emission from Firebase...")
+
+                // CRITICAL FIX: Add timeout protection to prevent infinite waiting
+                // This ensures the UI never gets stuck waiting for Firebase indefinitely
+                val firstGoals = kotlinx.coroutines.withTimeout(5000) {
+                    allGoals.first() // Wait for first emission with 5-second timeout
+                }
+
+                android.util.Log.d(TAG, "✅ First goals emission received: ${firstGoals.size} goals")
+
+                // Set success state once we have received data from Firebase
+                _uiState.value = HomeUiState.Success
+                android.util.Log.d(TAG, "✅ UI state set to Success - goals loaded successfully")
+            } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+                android.util.Log.w(TAG, "⚠️ Firebase goals loading timed out after 5 seconds, setting Success anyway")
+                // Even if Firebase times out, show the UI - it will update when data arrives
                 _uiState.value = HomeUiState.Success
             } catch (e: Exception) {
+                android.util.Log.e(TAG, "❌ Failed to load goals", e)
                 _uiState.value = HomeUiState.Error("Failed to load goals: ${e.message}")
             }
         }
+    }
+
+    /**
+     * 🚨 EMERGENCY METHOD: Force UI to success state to prevent infinite loading
+     * This bypasses any Firebase connection issues that might cause hanging
+     */
+    fun forceSuccessState() {
+        android.util.Log.e("EMERGENCY_DEBUG", "🚨 forceSuccessState() called - Setting UI to Success")
+        _uiState.value = HomeUiState.Success
     }
 
     /**

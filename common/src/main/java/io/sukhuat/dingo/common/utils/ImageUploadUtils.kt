@@ -39,7 +39,7 @@ suspend fun uploadImageToFirebase(
             Log.e("ImageUploadUtils", "User not authenticated, cannot upload image")
             return@withContext null
         }
-        
+
         val userId = currentUser.uid
 
         // Get reference to Firebase Storage

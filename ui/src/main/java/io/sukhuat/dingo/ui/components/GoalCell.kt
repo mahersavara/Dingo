@@ -8,13 +8,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.graphicsLayer
@@ -27,13 +27,40 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
-import coil.compose.SubcomposeAsyncImage
 import io.sukhuat.dingo.common.R
 import io.sukhuat.dingo.common.theme.*
 import io.sukhuat.dingo.common.utils.getSafeImageUri
 import io.sukhuat.dingo.domain.model.Goal
 import io.sukhuat.dingo.domain.model.GoalStatus
+
+/**
+ * Validates if a resource ID is valid for painterResource
+ * painterResource only supports Vector Drawables and rasterized formats (PNG, JPG, WEBP)
+ */
+private fun isValidPainterResource(context: android.content.Context, resourceId: Int): Boolean {
+    return try {
+        val resources = context.resources
+        val resourceName = resources.getResourceName(resourceId)
+        val resourceType = resources.getResourceTypeName(resourceId)
+
+        // Only allow drawable resources
+        if (resourceType != "drawable") return false
+
+        val drawable = androidx.core.content.ContextCompat.getDrawable(context, resourceId)
+
+        // Check if it's a VectorDrawable or BitmapDrawable (PNG, JPG, WEBP)
+        return when (drawable) {
+            is android.graphics.drawable.VectorDrawable,
+            is android.graphics.drawable.BitmapDrawable -> true
+            else -> {
+                // Also check for VectorDrawableCompat using class name to avoid import issues
+                drawable?.javaClass?.simpleName == "VectorDrawableCompat"
+            }
+        }
+    } catch (e: Exception) {
+        false
+    }
+}
 
 /**
  * Reusable Goal Cell component that can be used in grids
@@ -57,8 +84,7 @@ fun GoalCell(
                     )
                 ),
                 shape = RoundedCornerShape(16.dp)
-            )
-        ,
+            ),
         shape = RoundedCornerShape(16.dp),
 //        elevation = CardDefaults.cardElevation(
 //            defaultElevation = if (isDragged) 12.dp else 6.dp
@@ -130,8 +156,13 @@ fun GoalCell(
                     } else if (goal.imageResId != null) {
                         // Use null-safe approach to avoid smart cast issue
                         val resId = goal.imageResId ?: R.drawable.ic_goal_notes
+                        val context = LocalContext.current
+                        // Validate resource before using it to prevent crashes
+                        val validResourceId = remember(resId) {
+                            if (isValidPainterResource(context, resId)) resId else R.drawable.ic_goal_notes
+                        }
                         Icon(
-                            painter = painterResource(id = resId),
+                            painter = painterResource(id = validResourceId),
                             contentDescription = null,
                             tint = Color.Unspecified, // Use original colors for doodle art style
                             modifier = Modifier.size(64.dp)
@@ -344,7 +375,7 @@ fun GoalCell(
                     }
                 }
                 GoalStatus.ACTIVE -> {
-                    //LinhKD Debug 1
+                    // LinhKD Debug 1
                     // Mountain theme active indicator
                     Box(
                         modifier = Modifier

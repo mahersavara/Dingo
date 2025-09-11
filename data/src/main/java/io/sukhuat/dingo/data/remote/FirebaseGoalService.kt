@@ -24,178 +24,319 @@ class FirebaseGoalService @Inject constructor(
     private val goalsCollection = "goals"
 
     /**
-     * Get the current user ID or throw an exception if not logged in
+     * Get the current user ID or return null if not logged in
      */
-    private fun getCurrentUserId(): String {
-        return auth.currentUser?.uid ?: throw IllegalStateException("User is not authenticated")
+    private fun getCurrentUserId(): String? {
+        return auth.currentUser?.uid
     }
 
     /**
      * Get a reference to the user's goals collection
+     * Returns null if user is not authenticated
      */
-    private fun getUserGoalsCollection() = firestore.collection("users")
-        .document(getCurrentUserId())
-        .collection(goalsCollection)
+    private fun getUserGoalsCollection() = getCurrentUserId()?.let { userId ->
+        firestore.collection("users")
+            .document(userId)
+            .collection(goalsCollection)
+    }
 
     /**
      * Get all goals as a Flow
      */
     fun getAllGoals(): Flow<List<Goal>> = callbackFlow {
-        val listenerRegistration = getUserGoalsCollection()
-            .orderBy("position", Query.Direction.ASCENDING)
-            .addSnapshotListener { snapshot, error ->
-                if (error != null) {
-                    close(error)
-                    return@addSnapshotListener
-                }
+        try {
+            android.util.Log.d("FirebaseGoalService", "=== getAllGoals() - Setting up listener ===")
 
-                val goals = snapshot?.documents?.mapNotNull { document ->
-                    try {
-                        val id = document.id
-                        val text = document.getString("text") ?: ""
-                        val imageResId = document.getLong("imageResId")?.toInt()
-                        val statusStr = document.getString("status") ?: GoalStatus.ACTIVE.name
-                        val status = try {
-                            GoalStatus.valueOf(statusStr)
-                        } catch (e: Exception) {
-                            GoalStatus.ACTIVE
-                        }
-                        val createdAt = document.getLong("createdAt") ?: System.currentTimeMillis()
-                        val customImage = document.getString("customImage")
-                        val imageUrl = document.getString("imageUrl")
-                        val position = document.getLong("position")?.toInt() ?: 0
-                        val weekOfYear = document.getLong("weekOfYear")?.toInt()
-                        val yearCreated = document.getLong("yearCreated")?.toInt()
-
-                        // Create GoalEntity and convert to domain model to ensure proper week calculation
-                        val goalEntity = GoalEntity(
-                            id = id,
-                            text = text,
-                            imageResId = imageResId,
-                            status = status.name,
-                            createdAt = createdAt,
-                            customImage = customImage,
-                            imageUrl = imageUrl,
-                            position = position,
-                            weekOfYear = weekOfYear,
-                            yearCreated = yearCreated
-                        )
-                        goalEntity.toDomainModel()
-                    } catch (e: Exception) {
-                        null
-                    }
-                } ?: emptyList()
-
-                trySend(goals)
+            // Check if user is authenticated before proceeding
+            val goalsCollection = getUserGoalsCollection()
+            if (goalsCollection == null) {
+                android.util.Log.w("FirebaseGoalService", "User not authenticated, returning empty goals list")
+                trySend(emptyList())
+                awaitClose { }
+                return@callbackFlow
             }
 
-        awaitClose { listenerRegistration.remove() }
+            android.util.Log.d("FirebaseGoalService", "User authenticated, setting up Firestore listener...")
+
+            // CRITICAL FIX: Send empty list immediately to unblock HomeViewModel.loadGoals()
+            // This ensures the Flow emits at least once, preventing infinite waiting
+            android.util.Log.d("FirebaseGoalService", "🚀 Sending initial empty goals to unblock UI...")
+            trySend(emptyList())
+
+            val listenerRegistration = goalsCollection
+                .orderBy("position", Query.Direction.ASCENDING)
+                .addSnapshotListener { snapshot, error ->
+                    android.util.Log.d("FirebaseGoalService", "📡 Firestore listener callback triggered")
+
+                    if (error != null) {
+                        android.util.Log.e("FirebaseGoalService", "Error in goals listener", error)
+                        trySend(emptyList()) // Send empty list instead of closing the flow
+                        return@addSnapshotListener
+                    }
+
+                    android.util.Log.d("FirebaseGoalService", "Processing snapshot with ${snapshot?.documents?.size ?: 0} documents")
+
+                    val goals = snapshot?.documents?.mapNotNull { document ->
+                        try {
+                            val id = document.id
+                            val text = document.getString("text") ?: ""
+                            val imageResId = document.getLong("imageResId")?.toInt()
+                            val statusStr = document.getString("status") ?: GoalStatus.ACTIVE.name
+                            val status = try {
+                                GoalStatus.valueOf(statusStr)
+                            } catch (e: Exception) {
+                                GoalStatus.ACTIVE
+                            }
+                            val createdAt = document.getLong("createdAt") ?: System.currentTimeMillis()
+                            val customImage = document.getString("customImage")
+                            val imageUrl = document.getString("imageUrl")
+                            val position = document.getLong("position")?.toInt() ?: 0
+                            val weekOfYear = document.getLong("weekOfYear")?.toInt()
+                            val yearCreated = document.getLong("yearCreated")?.toInt()
+
+                            // Create GoalEntity and convert to domain model to ensure proper week calculation
+                            val goalEntity = GoalEntity(
+                                id = id,
+                                text = text,
+                                imageResId = imageResId,
+                                status = status.name,
+                                createdAt = createdAt,
+                                customImage = customImage,
+                                imageUrl = imageUrl,
+                                position = position,
+                                weekOfYear = weekOfYear,
+                                yearCreated = yearCreated
+                            )
+                            goalEntity.toDomainModel()
+                        } catch (e: Exception) {
+                            android.util.Log.w("FirebaseGoalService", "Error parsing goal document", e)
+                            null
+                        }
+                    } ?: emptyList()
+
+                    android.util.Log.d("FirebaseGoalService", "✅ Sending ${goals.size} goals to Flow")
+                    trySend(goals)
+                }
+
+            awaitClose {
+                android.util.Log.d("FirebaseGoalService", "🔚 Removing Firestore listener")
+                listenerRegistration.remove()
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("FirebaseGoalService", "Error setting up goals listener", e)
+            trySend(emptyList())
+            awaitClose { }
+        }
     }
 
     /**
      * Get goals by status
      */
     fun getGoalsByStatus(status: GoalStatus): Flow<List<Goal>> = callbackFlow {
-        val listenerRegistration = getUserGoalsCollection()
-            .whereEqualTo("status", status.name)
-            .orderBy("position", Query.Direction.ASCENDING)
-            .addSnapshotListener { snapshot, error ->
-                if (error != null) {
-                    close(error)
-                    return@addSnapshotListener
-                }
-
-                val goals = snapshot?.documents?.mapNotNull { document ->
-                    try {
-                        val id = document.id
-                        val text = document.getString("text") ?: ""
-                        val imageResId = document.getLong("imageResId")?.toInt()
-                        val createdAt = document.getLong("createdAt") ?: System.currentTimeMillis()
-                        val customImage = document.getString("customImage")
-                        val imageUrl = document.getString("imageUrl")
-                        val position = document.getLong("position")?.toInt() ?: 0
-                        val weekOfYear = document.getLong("weekOfYear")?.toInt()
-                        val yearCreated = document.getLong("yearCreated")?.toInt()
-
-                        // Create GoalEntity and convert to domain model to ensure proper week calculation
-                        val goalEntity = GoalEntity(
-                            id = id,
-                            text = text,
-                            imageResId = imageResId,
-                            status = status.name,
-                            createdAt = createdAt,
-                            customImage = customImage,
-                            imageUrl = imageUrl,
-                            position = position,
-                            weekOfYear = weekOfYear,
-                            yearCreated = yearCreated
-                        )
-                        goalEntity.toDomainModel()
-                    } catch (e: Exception) {
-                        null
-                    }
-                } ?: emptyList()
-
-                trySend(goals)
+        try {
+            // Check if user is authenticated before proceeding
+            val goalsCollection = getUserGoalsCollection()
+            if (goalsCollection == null) {
+                android.util.Log.w("FirebaseGoalService", "User not authenticated, returning empty goals list for status ${status.name}")
+                trySend(emptyList())
+                awaitClose { }
+                return@callbackFlow
             }
 
-        awaitClose { listenerRegistration.remove() }
+            val listenerRegistration = goalsCollection
+                .whereEqualTo("status", status.name)
+                .orderBy("position", Query.Direction.ASCENDING)
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        android.util.Log.e("FirebaseGoalService", "Error in goals by status listener", error)
+                        trySend(emptyList())
+                        return@addSnapshotListener
+                    }
+
+                    val goals = snapshot?.documents?.mapNotNull { document ->
+                        try {
+                            val id = document.id
+                            val text = document.getString("text") ?: ""
+                            val imageResId = document.getLong("imageResId")?.toInt()
+                            val createdAt = document.getLong("createdAt") ?: System.currentTimeMillis()
+                            val customImage = document.getString("customImage")
+                            val imageUrl = document.getString("imageUrl")
+                            val position = document.getLong("position")?.toInt() ?: 0
+                            val weekOfYear = document.getLong("weekOfYear")?.toInt()
+                            val yearCreated = document.getLong("yearCreated")?.toInt()
+
+                            // Create GoalEntity and convert to domain model to ensure proper week calculation
+                            val goalEntity = GoalEntity(
+                                id = id,
+                                text = text,
+                                imageResId = imageResId,
+                                status = status.name,
+                                createdAt = createdAt,
+                                customImage = customImage,
+                                imageUrl = imageUrl,
+                                position = position,
+                                weekOfYear = weekOfYear,
+                                yearCreated = yearCreated
+                            )
+                            goalEntity.toDomainModel()
+                        } catch (e: Exception) {
+                            android.util.Log.w("FirebaseGoalService", "Error parsing goal document", e)
+                            null
+                        }
+                    } ?: emptyList()
+
+                    trySend(goals)
+                }
+
+            awaitClose { listenerRegistration.remove() }
+        } catch (e: Exception) {
+            android.util.Log.e("FirebaseGoalService", "Error setting up goals by status listener", e)
+            trySend(emptyList())
+            awaitClose { }
+        }
+    }
+
+    /**
+     * Get all goals synchronously for widget use
+     * This bypasses the Flow mechanism to avoid the "handler already registered" issue
+     */
+    suspend fun getAllGoalsSync(): List<Goal> {
+        return try {
+            android.util.Log.d("FirebaseGoalService", "📦 getAllGoalsSync() - Direct Firestore query")
+
+            // Check if user is authenticated
+            val goalsCollection = getUserGoalsCollection()
+            if (goalsCollection == null) {
+                android.util.Log.w("FirebaseGoalService", "User not authenticated, returning empty goals list")
+                return emptyList()
+            }
+
+            // Direct query without Flow
+            val snapshot = goalsCollection
+                .orderBy("position", Query.Direction.ASCENDING)
+                .get()
+                .await()
+
+            val goals = snapshot.documents.mapNotNull { document ->
+                try {
+                    val id = document.id
+                    val text = document.getString("text") ?: ""
+                    val imageResId = document.getLong("imageResId")?.toInt()
+                    val statusStr = document.getString("status") ?: GoalStatus.ACTIVE.name
+                    val status = try {
+                        GoalStatus.valueOf(statusStr)
+                    } catch (e: Exception) {
+                        GoalStatus.ACTIVE
+                    }
+                    val createdAt = document.getLong("createdAt") ?: System.currentTimeMillis()
+                    val customImage = document.getString("customImage")
+                    val imageUrl = document.getString("imageUrl")
+                    val position = document.getLong("position")?.toInt() ?: 0
+                    val weekOfYear = document.getLong("weekOfYear")?.toInt()
+                    val yearCreated = document.getLong("yearCreated")?.toInt()
+
+                    // Create GoalEntity and convert to domain model to ensure proper week calculation
+                    val goalEntity = GoalEntity(
+                        id = id,
+                        text = text,
+                        imageResId = imageResId,
+                        status = status.name,
+                        createdAt = createdAt,
+                        customImage = customImage,
+                        imageUrl = imageUrl,
+                        position = position,
+                        weekOfYear = weekOfYear,
+                        yearCreated = yearCreated
+                    )
+                    goalEntity.toDomainModel()
+                } catch (e: Exception) {
+                    android.util.Log.w("FirebaseGoalService", "Error parsing goal document", e)
+                    null
+                }
+            }
+
+            android.util.Log.d("FirebaseGoalService", "✅ getAllGoalsSync() returning ${goals.size} goals")
+            goals
+        } catch (e: Exception) {
+            android.util.Log.e("FirebaseGoalService", "❌ Error in getAllGoalsSync()", e)
+            emptyList()
+        }
     }
 
     /**
      * Get a specific goal by ID
      */
     fun getGoalById(id: String): Flow<Goal?> = callbackFlow {
-        val listenerRegistration = getUserGoalsCollection()
-            .document(id)
-            .addSnapshotListener { snapshot, error ->
-                if (error != null) {
-                    close(error)
-                    return@addSnapshotListener
-                }
-
-                val goal = try {
-                    if (snapshot != null && snapshot.exists()) {
-                        val text = snapshot.getString("text") ?: ""
-                        val imageResId = snapshot.getLong("imageResId")?.toInt()
-                        val statusStr = snapshot.getString("status") ?: GoalStatus.ACTIVE.name
-                        val status = try {
-                            GoalStatus.valueOf(statusStr)
-                        } catch (e: Exception) {
-                            GoalStatus.ACTIVE
-                        }
-                        val createdAt = snapshot.getLong("createdAt") ?: System.currentTimeMillis()
-                        val customImage = snapshot.getString("customImage")
-                        val imageUrl = snapshot.getString("imageUrl")
-                        val position = snapshot.getLong("position")?.toInt() ?: 0
-
-                        Goal(
-                            id = id,
-                            text = text,
-                            imageResId = imageResId,
-                            status = status,
-                            createdAt = createdAt,
-                            customImage = customImage,
-                            imageUrl = imageUrl,
-                            position = position
-                        )
-                    } else {
-                        null
-                    }
-                } catch (e: Exception) {
-                    null
-                }
-
-                trySend(goal)
+        try {
+            // Check if user is authenticated before proceeding
+            val goalsCollection = getUserGoalsCollection()
+            if (goalsCollection == null) {
+                android.util.Log.w("FirebaseGoalService", "User not authenticated, returning null for goal $id")
+                trySend(null)
+                awaitClose { }
+                return@callbackFlow
             }
 
-        awaitClose { listenerRegistration.remove() }
+            val listenerRegistration = goalsCollection
+                .document(id)
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        android.util.Log.e("FirebaseGoalService", "Error in goal by id listener", error)
+                        trySend(null)
+                        return@addSnapshotListener
+                    }
+
+                    val goal = try {
+                        if (snapshot != null && snapshot.exists()) {
+                            val text = snapshot.getString("text") ?: ""
+                            val imageResId = snapshot.getLong("imageResId")?.toInt()
+                            val statusStr = snapshot.getString("status") ?: GoalStatus.ACTIVE.name
+                            val status = try {
+                                GoalStatus.valueOf(statusStr)
+                            } catch (e: Exception) {
+                                GoalStatus.ACTIVE
+                            }
+                            val createdAt = snapshot.getLong("createdAt") ?: System.currentTimeMillis()
+                            val customImage = snapshot.getString("customImage")
+                            val imageUrl = snapshot.getString("imageUrl")
+                            val position = snapshot.getLong("position")?.toInt() ?: 0
+
+                            Goal(
+                                id = id,
+                                text = text,
+                                imageResId = imageResId,
+                                status = status,
+                                createdAt = createdAt,
+                                customImage = customImage,
+                                imageUrl = imageUrl,
+                                position = position
+                            )
+                        } else {
+                            null
+                        }
+                    } catch (e: Exception) {
+                        android.util.Log.w("FirebaseGoalService", "Error parsing goal by id document", e)
+                        null
+                    }
+
+                    trySend(goal)
+                }
+
+            awaitClose { listenerRegistration.remove() }
+        } catch (e: Exception) {
+            android.util.Log.e("FirebaseGoalService", "Error setting up goal by id listener", e)
+            trySend(null)
+            awaitClose { }
+        }
     }
 
     /**
      * Create a new goal
      */
     suspend fun createGoal(goal: Goal): String {
+        val goalsCollection = getUserGoalsCollection()
+            ?: throw IllegalStateException("User is not authenticated")
+
         val goalData = hashMapOf(
             "text" to goal.text,
             "imageResId" to goal.imageResId,
@@ -210,10 +351,10 @@ class FirebaseGoalService @Inject constructor(
 
         // Use the goal's ID if it has one, otherwise let Firestore generate an ID
         val documentRef = if (goal.id.isNotEmpty()) {
-            getUserGoalsCollection().document(goal.id).set(goalData).await()
-            getUserGoalsCollection().document(goal.id)
+            goalsCollection.document(goal.id).set(goalData).await()
+            goalsCollection.document(goal.id)
         } else {
-            getUserGoalsCollection().add(goalData).await()
+            goalsCollection.add(goalData).await()
         }
 
         return documentRef.id
@@ -223,6 +364,8 @@ class FirebaseGoalService @Inject constructor(
      * Update an existing goal
      */
     suspend fun updateGoal(goal: Goal): Boolean {
+        val goalsCollection = getUserGoalsCollection() ?: return false
+
         val goalData = hashMapOf(
             "text" to goal.text,
             "imageResId" to goal.imageResId,
@@ -236,7 +379,7 @@ class FirebaseGoalService @Inject constructor(
         )
 
         return try {
-            getUserGoalsCollection().document(goal.id).update(goalData.toMap()).await()
+            goalsCollection.document(goal.id).update(goalData.toMap()).await()
             true
         } catch (e: Exception) {
             false
@@ -247,8 +390,10 @@ class FirebaseGoalService @Inject constructor(
      * Update the status of a goal
      */
     suspend fun updateGoalStatus(goalId: String, status: GoalStatus): Boolean {
+        val goalsCollection = getUserGoalsCollection() ?: return false
+
         return try {
-            getUserGoalsCollection().document(goalId).update("status", status.name).await()
+            goalsCollection.document(goalId).update("status", status.name).await()
             true
         } catch (e: Exception) {
             false
@@ -259,8 +404,10 @@ class FirebaseGoalService @Inject constructor(
      * Update the text of a goal
      */
     suspend fun updateGoalText(goalId: String, text: String): Boolean {
+        val goalsCollection = getUserGoalsCollection() ?: return false
+
         return try {
-            getUserGoalsCollection().document(goalId).update("text", text).await()
+            goalsCollection.document(goalId).update("text", text).await()
             true
         } catch (e: Exception) {
             false
@@ -271,8 +418,10 @@ class FirebaseGoalService @Inject constructor(
      * Update the custom image of a goal
      */
     suspend fun updateGoalImage(goalId: String, customImage: String?): Boolean {
+        val goalsCollection = getUserGoalsCollection() ?: return false
+
         return try {
-            getUserGoalsCollection().document(goalId).update("customImage", customImage).await()
+            goalsCollection.document(goalId).update("customImage", customImage).await()
             true
         } catch (e: Exception) {
             false
@@ -283,8 +432,10 @@ class FirebaseGoalService @Inject constructor(
      * Update the image URL of a goal
      */
     suspend fun updateGoalImageUrl(goalId: String, imageUrl: String?): Boolean {
+        val goalsCollection = getUserGoalsCollection() ?: return false
+
         return try {
-            getUserGoalsCollection().document(goalId).update("imageUrl", imageUrl).await()
+            goalsCollection.document(goalId).update("imageUrl", imageUrl).await()
             true
         } catch (e: Exception) {
             false
@@ -295,8 +446,10 @@ class FirebaseGoalService @Inject constructor(
      * Delete a goal
      */
     suspend fun deleteGoal(goalId: String): Boolean {
+        val goalsCollection = getUserGoalsCollection() ?: return false
+
         return try {
-            getUserGoalsCollection().document(goalId).delete().await()
+            goalsCollection.document(goalId).delete().await()
             true
         } catch (e: Exception) {
             false
@@ -307,8 +460,10 @@ class FirebaseGoalService @Inject constructor(
      * Update the position of a goal
      */
     suspend fun updateGoalPosition(goalId: String, position: Int): Boolean {
+        val goalsCollection = getUserGoalsCollection() ?: return false
+
         return try {
-            getUserGoalsCollection().document(goalId).update("position", position).await()
+            goalsCollection.document(goalId).update("position", position).await()
             true
         } catch (e: Exception) {
             false
@@ -319,10 +474,11 @@ class FirebaseGoalService @Inject constructor(
      * Batch update positions for reordering
      */
     suspend fun reorderGoals(goalIds: List<String>): Boolean {
+        val goalsCollection = getUserGoalsCollection() ?: return false
         val batch = firestore.batch()
 
         goalIds.forEachIndexed { index, id ->
-            val docRef = getUserGoalsCollection().document(id)
+            val docRef = goalsCollection.document(id)
             batch.update(docRef, "position", index)
         }
 

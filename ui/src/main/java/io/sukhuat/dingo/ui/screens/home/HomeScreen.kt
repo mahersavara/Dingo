@@ -76,10 +76,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.BlurredEdgeTreatment
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -97,8 +94,6 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
-import coil.compose.AsyncImage
-import io.sukhuat.dingo.ui.components.CachedAsyncImage
 import io.sukhuat.dingo.common.R
 import io.sukhuat.dingo.common.components.BubbleComponent
 import io.sukhuat.dingo.common.components.GoalCompletionCelebration
@@ -115,6 +110,7 @@ import io.sukhuat.dingo.common.utils.getSafeImageUri
 import io.sukhuat.dingo.common.utils.uploadImageToFirebase
 import io.sukhuat.dingo.domain.model.Goal
 import io.sukhuat.dingo.domain.model.GoalStatus
+import io.sukhuat.dingo.ui.components.CachedAsyncImage
 import io.sukhuat.dingo.ui.components.DingoAppScaffold
 import io.sukhuat.dingo.ui.components.GoalCell
 import io.sukhuat.dingo.ui.components.SimpleSamsungDragGrid
@@ -135,9 +131,24 @@ fun HomeScreen(
     onNavigateToYearPlanner: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel()
 ) {
+    android.util.Log.e("EMERGENCY_DEBUG", "🚨 HomeScreen - COMPOSABLE STARTED")
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
+
+    // 🚨 EMERGENCY BYPASS: Force loading screen to disappear after 8 seconds
+    // This prevents infinite loading screen hang regardless of Firebase state
+    var emergencyBypassTriggered by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        android.util.Log.e("EMERGENCY_DEBUG", "🚨 Starting emergency bypass timer...")
+        kotlinx.coroutines.delay(8000) // 8 second emergency timeout
+        if (!emergencyBypassTriggered) {
+            android.util.Log.e("EMERGENCY_DEBUG", "🚨 EMERGENCY BYPASS TRIGGERED - Forcing UI to show")
+            emergencyBypassTriggered = true
+            // Force the ViewModel to set success state
+            viewModel.forceSuccessState()
+        }
+    }
 
     // Get responsive values
     val responsiveValues = rememberResponsiveValues()
@@ -1631,9 +1642,9 @@ fun GoalCompletionConfirmDialog(
                     text = "Are you sure you want to mark this goal as completed?",
                     style = MaterialTheme.typography.bodyMedium
                 )
-                
+
                 Spacer(modifier = Modifier.height(16.dp))
-                
+
                 // Show goal info
                 Row(
                     modifier = Modifier
@@ -1674,9 +1685,9 @@ fun GoalCompletionConfirmDialog(
                             modifier = Modifier.size(40.dp)
                         )
                     }
-                    
+
                     Spacer(modifier = Modifier.width(12.dp))
-                    
+
                     Text(
                         text = goal.text,
                         style = MaterialTheme.typography.bodyMedium,

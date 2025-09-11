@@ -38,6 +38,16 @@ class GoalRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun getAllGoalsSync(): List<Goal> {
+        // Return goals directly from Firebase using sync method
+        return try {
+            firebaseGoalService.getAllGoalsSync()
+        } catch (error: Exception) {
+            Log.e(TAG, "Error getting all goals sync", error)
+            emptyList()
+        }
+    }
+
     override fun getGoalsByStatus(status: GoalStatus): Flow<List<Goal>> {
         // Return goals with specific status from Firebase
         return firebaseGoalService.getGoalsByStatus(status).catch { error ->

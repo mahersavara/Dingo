@@ -11,6 +11,12 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    
+    <!-- Widget permissions -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
     <application
         android:name=".DingoApplication"
@@ -65,11 +71,74 @@
             </intent-filter>
         </activity>
 
+        <!-- Widget Configuration Activity -->
+        <activity
+            android:name="io.sukhuat.dingo.widget.WeeklyGoalWidgetConfigActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Dingo">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
         <!-- Broadcast receiver for weekly reminder notifications -->
         <receiver
             android:name="io.sukhuat.dingo.data.notification.WeeklyReminderReceiver"
             android:enabled="true"
             android:exported="false" />
+
+        <!-- Widget data change receiver -->
+        <receiver
+            android:name="io.sukhuat.dingo.widget.WidgetDataChangeReceiver"
+            android:enabled="true"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="io.sukhuat.dingo.GOAL_CREATED" />
+                <action android:name="io.sukhuat.dingo.GOAL_UPDATED" />
+                <action android:name="io.sukhuat.dingo.GOAL_DELETED" />
+                <action android:name="io.sukhuat.dingo.GOAL_STATUS_CHANGED" />
+                <action android:name="io.sukhuat.dingo.WEEK_CHANGED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Weekly Goal Widget Provider 2x2 -->
+        <receiver
+            android:name="io.sukhuat.dingo.widget.WeeklyGoalWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="io.sukhuat.dingo.widget.UPDATE_WIDGET" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/weekly_goal_widget_info" />
+        </receiver>
+
+        <!-- Weekly Goal Widget Provider 2x3 -->
+        <receiver
+            android:name="io.sukhuat.dingo.widget.WeeklyGoalWidget2x3Provider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="io.sukhuat.dingo.widget.UPDATE_WIDGET_2X3" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/weekly_goal_widget_2x3_info" />
+        </receiver>
+
+        <!-- Weekly Goal Widget Provider 3x2 -->
+        <receiver
+            android:name="io.sukhuat.dingo.widget.WeeklyGoalWidget3x2Provider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="io.sukhuat.dingo.widget.UPDATE_WIDGET_3X2" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/weekly_goal_widget_3x2_info" />
+        </receiver>
 
         <!-- FileProvider for profile image capture -->
         <provider

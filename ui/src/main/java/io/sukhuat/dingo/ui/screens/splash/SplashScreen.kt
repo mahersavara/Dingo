@@ -23,6 +23,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import io.sukhuat.dingo.common.R
 import io.sukhuat.dingo.common.theme.MountainSunriseTheme
 import io.sukhuat.dingo.common.theme.RusticGold
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.withTimeout
 
 @Composable
 fun SplashScreen(
@@ -81,12 +83,34 @@ fun SplashScreen(
         }
     }
 
-    // Check auth status and navigate accordingly
+    // Check auth status and navigate accordingly with timeout protection and extensive logging
     LaunchedEffect(Unit) {
-        val isAuthenticated = viewModel.checkUserAuthStatus()
-        if (isAuthenticated) {
-            onNavigateToHome()
-        } else {
+        try {
+            android.util.Log.e("EMERGENCY_DEBUG", "🚨 SplashScreen - LaunchedEffect started")
+            android.util.Log.d("SplashScreen", "Starting authentication check...")
+
+            withTimeout(3000) { // Reduced to 3 second timeout for faster testing
+                android.util.Log.d("SplashScreen", "Calling viewModel.checkUserAuthStatus()...")
+                val isAuthenticated = viewModel.checkUserAuthStatus()
+                android.util.Log.d("SplashScreen", "Authentication result: $isAuthenticated")
+
+                if (isAuthenticated) {
+                    android.util.Log.e("EMERGENCY_DEBUG", "🚨 SplashScreen - User authenticated, calling onNavigateToHome()")
+                    android.util.Log.d("SplashScreen", "User authenticated, navigating to home...")
+                    onNavigateToHome()
+                } else {
+                    android.util.Log.e("EMERGENCY_DEBUG", "🚨 SplashScreen - User NOT authenticated, calling onNavigateToAuth()")
+                    android.util.Log.d("SplashScreen", "User not authenticated, navigating to auth...")
+                    onNavigateToAuth()
+                }
+            }
+        } catch (e: TimeoutCancellationException) {
+            // If authentication check times out, default to auth screen
+            android.util.Log.w("SplashScreen", "Authentication check timed out, navigating to auth")
+            onNavigateToAuth()
+        } catch (e: Exception) {
+            // If any other error occurs, default to auth screen
+            android.util.Log.e("SplashScreen", "Error during authentication check", e)
             onNavigateToAuth()
         }
     }
