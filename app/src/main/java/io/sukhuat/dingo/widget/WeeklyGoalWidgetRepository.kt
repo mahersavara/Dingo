@@ -25,7 +25,6 @@ class WeeklyGoalWidgetRepository @Inject constructor(
             val filteredGoals = allGoals.filter { goal ->
                 goal.weekOfYear == weekOfYear && goal.yearCreated == year
             }.sortedBy { it.position }
-                .take(6) // Max 6 goals for widget
                 .map { goal ->
                     goal.toWidgetGoal()
                 }
