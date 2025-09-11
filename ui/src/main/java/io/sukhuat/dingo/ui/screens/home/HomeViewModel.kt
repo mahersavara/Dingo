@@ -285,7 +285,16 @@ class HomeViewModel @Inject constructor(
     fun createGoal(text: String, imageResId: Int? = null, customImage: String? = null) {
         viewModelScope.launch {
             try {
-                createGoalUseCase(text, imageResId, customImage)
+                val result = createGoalUseCase(text, imageResId, customImage)
+                
+                // Notify widgets about new goal
+                result.getOrNull()?.let { goalId ->
+                    val intent = android.content.Intent("io.sukhuat.dingo.GOAL_CREATED").apply {
+                        putExtra("goal_id", goalId)
+                    }
+                    context.sendBroadcast(intent)
+                    android.util.Log.d("HomeViewModel", "🎯 Goal created, widgets notified: $goalId")
+                }
             } catch (e: Exception) {
                 _uiState.value = HomeUiState.Error("Failed to create goal: ${e.message}")
             }
@@ -296,6 +305,14 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 updateGoalStatusUseCase(goalId, status)
+
+                // Notify widgets about status change
+                val intent = android.content.Intent("io.sukhuat.dingo.GOAL_STATUS_CHANGED").apply {
+                    putExtra("goal_id", goalId)
+                    putExtra("new_status", status.name)
+                }
+                context.sendBroadcast(intent)
+                android.util.Log.d("HomeViewModel", "🎯 Goal status updated, widgets notified: $goalId -> $status")
 
                 // Provide haptic feedback if completing a goal
                 if (status == GoalStatus.COMPLETED) {
@@ -344,6 +361,13 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 deleteGoalUseCase(goalId)
+                
+                // Notify widgets about deleted goal
+                val intent = android.content.Intent("io.sukhuat.dingo.GOAL_DELETED").apply {
+                    putExtra("goal_id", goalId)
+                }
+                context.sendBroadcast(intent)
+                android.util.Log.d("HomeViewModel", "🎯 Goal deleted, widgets notified: $goalId")
             } catch (e: Exception) {
                 _uiState.value = HomeUiState.Error("Failed to delete goal: ${e.message}")
             }
