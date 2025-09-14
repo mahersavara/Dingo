@@ -65,13 +65,13 @@ class WidgetUpdateScheduler @Inject constructor(
      * Used when app data changes
      */
     fun scheduleImmediateUpdate() {
-        val constraints = Constraints.Builder()
-            .setRequiredNetworkType(NetworkType.CONNECTED)
-            .build()
+        android.util.Log.d("WidgetUpdateScheduler", "🚀 Scheduling immediate widget update")
 
+        // For immediate updates, don't require network connectivity
+        // since the data should already be available locally
         val immediateWorkRequest = OneTimeWorkRequestBuilder<WeeklyGoalWidgetUpdateWorker>()
-            .setConstraints(constraints)
             .addTag("widget_immediate_update")
+            .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
             .build()
 
         workManager.enqueue(immediateWorkRequest)
@@ -90,6 +90,8 @@ class WidgetUpdateScheduler @Inject constructor(
      * Force immediate update of all widgets
      */
     fun forceUpdateNow() {
+        android.util.Log.d("WidgetUpdateScheduler", "🚀 Force updating widgets")
+
         val immediateWorkRequest = OneTimeWorkRequestBuilder<WeeklyGoalWidgetUpdateWorker>()
             .addTag("widget_force_update")
             .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)

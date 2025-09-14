@@ -72,9 +72,10 @@ abstract class RepositoryModule {
         @Provides
         @Singleton
         fun provideGoalRepository(
-            firebaseGoalService: FirebaseGoalService
+            firebaseGoalService: FirebaseGoalService,
+            widgetNotificationService: io.sukhuat.dingo.domain.service.WidgetNotificationService
         ): GoalRepository {
-            return GoalRepositoryImpl(firebaseGoalService)
+            return GoalRepositoryImpl(firebaseGoalService, widgetNotificationService)
         }
 
         /**

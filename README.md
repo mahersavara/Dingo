@@ -442,60 +442,45 @@ graph TB
 - Achievement notifications
 - Statistical analysis
 
-## Key Components
+## 📚 Documentation Hub
 
-### Authentication
-- **AuthScreen**: Composable for login/signup with email/password and Google Sign-In
-- **AuthViewModel**: Manages authentication state and operations
-- **AuthUiState**: Sealed class representing different authentication states with granular loading states
-- **SplashScreen**: Entry point that checks authentication status
-- **HomeScreen**: Main screen with logout functionality
-- **GoogleAuthService**: Singleton service for managing Google Sign-In with improved error handling
+### 📖 **Comprehensive Guides**
+- **[PROJECT_INDEX.md](PROJECT_INDEX.md)** - Complete project overview with detailed architecture
+- **[NAVIGATION_INDEX.md](NAVIGATION_INDEX.md)** - Quick navigation and cross-reference guide
+- **[CLAUDE.md](CLAUDE.md)** - Development guidelines and Claude Code instructions
 
-### Use Cases
-- **SignInUseCase**: Handles email/password authentication and Google Sign-In
-- **SignUpWithEmailUseCase**: Manages user registration
-- **GetAuthStatusUseCase**: Checks if user is authenticated
-- **SignOutUseCase**: Handles user logout
+### 🎨 **Design System**
+- **[Mountain Sunrise Color Palette](mountain_sunrise_color_palette.md)** - Complete color system
+- **[UI Mockups](mountain_sunrise_ui_mockup.md)** - Visual design specifications
+- **[Style Guide](mountain_sunrise_style_guide.md)** - Design system guidelines
 
-### Services
-- **GoogleAuthService**: Manages Google Sign-In functionality with proper initialization checks
-- **ToastHelper**: Provides consistent toast messages for user feedback
+### 🏗️ **Architecture Documentation**
+- **[Architecture Patterns](.serena/memories/architecture_patterns.md)** - Architectural guidelines
+- **[Coding Conventions](.serena/memories/coding_conventions.md)** - Code style standards
+- **[Task Workflows](tasks/)** - Development task tracking
 
-## UI Screens
+For detailed technical information, component references, and development workflows, see the [PROJECT_INDEX.md](PROJECT_INDEX.md) comprehensive guide.
 
-### Splash Screen
-- Validates authentication status on app launch
-- Directs users to appropriate screen based on status
+---
 
-### Auth Screen
-- Email/password sign-in form
-- Email/password registration
-- Google Sign-In button with improved error handling
-- Error handling with user feedback
-- Granular loading states for different authentication processes
+## 🚀 Quick Development Reference
 
-### Home Screen
-- Main application interface
-- Sign-out functionality in top app bar
-- User session management
+### Key Commands
+```bash
+./gradlew ktlintFormat build  # Format & build
+./gradlew test               # Run tests
+./gradlew check             # Full quality check
+```
 
-## Error Handling
-The app includes comprehensive error handling:
-- Descriptive error messages for authentication failures
-- Toast notifications for user feedback
-- Logging for debugging purposes
-- UI state updates to reflect error conditions
-- Specific error handling for Google Sign-In failures
+### Module Overview
+- **:app** → Navigation & DI setup
+- **:ui** → Screens, ViewModels, Compose components
+- **:data** → Firebase services, repositories
+- **:domain** → Business logic, use cases, models
+- **:common** → Shared components, theme system
 
-## Navigation
-- **NavHost**: Manages navigation between screens
-- **Screen**: Sealed class defining navigation routes
-- Proper back stack management for authentication flow
-
-## Security Considerations
-- Secure storage of authentication tokens
-- Proper session management
-- Firebase Authentication for secure credential handling
-- Google OAuth for third-party authentication
-- Improved error handling for authentication failures
+### Essential Files
+- **[MainActivity.kt](app/src/main/java/io/sukhuat/dingo/MainActivity.kt)** - App entry point
+- **[HomeScreen.kt](ui/src/main/java/io/sukhuat/dingo/ui/screens/home/HomeScreen.kt)** - Main goal grid
+- **[Theme.kt](common/src/main/java/io/sukhuat/dingo/common/theme/Theme.kt)** - Mountain Sunrise theme
+- **[Constants.kt](common/src/main/java/io/sukhuat/dingo/common/Constants.kt)** - App configuration

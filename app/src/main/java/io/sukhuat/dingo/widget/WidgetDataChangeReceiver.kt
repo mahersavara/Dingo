@@ -18,19 +18,48 @@ class WidgetDataChangeReceiver : BroadcastReceiver() {
     @Inject
     lateinit var widgetUpdateScheduler: WidgetUpdateScheduler
 
+    @Inject
+    lateinit var widgetUpdateBroadcaster: WidgetUpdateBroadcaster
+
     override fun onReceive(context: Context, intent: Intent) {
+        android.util.Log.d("WidgetDataChangeReceiver", "🎯 Broadcast received: ${intent.action}")
+
         when (intent.action) {
             ACTION_GOAL_CREATED,
             ACTION_GOAL_UPDATED,
             ACTION_GOAL_DELETED,
             ACTION_GOAL_STATUS_CHANGED -> {
-                // Schedule immediate widget update when goal data changes
+                android.util.Log.d("WidgetDataChangeReceiver", "⚡ Goal data changed - updating widgets immediately")
+
+                // EMERGENCY FIX: Update widgets directly for instant response
+                try {
+                    widgetUpdateBroadcaster.updateWidgets(context)
+                    android.util.Log.d("WidgetDataChangeReceiver", "✅ Direct widget update completed")
+                } catch (e: Exception) {
+                    android.util.Log.e("WidgetDataChangeReceiver", "❌ Direct widget update failed", e)
+                }
+
+                // Also schedule via WorkManager as backup
                 CoroutineScope(Dispatchers.IO).launch {
-                    widgetUpdateScheduler.scheduleImmediateUpdate()
+                    try {
+                        widgetUpdateScheduler.scheduleImmediateUpdate()
+                        android.util.Log.d("WidgetDataChangeReceiver", "📋 WorkManager backup scheduled")
+                    } catch (e: Exception) {
+                        android.util.Log.e("WidgetDataChangeReceiver", "❌ WorkManager scheduling failed", e)
+                    }
                 }
             }
             ACTION_WEEK_CHANGED -> {
-                // Force update when week changes (e.g., at midnight Sunday)
+                android.util.Log.d("WidgetDataChangeReceiver", "📅 Week changed - force updating widgets")
+
+                // Direct update for week change
+                try {
+                    widgetUpdateBroadcaster.updateWidgets(context)
+                } catch (e: Exception) {
+                    android.util.Log.e("WidgetDataChangeReceiver", "❌ Week change widget update failed", e)
+                }
+
+                // Force update via WorkManager as backup
                 CoroutineScope(Dispatchers.IO).launch {
                     widgetUpdateScheduler.forceUpdateNow()
                 }
@@ -51,21 +80,27 @@ class WidgetDataChangeReceiver : BroadcastReceiver() {
         fun notifyGoalCreated(context: Context, goalId: String) {
             val intent = Intent(ACTION_GOAL_CREATED).apply {
                 putExtra("goal_id", goalId)
+                setClass(context, WidgetDataChangeReceiver::class.java)
             }
+            android.util.Log.d("WidgetDataChangeReceiver", "📡 Sending GOAL_CREATED broadcast for goalId: $goalId")
             context.sendBroadcast(intent)
         }
 
         fun notifyGoalUpdated(context: Context, goalId: String) {
             val intent = Intent(ACTION_GOAL_UPDATED).apply {
                 putExtra("goal_id", goalId)
+                setClass(context, WidgetDataChangeReceiver::class.java)
             }
+            android.util.Log.d("WidgetDataChangeReceiver", "📡 Sending GOAL_UPDATED broadcast for goalId: $goalId")
             context.sendBroadcast(intent)
         }
 
         fun notifyGoalDeleted(context: Context, goalId: String) {
             val intent = Intent(ACTION_GOAL_DELETED).apply {
                 putExtra("goal_id", goalId)
+                setClass(context, WidgetDataChangeReceiver::class.java)
             }
+            android.util.Log.d("WidgetDataChangeReceiver", "📡 Sending GOAL_DELETED broadcast for goalId: $goalId")
             context.sendBroadcast(intent)
         }
 
@@ -73,12 +108,17 @@ class WidgetDataChangeReceiver : BroadcastReceiver() {
             val intent = Intent(ACTION_GOAL_STATUS_CHANGED).apply {
                 putExtra("goal_id", goalId)
                 putExtra("new_status", newStatus)
+                setClass(context, WidgetDataChangeReceiver::class.java)
             }
+            android.util.Log.d("WidgetDataChangeReceiver", "📡 Sending GOAL_STATUS_CHANGED broadcast for goalId: $goalId, status: $newStatus")
             context.sendBroadcast(intent)
         }
 
         fun notifyWeekChanged(context: Context) {
-            val intent = Intent(ACTION_WEEK_CHANGED)
+            val intent = Intent(ACTION_WEEK_CHANGED).apply {
+                setClass(context, WidgetDataChangeReceiver::class.java)
+            }
+            android.util.Log.d("WidgetDataChangeReceiver", "📡 Sending WEEK_CHANGED broadcast")
             context.sendBroadcast(intent)
         }
     }

@@ -13,6 +13,8 @@ import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.action.ActionCallback
 import androidx.glance.appwidget.action.actionRunCallback
+import androidx.glance.appwidget.lazy.LazyColumn
+import androidx.glance.appwidget.lazy.items
 import androidx.glance.appwidget.provideContent
 import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.glance.background
@@ -27,8 +29,6 @@ import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.layout.width
-import androidx.glance.appwidget.lazy.LazyColumn
-import androidx.glance.appwidget.lazy.items
 import androidx.glance.state.GlanceStateDefinition
 import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.glance.text.Text
@@ -274,8 +274,8 @@ private fun WeekNavigation2x3WidgetContent(
                                 modifier = GlanceModifier.defaultWeight()
                             )
                         }
-                        
-                        // Fill empty slot if odd number of goals in last row  
+
+                        // Fill empty slot if odd number of goals in last row
                         if (rowGoals.size == 1) {
                             Spacer(modifier = GlanceModifier.width(4.dp))
                             EmptyGoalSlot(

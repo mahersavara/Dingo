@@ -286,14 +286,14 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val result = createGoalUseCase(text, imageResId, customImage)
-                
+
                 // Notify widgets about new goal
                 result.getOrNull()?.let { goalId ->
                     val intent = android.content.Intent("io.sukhuat.dingo.GOAL_CREATED").apply {
                         putExtra("goal_id", goalId)
                     }
                     context.sendBroadcast(intent)
-                    android.util.Log.d("HomeViewModel", "🎯 Goal created, widgets notified: $goalId")
+                    android.util.Log.d("HomeViewModel", "🎯📢 BROADCAST SENT: Goal created, widgets notified: $goalId")
                 }
             } catch (e: Exception) {
                 _uiState.value = HomeUiState.Error("Failed to create goal: ${e.message}")
@@ -312,7 +312,7 @@ class HomeViewModel @Inject constructor(
                     putExtra("new_status", status.name)
                 }
                 context.sendBroadcast(intent)
-                android.util.Log.d("HomeViewModel", "🎯 Goal status updated, widgets notified: $goalId -> $status")
+                android.util.Log.d("HomeViewModel", "🎯📢 BROADCAST SENT: Goal status updated, widgets notified: $goalId -> $status")
 
                 // Provide haptic feedback if completing a goal
                 if (status == GoalStatus.COMPLETED) {
@@ -328,6 +328,13 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 updateGoalUseCase.updateText(goalId, text)
+
+                // Notify widgets about goal text update
+                val intent = android.content.Intent("io.sukhuat.dingo.GOAL_UPDATED").apply {
+                    putExtra("goal_id", goalId)
+                }
+                context.sendBroadcast(intent)
+                android.util.Log.d("HomeViewModel", "🎯 Goal text updated, widgets notified: $goalId")
             } catch (e: Exception) {
                 _uiState.value = HomeUiState.Error("Failed to update goal text: ${e.message}")
             }
@@ -345,6 +352,13 @@ class HomeViewModel @Inject constructor(
                     // Restore previous state to avoid disrupting the UI
                     _uiState.value = currentState
 
+                    // Notify widgets about goal image update
+                    val intent = android.content.Intent("io.sukhuat.dingo.GOAL_UPDATED").apply {
+                        putExtra("goal_id", goalId)
+                    }
+                    context.sendBroadcast(intent)
+                    android.util.Log.d("HomeViewModel", "🎯 Goal image updated, widgets notified: $goalId")
+
                     Log.d(TAG, "Goal image updated successfully: $goalId with image $customImage")
                 } else {
                     Log.e(TAG, "Failed to update goal image: ${result.exceptionOrNull()?.message}")
@@ -361,7 +375,7 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 deleteGoalUseCase(goalId)
-                
+
                 // Notify widgets about deleted goal
                 val intent = android.content.Intent("io.sukhuat.dingo.GOAL_DELETED").apply {
                     putExtra("goal_id", goalId)
@@ -378,6 +392,13 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 reorderGoalsUseCase(goalIds)
+
+                // Notify widgets about goal reordering
+                val intent = android.content.Intent("io.sukhuat.dingo.GOAL_UPDATED").apply {
+                    putExtra("goal_ids", goalIds.toTypedArray())
+                }
+                context.sendBroadcast(intent)
+                android.util.Log.d("HomeViewModel", "🎯 Goals reordered, widgets notified")
             } catch (e: Exception) {
                 _uiState.value = HomeUiState.Error("Failed to reorder goals: ${e.message}")
             }
@@ -503,7 +524,16 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 // Create goal with specific position
-                createGoalUseCase(text, imageResId, customImage, position)
+                val result = createGoalUseCase(text, imageResId, customImage, position)
+
+                // Notify widgets about new goal
+                result.getOrNull()?.let { goalId ->
+                    val intent = android.content.Intent("io.sukhuat.dingo.GOAL_CREATED").apply {
+                        putExtra("goal_id", goalId)
+                    }
+                    context.sendBroadcast(intent)
+                    android.util.Log.d("HomeViewModel", "🎯 Goal created at position, widgets notified: $goalId")
+                }
             } catch (e: Exception) {
                 _uiState.value = HomeUiState.Error("Failed to create goal at position: ${e.message}")
             }
@@ -517,6 +547,14 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 reorderGoalsUseCase.moveGoalToPosition(goal.id, newPosition)
+                    .onSuccess {
+                        // Notify widgets about goal reordering
+                        val intent = android.content.Intent("io.sukhuat.dingo.GOAL_UPDATED").apply {
+                            putExtra("goal_id", goal.id)
+                        }
+                        context.sendBroadcast(intent)
+                        android.util.Log.d("HomeViewModel", "🎯 Goal reordered, widgets notified: ${goal.id}")
+                    }
                     .onFailure { error ->
                         _uiState.value = HomeUiState.Error("Failed to reorder goal: ${error.message}")
                     }
