@@ -4,9 +4,6 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
@@ -16,10 +13,7 @@ import javax.inject.Inject
 class WidgetDataChangeReceiver : BroadcastReceiver() {
 
     @Inject
-    lateinit var widgetUpdateScheduler: WidgetUpdateScheduler
-
-    @Inject
-    lateinit var widgetUpdateBroadcaster: WidgetUpdateBroadcaster
+    lateinit var simpleWidgetUpdater: SimpleWidgetUpdater
 
     override fun onReceive(context: Context, intent: Intent) {
         android.util.Log.d("WidgetDataChangeReceiver", "🎯 Broadcast received: ${intent.action}")
@@ -31,38 +25,16 @@ class WidgetDataChangeReceiver : BroadcastReceiver() {
             ACTION_GOAL_STATUS_CHANGED -> {
                 android.util.Log.d("WidgetDataChangeReceiver", "⚡ Goal data changed - updating widgets immediately")
 
-                // EMERGENCY FIX: Update widgets directly for instant response
-                try {
-                    widgetUpdateBroadcaster.updateWidgets(context)
-                    android.util.Log.d("WidgetDataChangeReceiver", "✅ Direct widget update completed")
-                } catch (e: Exception) {
-                    android.util.Log.e("WidgetDataChangeReceiver", "❌ Direct widget update failed", e)
-                }
-
-                // Also schedule via WorkManager as backup
-                CoroutineScope(Dispatchers.IO).launch {
-                    try {
-                        widgetUpdateScheduler.scheduleImmediateUpdate()
-                        android.util.Log.d("WidgetDataChangeReceiver", "📋 WorkManager backup scheduled")
-                    } catch (e: Exception) {
-                        android.util.Log.e("WidgetDataChangeReceiver", "❌ WorkManager scheduling failed", e)
-                    }
-                }
+                // Use simplified widget updater for instant response
+                simpleWidgetUpdater.updateOnDataChange()
+                android.util.Log.d("WidgetDataChangeReceiver", "✅ Simplified widget update completed")
             }
             ACTION_WEEK_CHANGED -> {
                 android.util.Log.d("WidgetDataChangeReceiver", "📅 Week changed - force updating widgets")
 
-                // Direct update for week change
-                try {
-                    widgetUpdateBroadcaster.updateWidgets(context)
-                } catch (e: Exception) {
-                    android.util.Log.e("WidgetDataChangeReceiver", "❌ Week change widget update failed", e)
-                }
-
-                // Force update via WorkManager as backup
-                CoroutineScope(Dispatchers.IO).launch {
-                    widgetUpdateScheduler.forceUpdateNow()
-                }
+                // Use simplified widget updater for week change
+                simpleWidgetUpdater.updateOnDataChange()
+                android.util.Log.d("WidgetDataChangeReceiver", "✅ Week change widget update completed")
             }
         }
     }

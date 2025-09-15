@@ -79,10 +79,8 @@ class WeeklyGoalWidgetUpdateWorker constructor(
 
     private suspend fun updateAllWidgets() {
         try {
-            // Update all widget sizes
+            // Update the single widget
             WeeklyGoalWidget.updateAll(applicationContext)
-            WeeklyGoalWidget2x3.updateAll(applicationContext)
-            WeeklyGoalWidget3x2.updateAll(applicationContext)
         } catch (e: Exception) {
             // Continue with other widgets even if one fails
             throw e

@@ -29,9 +29,7 @@ class OptimizedWidgetUpdateManager @Inject constructor(
         performanceOptimizer.optimizeMemoryUsage()
 
         val updates = mapOf<String, suspend () -> Unit>(
-            "WeeklyGoalWidget_2x2" to { WeeklyGoalWidget.updateAll(context) },
-            "WeeklyGoalWidget_2x3" to { WeeklyGoalWidget2x3.updateAll(context) },
-            "WeeklyGoalWidget_3x2" to { WeeklyGoalWidget3x2.updateAll(context) }
+            "WeeklyGoalWidget" to { WeeklyGoalWidget.updateAll(context) }
         )
 
         val results = performanceOptimizer.batchUpdateWidgets(updates)
@@ -47,13 +45,9 @@ class OptimizedWidgetUpdateManager @Inject constructor(
     /**
      * Update specific widget with performance monitoring
      */
-    suspend fun updateWidgetOptimized(widgetType: WidgetType) {
-        performanceOptimizer.optimizedWidgetUpdate(widgetType.name) {
-            when (widgetType) {
-                WidgetType.SIZE_2X2 -> WeeklyGoalWidget.updateAll(context)
-                WidgetType.SIZE_2X3 -> WeeklyGoalWidget2x3.updateAll(context)
-                WidgetType.SIZE_3X2 -> WeeklyGoalWidget3x2.updateAll(context)
-            }
+    suspend fun updateWidgetOptimized() {
+        performanceOptimizer.optimizedWidgetUpdate("WeeklyGoalWidget") {
+            WeeklyGoalWidget.updateAll(context)
         }
     }
 
@@ -174,11 +168,4 @@ class OptimizedWidgetUpdateManager @Inject constructor(
     }
 }
 
-/**
- * Widget type enumeration for type-safe updates
- */
-enum class WidgetType {
-    SIZE_2X2,
-    SIZE_2X3,
-    SIZE_3X2
-}
+// Removed WidgetType enum since we only have one widget size now

@@ -8,8 +8,6 @@ import androidx.glance.appwidget.action.ActionCallback
 import dagger.hilt.android.EntryPointAccessors
 import io.sukhuat.dingo.domain.model.GoalStatus
 import io.sukhuat.dingo.widget.WeeklyGoalWidget
-import io.sukhuat.dingo.widget.WeeklyGoalWidget2x3
-import io.sukhuat.dingo.widget.WeeklyGoalWidget3x2
 import io.sukhuat.dingo.widget.WeeklyGoalWidgetEntryPoint
 import io.sukhuat.dingo.widget.WidgetDataChangeReceiver
 import kotlinx.coroutines.Dispatchers
@@ -71,12 +69,8 @@ class GoalToggleAction : ActionCallback {
                     newStatus.name
                 )
 
-                // Update the specific widget
-                when (widgetSize) {
-                    "2x2" -> WeeklyGoalWidget.update(context, glanceId)
-                    "2x3" -> WeeklyGoalWidget2x3.update(context, glanceId)
-                    "3x2" -> WeeklyGoalWidget3x2.update(context, glanceId)
-                }
+                // Update the widget
+                WeeklyGoalWidget.update(context, glanceId)
             } catch (e: Exception) {
                 // Show error toast
                 withContext(Dispatchers.Main) {

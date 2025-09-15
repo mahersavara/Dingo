@@ -97,12 +97,8 @@ class RetryWidgetUpdateAction : androidx.glance.appwidget.action.ActionCallback 
     ) {
         val widgetSize = parameters[WIDGET_SIZE_KEY] ?: "2x2"
 
-        // Force immediate update of the specific widget
-        when (widgetSize) {
-            "2x2" -> WeeklyGoalWidget.update(context, glanceId)
-            "2x3" -> WeeklyGoalWidget2x3.update(context, glanceId)
-            "3x2" -> WeeklyGoalWidget3x2.update(context, glanceId)
-        }
+        // Force immediate update of the widget
+        WeeklyGoalWidget.update(context, glanceId)
     }
 
     companion object {

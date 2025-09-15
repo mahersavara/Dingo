@@ -85,7 +85,12 @@
       "Bash(\"./gradlew.bat\" :app:ktlintFormat --no-daemon --quiet)",
       "WebSearch",
       "WebFetch(domain:www.droidcon.com)",
-      "WebFetch(domain:composables.com)"
+      "WebFetch(domain:composables.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Read(//f/Work/ericodyssey/Reference/favorite-apps-widget/**)",
+      "Bash(rm:*)",
+      "Bash(mv:*)"
     ],
     "deny": [],
     "additionalDirectories": [

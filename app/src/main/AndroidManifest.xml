@@ -101,7 +101,7 @@
             </intent-filter>
         </receiver>
 
-        <!-- Weekly Goal Widget Provider 2x2 -->
+        <!-- Weekly Goal Widget Provider (2x3 with image & status) -->
         <receiver
             android:name="io.sukhuat.dingo.widget.WeeklyGoalWidgetProvider"
             android:exported="true">
@@ -112,32 +112,6 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/weekly_goal_widget_info" />
-        </receiver>
-
-        <!-- Weekly Goal Widget Provider 2x3 -->
-        <receiver
-            android:name="io.sukhuat.dingo.widget.WeeklyGoalWidget2x3Provider"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-                <action android:name="io.sukhuat.dingo.widget.UPDATE_WIDGET_2X3" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/weekly_goal_widget_2x3_info" />
-        </receiver>
-
-        <!-- Weekly Goal Widget Provider 3x2 -->
-        <receiver
-            android:name="io.sukhuat.dingo.widget.WeeklyGoalWidget3x2Provider"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-                <action android:name="io.sukhuat.dingo.widget.UPDATE_WIDGET_3X2" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/weekly_goal_widget_3x2_info" />
         </receiver>
 
         <!-- FileProvider for profile image capture -->

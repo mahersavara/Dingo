@@ -35,11 +35,17 @@ import io.sukhuat.dingo.ui.screens.profile.ProfileScreen
 import io.sukhuat.dingo.ui.screens.settings.SettingsScreen
 import io.sukhuat.dingo.ui.screens.splash.SplashScreen
 import io.sukhuat.dingo.ui.screens.yearplanner.YearPlannerScreen
+import io.sukhuat.dingo.widget.SimpleWidgetUpdater
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    // Inject widget updater for lifecycle updates
+    @Inject
+    lateinit var widgetUpdater: SimpleWidgetUpdater
 
     // Track if this is a recreation due to language change
     private var isLanguageChange = false
@@ -96,6 +102,21 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         // Handle deep link from initial launch or new intent
         handleDeepLink(intent)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        // Update widgets when app goes to background
+        // This ensures widgets show latest data when user is on home screen
+        android.util.Log.d("MainActivity", "📱 App paused - updating widgets")
+        widgetUpdater.updateOnAppBackground()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        // Additional widget update when app is stopped
+        android.util.Log.d("MainActivity", "⏹️ App stopped - final widget update")
+        widgetUpdater.updateOnAppBackground()
     }
 
     private fun handleDeepLink(intent: android.content.Intent?) {

@@ -98,40 +98,15 @@ class WeeklyGoalWidgetConfigActivity : ComponentActivity() {
                 android.util.Log.d("WidgetConfig", "Widget ID: $appWidgetId")
                 android.util.Log.d("WidgetConfig", "Show Navigation: $showWeekNavigation")
 
-                // Force trigger the correct widget type
-                when (selectedSize) {
-                    WidgetSize.SIZE_2X2 -> {
-                        android.util.Log.d("WidgetConfig", "🎯 Triggering 2x2 widget updateAll")
-                        WeeklyGoalWidget.updateAll(this@WeeklyGoalWidgetConfigActivity)
+                // Trigger the single widget
+                android.util.Log.d("WidgetConfig", "🎯 Triggering widget updateAll")
+                WeeklyGoalWidget.updateAll(this@WeeklyGoalWidgetConfigActivity)
 
-                        // Also manually trigger provider
-                        val intent = android.content.Intent(android.appwidget.AppWidgetManager.ACTION_APPWIDGET_UPDATE)
-                        intent.component = android.content.ComponentName(this@WeeklyGoalWidgetConfigActivity, WeeklyGoalWidgetProvider::class.java)
-                        intent.putExtra(android.appwidget.AppWidgetManager.EXTRA_APPWIDGET_IDS, intArrayOf(appWidgetId))
-                        sendBroadcast(intent)
-                    }
-                    WidgetSize.SIZE_2X3 -> {
-                        android.util.Log.d("WidgetConfig", "🎯 Triggering 2x3 widget updateAll")
-                        WeeklyGoalWidget2x3.updateAll(this@WeeklyGoalWidgetConfigActivity)
-
-                        // Also manually trigger 2x3 provider
-                        val intent = android.content.Intent(android.appwidget.AppWidgetManager.ACTION_APPWIDGET_UPDATE)
-                        intent.component = android.content.ComponentName(this@WeeklyGoalWidgetConfigActivity, WeeklyGoalWidget2x3Provider::class.java)
-                        intent.putExtra(android.appwidget.AppWidgetManager.EXTRA_APPWIDGET_IDS, intArrayOf(appWidgetId))
-                        sendBroadcast(intent)
-                        android.util.Log.d("WidgetConfig", "🚀 Sent manual broadcast to 2x3 provider")
-                    }
-                    WidgetSize.SIZE_3X2 -> {
-                        android.util.Log.d("WidgetConfig", "🎯 Triggering 3x2 widget updateAll")
-                        WeeklyGoalWidget3x2.updateAll(this@WeeklyGoalWidgetConfigActivity)
-
-                        // Also manually trigger 3x2 provider
-                        val intent = android.content.Intent(android.appwidget.AppWidgetManager.ACTION_APPWIDGET_UPDATE)
-                        intent.component = android.content.ComponentName(this@WeeklyGoalWidgetConfigActivity, WeeklyGoalWidget3x2Provider::class.java)
-                        intent.putExtra(android.appwidget.AppWidgetManager.EXTRA_APPWIDGET_IDS, intArrayOf(appWidgetId))
-                        sendBroadcast(intent)
-                    }
-                }
+                // Also manually trigger provider
+                val intent = android.content.Intent(android.appwidget.AppWidgetManager.ACTION_APPWIDGET_UPDATE)
+                intent.component = android.content.ComponentName(this@WeeklyGoalWidgetConfigActivity, WeeklyGoalWidgetProvider::class.java)
+                intent.putExtra(android.appwidget.AppWidgetManager.EXTRA_APPWIDGET_IDS, intArrayOf(appWidgetId))
+                sendBroadcast(intent)
 
                 android.util.Log.d("WidgetConfig", "✅ Widget update triggered successfully")
 
