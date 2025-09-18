@@ -39,7 +39,6 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
-import java.time.LocalDateTime
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
@@ -76,10 +75,10 @@ class ProfileViewModelTest {
         displayName = "Test User",
         email = "test@example.com",
         profileImageUrl = "https://example.com/image.jpg",
-        joinDate = LocalDateTime.of(2024, 1, 1, 0, 0),
+        joinDate = 1704067200000L, // 2024-01-01 00:00 in milliseconds
         isEmailVerified = true,
         authProvider = AuthProvider.EMAIL_PASSWORD,
-        lastLoginDate = LocalDateTime.of(2024, 7, 18, 10, 0)
+        lastLoginDate = 1721289600000L // 2024-07-18 10:00 in milliseconds
     )
 
     private val testAchievement = Achievement(
@@ -87,7 +86,7 @@ class ProfileViewModelTest {
         title = "First Goal",
         description = "Created your first goal",
         iconResId = 1,
-        unlockedDate = LocalDateTime.of(2024, 1, 15, 10, 0),
+        unlockedDate = 1705312800000L, // 2024-01-15 10:00 in milliseconds
         isUnlocked = true
     )
 
@@ -102,10 +101,10 @@ class ProfileViewModelTest {
     )
 
     private val testUserPreferences = UserPreferences(
-        isDarkModeEnabled = false,
-        isNotificationsEnabled = true,
-        isSoundEnabled = true,
-        isVibrationEnabled = true,
+        darkModeEnabled = false,
+        notificationsEnabled = true,
+        soundEnabled = true,
+        vibrationEnabled = true,
         languageCode = "en"
     )
 

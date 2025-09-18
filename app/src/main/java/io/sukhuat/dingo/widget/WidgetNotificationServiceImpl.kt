@@ -22,6 +22,28 @@ class WidgetNotificationServiceImpl @Inject constructor(
         android.util.Log.d(TAG, "🏗️ WidgetNotificationServiceImpl initialized with broadcaster: $widgetUpdateBroadcaster")
     }
 
+    /**
+     * Schedule immediate widget update with high priority cache refresh
+     */
+    private fun scheduleImmediateWidgetRefresh(operation: String, fallbackBroadcast: () -> Unit) {
+        android.util.Log.d(TAG, "🎯 $operation - scheduling immediate widget refresh with data sync")
+
+        try {
+            // 1. Schedule high-priority WorkManager task for immediate data refresh
+            // The WorkManager task will handle data fetching and cache updates
+            widgetUpdateScheduler.scheduleImmediateUpdate()
+            android.util.Log.d(TAG, "✅ Immediate refresh WorkManager task scheduled for $operation")
+
+            // 2. Also trigger direct widget update as backup
+            updateWidgetsWithAllMethods(operation, fallbackBroadcast)
+
+        } catch (e: Exception) {
+            android.util.Log.e(TAG, "❌ Failed to schedule immediate refresh for $operation", e)
+            // Fall back to regular widget update
+            updateWidgetsWithAllMethods(operation, fallbackBroadcast)
+        }
+    }
+
     private fun updateWidgetsWithAllMethods(operation: String, fallbackBroadcast: () -> Unit) {
         android.util.Log.d(TAG, "🎯 $operation - starting triple widget update approach")
 
@@ -48,25 +70,25 @@ class WidgetNotificationServiceImpl @Inject constructor(
     }
 
     override fun notifyGoalCreated(goalId: String) {
-        updateWidgetsWithAllMethods("Goal Created ($goalId)") {
+        scheduleImmediateWidgetRefresh("Goal Created ($goalId)") {
             WidgetDataChangeReceiver.notifyGoalCreated(context, goalId)
         }
     }
 
     override fun notifyGoalUpdated(goalId: String) {
-        updateWidgetsWithAllMethods("Goal Updated ($goalId)") {
+        scheduleImmediateWidgetRefresh("Goal Updated ($goalId)") {
             WidgetDataChangeReceiver.notifyGoalUpdated(context, goalId)
         }
     }
 
     override fun notifyGoalDeleted(goalId: String) {
-        updateWidgetsWithAllMethods("Goal Deleted ($goalId)") {
+        scheduleImmediateWidgetRefresh("Goal Deleted ($goalId)") {
             WidgetDataChangeReceiver.notifyGoalDeleted(context, goalId)
         }
     }
 
     override fun notifyGoalStatusChanged(goalId: String, newStatus: String) {
-        updateWidgetsWithAllMethods("Goal Status Changed ($goalId -> $newStatus)") {
+        scheduleImmediateWidgetRefresh("Goal Status Changed ($goalId -> $newStatus)") {
             WidgetDataChangeReceiver.notifyGoalStatusChanged(context, goalId, newStatus)
         }
     }
